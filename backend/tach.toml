@@ -1,0 +1,50 @@
+# Enforces the layering documented in .claude/rules/python-patterns.md.
+# Run `uv run tach check` from backend/ — locally, in pre-commit, or in CI.
+
+exclude = [
+    "**/__pycache__",
+    "alembic/",
+    "tests/",
+    "build/",
+    "dist/",
+]
+
+source_roots = ["."]
+
+forbid_circular_dependencies = true
+respect_gitignore = true
+
+# `app.db` and `app.config` are infrastructure shared by domain + repository
+# (Base, engine, session, settings). Marked utility so any layer can import
+# them without polluting depends_on declarations.
+[[modules]]
+path = "app.db"
+utility = true
+
+[[modules]]
+path = "app.config"
+utility = true
+
+[[modules]]
+path = "app.main"
+depends_on = ["app.api", "app.common"]
+
+[[modules]]
+path = "app.api"
+depends_on = ["app.services", "app.common"]
+
+[[modules]]
+path = "app.services"
+depends_on = ["app.domain", "app.repository", "app.common"]
+
+[[modules]]
+path = "app.domain"
+depends_on = ["app.common"]
+
+[[modules]]
+path = "app.repository"
+depends_on = ["app.domain", "app.common"]
+
+[[modules]]
+path = "app.common"
+depends_on = []
