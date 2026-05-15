@@ -64,7 +64,7 @@ MVP example:
 
 ### Maintenance item
 
-A tracked item with a service or replacement interval. It exists to show operational status such as `ok`, `soon`, or `overdue`.
+A tracked item with a service or replacement interval. It exists to show operational status such as `ok`, `soon`, `due`, or `overdue`.
 
 Maintenance items may also provide recommendation input for the usage-based reserve if they include cost assumptions.
 
@@ -177,6 +177,7 @@ Rules:
 - `label` is user-facing copy
 - `technical_key` is an internal stable identifier for system-defined rows
 - user-created custom rows may leave `technical_key` empty
+- `amount` is the baseline amount used when no later modeled expense has superseded it
 
 ### `usage_based_cost`
 
@@ -234,7 +235,7 @@ Rules:
 - `estimated_cost` is optional
 - `tire_type` is nullable
 - `tire_type` is used for tire-specific maintenance rows
-- status such as `ok`, `soon`, or `overdue` is derived
+- status such as `ok`, `soon`, `due`, or `overdue` is derived
 - a maintenance item may become due because of kilometers, elapsed months, or both
 - inactive rows remain visible in history but do not drive future alerts
 - km-based items with an `estimated_cost` may contribute to the derived recommendation for the usage-based reserve rate
@@ -310,6 +311,7 @@ Rules:
 
 - `kind` supports both modeled expenses and manual `Other`
 - `odometer_at_event` is optional but should be supported for vehicle service and replacement history
+- a modeled expense linked to a `time_based_cost` may become the new reference amount for future accrual periods for that source row
 - `source_type` and `source_id` are nullable for manual `Other`
 - posted expenses must remain sufficient to reconstruct balance history
 
@@ -344,7 +346,7 @@ Derived:
 - current odometer
 - monthly allocation suggestion
 - recommendation for usage-based reserve rate
-- maintenance health and due-soon status
+- maintenance health and urgency status
 - dashboard summaries and trends
 
 ## Edit And History Rules
