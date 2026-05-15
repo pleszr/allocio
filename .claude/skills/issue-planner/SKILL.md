@@ -1,5 +1,5 @@
 ---
-name: allocio-issue-planner
+name: issue-planner
 description: Use when the user asks to turn an Allocio GitHub issue, backlog item, or rough feature brief into an execution-ready implementation spec for another agent. Best for requests like "plan GitHub issue 23", "I want to work issue 19", or "draft frontend and backend requirements for this feature". Produces repo-specific requirements with separate frontend and backend sections, with frontend guidance written in more detail and in more explanatory React terms.
 ---
 
@@ -130,6 +130,6 @@ Return sections in this exact order:
 
 ## Example Triggers
 
-- `Use $allocio-issue-planner to plan GitHub issue 23.`
-- `Use $allocio-issue-planner to turn issue 19 into an execution-ready prompt with detailed frontend guidance.`
-- `Use $allocio-issue-planner to split this feature brief into explainy frontend requirements and backend requirements.`
+- `Use $issue-planner to plan GitHub issue 23.`
+- `Use $issue-planner to turn issue 19 into an execution-ready prompt with detailed frontend guidance.`
+- `Use $issue-planner to split this feature brief into explainy frontend requirements and backend requirements.`

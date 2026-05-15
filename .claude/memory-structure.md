@@ -103,7 +103,7 @@ Use for:
 
 Target:
 
-- `.claude/skills/allocio-issue-planner/SKILL.md`
+- `.claude/skills/issue-planner/SKILL.md`
 
 Use for:
 
@@ -116,7 +116,7 @@ Use for:
 
 Target:
 
-- `.claude/skills/allocio-code-review/SKILL.md`
+- `.claude/skills/code-review/SKILL.md`
 
 Use for:
 
@@ -129,7 +129,7 @@ Use for:
 
 Target:
 
-- `.claude/skills/allocio-feedback-memory/SKILL.md`
+- `.claude/skills/feedback-memory/SKILL.md`
 
 Use for:
 
@@ -141,7 +141,7 @@ Use for:
 
 Target:
 
-- `.claude/skills/allocio-pr-prep/SKILL.md`
+- `.claude/skills/pr-prep/SKILL.md`
 
 Use for:
 

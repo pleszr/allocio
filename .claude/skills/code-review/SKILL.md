@@ -1,5 +1,5 @@
 ---
-name: allocio-code-review
+name: code-review
 description: Use this ALWAYS when asked to review code in this repository. Use when asked to review uncommitted changes, staged diffs, pull request diffs, or pasted code snippets, including code written by another model or agent. Prioritize correctness, regressions, security, FastAPI and SQLAlchemy reliability, React and TypeScript maintainability, and test impact. Do not modify code unless explicitly asked.
 ---
 
@@ -177,6 +177,6 @@ If there are no findings, say `No findings.` and still include any testing or co
 
 ## Example Triggers
 
-- `Use $allocio-code-review to review the uncommitted changes in this repo.`
-- `Use $allocio-code-review to review the staged backend changes for correctness and migration risk.`
-- `Use $allocio-code-review to review this React snippet and call out state-management problems.`
+- `Use $code-review to review the uncommitted changes in this repo.`
+- `Use $code-review to review the staged backend changes for correctness and migration risk.`
+- `Use $code-review to review this React snippet and call out state-management problems.`

@@ -1,5 +1,5 @@
 ---
-name: allocio-feedback-memory
+name: feedback-memory
 description: Use when the user explicitly asks to update memory, save feedback, remember a preference, or route a correction to the right repo-local instruction file. Reads `.claude/memory-structure.md`, checks for contradictions and duplicates, shows the exact proposed patch, and only applies the change after user approval.
 ---
 
@@ -80,10 +80,10 @@ If the best action is to update or replace an existing bullet, show the before a
 - Backend workflow changes that are broader than a single Python rule usually belong in `backend/CLAUDE.md`.
 - Frontend workflow changes belong in `frontend/CLAUDE.md`.
 - Database and migration workflow changes belong in `backend/alembic/CLAUDE.md`.
-- Planning workflow changes belong in `.claude/skills/allocio-issue-planner/SKILL.md`.
-- Code-review workflow changes belong in `.claude/skills/allocio-code-review/SKILL.md`.
-- Feedback-routing workflow changes belong in `.claude/skills/allocio-feedback-memory/SKILL.md`.
-- PR-prep workflow changes belong in `.claude/skills/allocio-pr-prep/SKILL.md`.
+- Planning workflow changes belong in `.claude/skills/issue-planner/SKILL.md`.
+- Code-review workflow changes belong in `.claude/skills/code-review/SKILL.md`.
+- Feedback-routing workflow changes belong in `.claude/skills/feedback-memory/SKILL.md`.
+- PR-prep workflow changes belong in `.claude/skills/pr-prep/SKILL.md`.
 - Product or architecture corrections belong in the relevant `docs/*.md` source-of-truth file, not in `.claude` memory.
 
 If no existing file fits:
@@ -102,6 +102,6 @@ If no existing file fits:
 
 ## Example Triggers
 
-- `Use $allocio-feedback-memory to decide where this preference should be saved.`
-- `Use $allocio-feedback-memory to review this correction and prepare the exact memory patch.`
-- `Use $allocio-feedback-memory to update the code review rules with this new preference.`
+- `Use $feedback-memory to decide where this preference should be saved.`
+- `Use $feedback-memory to review this correction and prepare the exact memory patch.`
+- `Use $feedback-memory to update the code review rules with this new preference.`

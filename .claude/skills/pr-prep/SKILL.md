@@ -1,5 +1,5 @@
 ---
-name: allocio-pr-prep
+name: pr-prep
 description: Use before opening a PR in this repository. Audits staged changes and proposes updates to repo-local instruction files such as `CLAUDE.md`, `.claude/rules/*.md`, and `.claude/memory-structure.md`. Also flags skill drift and broader documentation drift. Does not auto-write anything; it presents proposed changes for user approval first.
 ---
 
@@ -121,7 +121,7 @@ Use this format:
 ## Proposed: .claude/memory-structure.md
 - ADD: new skill routing entry for the staged workflow helper
 
-## Flagged skill drift: .claude/skills/allocio-code-review/SKILL.md
+## Flagged skill drift: .claude/skills/code-review/SKILL.md
 - References a file path that no longer exists
 
 ## Existing repo drift: CLAUDE.md
@@ -145,6 +145,6 @@ If no update is needed for an audited file, say `No changes needed.` when that i
 
 ## Example Triggers
 
-- `Use $allocio-pr-prep before I open a PR for these staged changes.`
-- `Use $allocio-pr-prep to audit the staged diff for memory or doc drift.`
-- `Use $allocio-pr-prep to tell me whether CLAUDE.md or .claude rules need updates before PR.`
+- `Use $pr-prep before I open a PR for these staged changes.`
+- `Use $pr-prep to audit the staged diff for memory or doc drift.`
+- `Use $pr-prep to tell me whether CLAUDE.md or .claude rules need updates before PR.`
