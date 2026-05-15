@@ -1,0 +1,4 @@
+interface:
+  display_name: "Allocio Issue Planner"
+  short_description: "Plan Allocio issue implementation work"
+  default_prompt: "Use $allocio-issue-planner to plan GitHub issue 23 with separate frontend and backend requirements."

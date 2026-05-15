@@ -1,0 +1,4 @@
+interface:
+  display_name: "Allocio Feedback Memory"
+  short_description: "Route feedback to Claude memory"
+  default_prompt: "Use $allocio-feedback-memory to decide where this feedback should be saved in .claude or skills, then draft the exact patch."
