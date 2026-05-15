@@ -6,7 +6,7 @@ Allocio is a predictive cost-allocation app that helps users smooth irregular fu
 
 - `backend/` — Python 3.13 FastAPI app, managed with `uv`. Alembic migrations in `backend/alembic/`.
 - `frontend/` — React 18 + TypeScript + Vite. Built into static assets; served by the Python app or reverse proxy.
-- `docs/` — `product-backlog.md`, `technical-stack.md`, `domain-model.md`. Use `domain-model.md` as the source of truth for vehicle-first product entities and defaults.
+- `docs/` — `product-backlog.md`, `technical-stack.md`, `domain-model.md`, `vehicle-rules.md`. Use `domain-model.md` as the source of truth for vehicle-first product entities and defaults, and `vehicle-rules.md` as the source of truth for vehicle accrual and check-in behavior.
 - `docker-compose.yml` — local Postgres only.
 
 ## Tech stack
@@ -33,7 +33,9 @@ Allocio is a predictive cost-allocation app that helps users smooth irregular fu
 - Vehicle is the only first-class `asset.type` in MVP.
 - Use `asset` for the tracked thing and `bucket` for the virtual savings container.
 - `docs/domain-model.md` is the source of truth for entity shape, defaults, and auditability rules.
+- `docs/vehicle-rules.md` is the source of truth for vehicle accrual formulas, maintenance status thresholds, usage-rate guidance, and check-in posting behavior.
 - `usage_based_cost` is one adjustable per-kilometer reserve per vehicle, not a per-part table of accrual rows.
+- time-based cost accrual may use the latest modeled expense amount for that source row as the future reference amount, without rewriting past posted periods.
 - `maintenance_item` may be due by kilometers, by elapsed months, or by whichever threshold is reached first.
 - Tire choice is captured on each check-in and used for tire-specific maintenance tracking.
 - System-defined cost and maintenance rows should have a user-facing `label` and an internal `technical_key`.
@@ -69,3 +71,4 @@ The rules were derived from a full review of `pleszr/skyeGPT/skyegpt-backend` on
 - [Product backlog](docs/product-backlog.md)
 - [Technical stack and infrastructure](docs/technical-stack.md)
 - [Domain model](docs/domain-model.md)
+- [Vehicle rules](docs/vehicle-rules.md)
