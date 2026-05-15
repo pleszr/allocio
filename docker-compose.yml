@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: allocio-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: allocio
+      POSTGRES_PASSWORD: allocio
+      POSTGRES_DB: allocio
+    ports:
+      - "5432:5432"
+    volumes:
+      - allocio-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U allocio -d allocio"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  allocio-postgres-data:
