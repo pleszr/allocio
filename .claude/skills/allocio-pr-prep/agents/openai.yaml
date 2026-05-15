@@ -1,4 +1,0 @@
-interface:
-  display_name: "Allocio PR Prep"
-  short_description: "Audit staged changes before PRs"
-  default_prompt: "Use $allocio-pr-prep to audit the staged changes and propose any needed memory or instruction updates before opening a PR."

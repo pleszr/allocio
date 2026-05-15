@@ -1,4 +1,0 @@
-interface:
-  display_name: "Allocio Code Review"
-  short_description: "Review Allocio code changes"
-  default_prompt: "Use $allocio-code-review to review the staged diff in this repo."
