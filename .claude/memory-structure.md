@@ -164,6 +164,19 @@ Use for:
 
 Note: hook files are executable code; when policy changes, update both the policy text and the enforcing hook so they stay in sync.
 
+### Structural code map and repo tooling
+
+Targets:
+
+- `tools/` (the code-map generator, TS symbol extractor, and PR structural-section verifier)
+- `CLAUDE.md` (`Structural Code Map` section) for the workflow policy
+
+Use for:
+
+- changes to how `docs/code-map.json` is generated, checked, or diffed
+- structural-diff PR-body and CI enforcement expectations
+- symbol-extraction behavior for Python or TypeScript
+
 ## Source-Of-Truth Docs, Not Memory Files
 
 Use these when the feedback is correcting product or architecture facts rather than agent behavior:

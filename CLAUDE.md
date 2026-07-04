@@ -30,6 +30,7 @@ Predictive cost-allocation app for smoothing irregular future vehicle costs into
 - `frontend/` — React 18 + TypeScript + Vite product app. See `frontend/CLAUDE.md`.
 - `backend/alembic/` plus `docker-compose.yml` — PostgreSQL migrations and local database runtime. See `backend/alembic/CLAUDE.md`.
 - `docs/` — source-of-truth product, domain, and architecture docs.
+- `tools/` — deterministic source-derived code map (`code_map.py`), TypeScript symbol extractor (`ts_symbol_map.mjs`), and PR structural-section verifier (`verify_pr_structural_section.py`).
 
 ## Source Of Truth
 
@@ -66,6 +67,14 @@ See the referenced module `CLAUDE.md` files for exact commands. The normal local
 When work starts from an issue-planner requirements file under `.claude/plans/`, the PR body must include that file's contents under a `Requirements` section.
 
 The requirements file is a temporary working artifact. Delete it before the final commit or PR unless Roland explicitly asks to keep it.
+
+The PR body must also include a `Structural Changes` section pasted verbatim from `python tools/code_map.py --diff main...HEAD --format markdown`, including the `<!-- structural-changes:start -->` / `<!-- structural-changes:end -->` markers. The `structural-diff` CI workflow re-generates that section and fails the PR if the body does not match it exactly.
+
+## Structural Code Map
+
+- `docs/code-map.json` is a generated, deterministic map of backend, frontend, and tooling symbols. Regenerate and re-stage it whenever backend, frontend, or tooling source changes: `python tools/code_map.py --write docs/code-map.json && git add docs/code-map.json`.
+- A pre-commit hook (`code-map-staged-check` in `.pre-commit-config.yaml`) blocks commits when staged source and the staged `docs/code-map.json` disagree; the `structural-diff` CI workflow re-checks it on pull requests. The hook only validates — it never regenerates files.
+- Review staged structural changes before commit with `python tools/code_map.py --staged --format markdown`.
 
 ## Secret Scanning
 
