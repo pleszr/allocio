@@ -113,7 +113,9 @@ Return sections in this exact order:
 - For frontend work, include `cd frontend && npm run build`.
 - For backend work, include `cd backend && uv run pytest`.
 - When DB-backed verification matters, include `docker compose up -d postgres` before backend verification commands.
-- Always include a staging step and require evidence that all intended files are staged without committing them.
+- Always end with the git flow: create a feature branch before any commit (never commit on `main`), commit with a descriptive message, push the branch, and open a PR against `main` with `gh pr create`.
+- Require running the `pr-prep` skill and getting its proposals approved before `gh pr create`.
+- Note that a gitleaks pre-commit hook runs on every commit. If it blocks a commit, the executing agent must surface the finding to Roland instead of bypassing it (`--no-verify` is hook-blocked).
 - Do not require commands or tools that the repo does not support today.
 - If the change spans frontend and backend, include verification for both sides.
 

@@ -149,6 +149,21 @@ Use for:
 - what files the PR-prep audit should inspect
 - how staged-change drift versus existing repo drift should be reported
 
+### Git workflow policy and hook enforcement
+
+Targets:
+
+- `CLAUDE.md` (`Git Workflow` and `Secret Scanning` sections) for policy
+- `.claude/hooks/*.py` and `.claude/settings.json` for enforcement
+
+Use for:
+
+- branch, commit, push, and PR rules (e.g. never commit or push to `main`)
+- pre-commit and CI scanning expectations
+- changes to what the Claude Code hooks block
+
+Note: hook files are executable code; when policy changes, update both the policy text and the enforcing hook so they stay in sync.
+
 ## Source-Of-Truth Docs, Not Memory Files
 
 Use these when the feedback is correcting product or architecture facts rather than agent behavior:

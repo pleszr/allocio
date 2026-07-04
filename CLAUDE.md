@@ -4,7 +4,7 @@ Never open responses with filler phrases like "Great question!", "Of course!", "
 
 Match response length to task complexity. Simple questions get direct, short answers. Complex tasks get full, detailed responses. Never pad responses with restatements of the question or closing sentences that repeat what you just said.
 
-Before any significant task, show me 2-3 ways you could approach this work. Wait for me to choose before proceeding.
+Before any significant task, show me 2-3 ways you could approach this work. Wait for me to choose before proceeding. Exception: when executing an already-approved issue-planner spec or following a defined skill workflow, proceed without re-presenting options.
 
 If you are uncertain about any fact, statistic, date, or piece of technical information: say so explicitly before including it. Never fill gaps in your knowledge with plausible-sounding information. When in doubt, say so.
 
@@ -54,6 +54,12 @@ See the referenced module `CLAUDE.md` files for exact commands. The normal local
 3. Start the backend.
 4. Start the frontend.
 5. Optional: run backend tests and a frontend production build.
+
+## Git Workflow
+
+- Claude may create feature branches, commit, push, and open PRs autonomously.
+- Never commit, merge, or push to `main`. Always work on a feature branch and open a PR. Enforced by `.claude/hooks/block-git-main.py`.
+- Run the `pr-prep` skill and get its proposals approved before `gh pr create`. It is audit-only; the git flow itself happens after approval.
 
 ## Secret Scanning
 

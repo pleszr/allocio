@@ -75,16 +75,7 @@ If the best action is to update or replace an existing bullet, show the before a
 
 ## Routing Rules
 
-- Backend coding preferences usually belong in `.claude/rules/python-style.md`, `.claude/rules/python-patterns.md`, or `.claude/rules/python-anti-patterns.md`.
-- Repo-wide workflow changes belong in `CLAUDE.md`.
-- Backend workflow changes that are broader than a single Python rule usually belong in `backend/CLAUDE.md`.
-- Frontend workflow changes belong in `frontend/CLAUDE.md`.
-- Database and migration workflow changes belong in `backend/alembic/CLAUDE.md`.
-- Planning workflow changes belong in `.claude/skills/issue-planner/SKILL.md`.
-- Code-review workflow changes belong in `.claude/skills/code-review/SKILL.md`.
-- Feedback-routing workflow changes belong in `.claude/skills/feedback-memory/SKILL.md`.
-- PR-prep workflow changes belong in `.claude/skills/pr-prep/SKILL.md`.
-- Product or architecture corrections belong in the relevant `docs/*.md` source-of-truth file, not in `.claude` memory.
+`.claude/memory-structure.md` is the single source of truth for routing targets. Do not duplicate its file list here; follow its `Existing Memory Targets` and `Source-Of-Truth Docs` sections.
 
 If no existing file fits:
 
