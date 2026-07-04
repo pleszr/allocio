@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git commit*)",
+            "command": "command -v python3 >/dev/null 2>&1 || exit 0; exec python3 \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/block-git-no-verify.py\"",
+            "statusMessage": "Checking for --no-verify bypass"
+          }
+        ]
+      }
+    ]
+  }
+}

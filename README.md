@@ -11,6 +11,17 @@ Docs:
 
 Prerequisites: Docker, Node 20+, and [uv](https://docs.astral.sh/uv/) (`brew install uv`). uv will install Python 3.13 on first use.
 
+### Secret scanning (one-time setup)
+
+Commits are scanned for secrets by [gitleaks](https://github.com/gitleaks/gitleaks) via a pre-commit hook. After cloning:
+
+```sh
+brew install gitleaks   # one-time: install the scanner
+make setup              # install pre-commit and activate the hook in this clone
+```
+
+The same scan runs in CI on every push and pull request. If a commit is blocked, treat it as a real finding and remove the secret — do not bypass the hook.
+
 The repo has three pieces that run in three terminals: Postgres (Docker), the FastAPI backend, and the Vite frontend.
 
 ### 1. Start Postgres

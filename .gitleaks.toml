@@ -1,0 +1,6 @@
+title = "Allocio gitleaks config"
+
+# Start from the maintained default ruleset. Add custom rules or allowlists
+# below only when a real false positive is confirmed by a scan.
+[extend]
+useDefault = true
