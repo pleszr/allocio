@@ -96,15 +96,21 @@ Use only commands that exist in this repo today.
 - `cd frontend && npm run build`
 - `cd frontend && npm run dev`
 
-### Git Evidence
+### Git Flow
 
+Executing agents finish work with this flow (never commit, merge, or push on `main` — a repo hook blocks it):
+
+- `git checkout -b <feature-branch>`
 - `git add <changed-files>`
 - `git diff --cached --name-only`
-- `git status --short`
+- `git commit -m "<descriptive message>"` (gitleaks pre-commit hook runs; surface findings, never bypass)
+- run the `pr-prep` skill and get approval on its proposals
+- `git push -u origin <feature-branch>`
+- `gh pr create` targeting `main`
 
 ## Current Testing Reality
 
-As of 2026-05-15:
+As of 2026-07-04:
 
 - There are no project-specific backend test files checked into the repo yet.
 - There is no frontend test runner configured yet.

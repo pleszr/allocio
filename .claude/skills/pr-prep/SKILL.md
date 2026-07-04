@@ -1,6 +1,6 @@
 ---
 name: pr-prep
-description: Use before opening a PR in this repository. Audits staged changes and proposes updates to repo-local instruction files such as `CLAUDE.md`, `.claude/rules/*.md`, and `.claude/memory-structure.md`. Also flags skill drift and broader documentation drift. Does not auto-write anything; it presents proposed changes for user approval first.
+description: Mandatory before opening a PR in this repository (before `gh pr create`). Audits staged changes and proposes updates to repo-local instruction files such as `CLAUDE.md`, `.claude/rules/*.md`, and `.claude/memory-structure.md`. Also flags skill drift and broader documentation drift. Does not auto-write anything; it presents proposed changes for user approval first.
 ---
 
 # Allocio PR Prep
@@ -8,6 +8,8 @@ description: Use before opening a PR in this repository. Audits staged changes a
 ## Overview
 
 Audit staged changes before opening a PR and check whether the repository's instruction files still match the codebase. This skill proposes memory and documentation maintenance; it does not write changes until the user approves them.
+
+This audit is the mandatory step between committing on a feature branch and running `gh pr create` (see `CLAUDE.md` Git Workflow). The skill itself stays audit-only: the surrounding workflow performs the push and PR creation after the proposals here are approved.
 
 Read `.claude/memory-structure.md` first.
 
@@ -137,7 +139,7 @@ If no update is needed for an audited file, say `No changes needed.` when that i
 
 ## What This Skill Does Not Do
 
-- It does not create the PR.
+- It does not create the PR. The surrounding workflow runs `git push` and `gh pr create` after this audit's proposals are approved.
 - It does not commit changes.
 - It does not modify code files.
 - It does not auto-write to instruction or doc files.

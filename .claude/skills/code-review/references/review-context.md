@@ -86,7 +86,7 @@ Frontend-specific risks to flag:
 
 ## Current Testing Reality
 
-As of 2026-05-15:
+As of 2026-07-04:
 
 - no frontend test runner is configured yet
 - no project-specific backend tests are checked in yet
