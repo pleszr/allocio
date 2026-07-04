@@ -227,3 +227,10 @@ dist/
 # OS
 .DS_Store
 
+# Local personal / transfer artifacts (never commit)
+/PleszCsalad_costs.xlsx
+/allocio-handoff.zip
+/claude-instructions-transfer.zip
+/transfer/
+.claude/settings.local.json
+
