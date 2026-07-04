@@ -11,6 +11,18 @@ Create execution-ready implementation specs for Allocio work. The output is a pr
 
 Read [references/repo-context.md](references/repo-context.md) before finalizing the first plan in a thread.
 
+## Planning Artifact
+
+Issue-planner output must be written to a temporary Markdown requirements file, not only returned in chat.
+
+Use this filename pattern:
+
+```text
+.claude/plans/<issue-or-short-slug>-requirements.md
+```
+
+The plan file is a working artifact for agentic implementation. It must be used as the implementation requirements source, copied into the eventual PR body under a `Requirements` section, and deleted before the final commit or PR unless Roland explicitly asks to keep it.
+
 ## When To Use
 
 - The user wants to plan work from a GitHub issue number.
@@ -34,7 +46,9 @@ Do not use this skill for direct implementation unless the user explicitly asks 
    - Verify any library-specific behavior against official docs when it materially affects the plan.
    - Ask targeted follow-up questions only when a missing decision would change architecture, schema shape, API contract, or user-visible behavior.
 4. Write the plan.
-   - Return the sections in the exact order defined below.
+   - Create a temporary Markdown requirements file under `.claude/plans/` using the filename pattern from `Planning Artifact`.
+   - Write the sections in the exact order defined below.
+   - Return the path to the created Markdown file and a concise summary in chat.
    - Always call out both frontend and backend, even when one side is explicitly unchanged.
 5. Final pass.
    - Remove vague terms such as "as needed", "if applicable", or "handle errors appropriately".

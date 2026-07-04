@@ -61,6 +61,12 @@ See the referenced module `CLAUDE.md` files for exact commands. The normal local
 - Never commit, merge, or push to `main`. Always work on a feature branch and open a PR. Enforced by `.claude/hooks/block-git-main.py`.
 - Run the `pr-prep` skill and get its proposals approved before `gh pr create`. It is audit-only; the git flow itself happens after approval.
 
+## PR Requirements Artifacts
+
+When work starts from an issue-planner requirements file under `.claude/plans/`, the PR body must include that file's contents under a `Requirements` section.
+
+The requirements file is a temporary working artifact. Delete it before the final commit or PR unless Roland explicitly asks to keep it.
+
 ## Secret Scanning
 
 - Commits run a gitleaks secret scan via a pre-commit hook (`.pre-commit-config.yaml`); run `pre-commit install` once per clone. The same scan runs in CI (`.github/workflows/gitleaks.yml`).
