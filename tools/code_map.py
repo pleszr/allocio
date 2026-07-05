@@ -139,14 +139,13 @@ def _command_markdown_diff(range_expr: str) -> int:
     left, right = _split_range(range_expr)
     base_ref = _merge_base(left, right)
     base_map = _map_at_ref(base_ref)
-    head_map = build_map(REPO_ROOT)
-    changed = _changed_files(["diff", "--name-only", base_ref])
-    changed += _changed_files(["ls-files", "--others", "--exclude-standard"])
+    head_map = _map_at_ref(right)
+    changed = _changed_files(["diff", "--name-only", base_ref, right])
     diff = diff_maps(base_map, head_map, changed)
     context = MarkdownContext(
         compared_range=range_expr,
         base_commit=base_ref,
-        head_commit=f"{_rev_parse(right)} (working tree)",
+        head_commit=_rev_parse(right),
     )
     print(render_markdown(diff, context))
     return 0

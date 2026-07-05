@@ -472,38 +472,38 @@
           "functions": [
             {
               "name": "_change_from",
-              "line_start": 403,
-              "line_end": 410,
+              "line_start": 402,
+              "line_end": 409,
               "hash": "48baa4ea0d31e3b0"
             },
             {
               "name": "_changed_files",
-              "line_start": 643,
-              "line_end": 645,
+              "line_start": 642,
+              "line_end": 644,
               "hash": "1175028522d359cd"
             },
             {
               "name": "_class_entry",
-              "line_start": 217,
-              "line_end": 229,
+              "line_start": 216,
+              "line_end": 228,
               "hash": "52136bd0813faa12"
             },
             {
               "name": "_class_shell_hash",
-              "line_start": 282,
-              "line_end": 294,
+              "line_start": 281,
+              "line_end": 293,
               "hash": "7ef290036d479926"
             },
             {
               "name": "_classify_imports",
-              "line_start": 391,
-              "line_end": 400,
+              "line_start": 390,
+              "line_end": 399,
               "hash": "97c329b398a402d4"
             },
             {
               "name": "_classify_symbols",
-              "line_start": 379,
-              "line_end": 388,
+              "line_start": 378,
+              "line_end": 387,
               "hash": "27fe113068b7762d"
             },
             {
@@ -521,8 +521,8 @@
             {
               "name": "_command_markdown_diff",
               "line_start": 138,
-              "line_end": 152,
-              "hash": "be3d087ae86fe200"
+              "line_end": 151,
+              "hash": "2a0df2de0ddd262c"
             },
             {
               "name": "_command_markdown_staged",
@@ -544,140 +544,140 @@
             },
             {
               "name": "_extract_python",
-              "line_start": 190,
-              "line_end": 214,
+              "line_start": 189,
+              "line_end": 213,
               "hash": "6c7516d0e68d3d58"
             },
             {
               "name": "_files_section",
-              "line_start": 477,
-              "line_end": 486,
+              "line_start": 476,
+              "line_end": 485,
               "hash": "670d9d608ac6616d"
             },
             {
               "name": "_first_string_arg",
-              "line_start": 252,
-              "line_end": 255,
+              "line_start": 251,
+              "line_end": 254,
               "hash": "83d152e97b56ae9f"
             },
             {
               "name": "_focus_section",
-              "line_start": 535,
-              "line_end": 538,
+              "line_start": 534,
+              "line_end": 537,
               "hash": "134591c948b345f9"
             },
             {
               "name": "_frontend_area",
-              "line_start": 301,
-              "line_end": 313,
+              "line_start": 300,
+              "line_end": 312,
               "hash": "77d61e7f8b6308a8"
             },
             {
               "name": "_git",
-              "line_start": 662,
-              "line_end": 671,
+              "line_start": 661,
+              "line_end": 670,
               "hash": "59e9f25ec9aa2bb4"
             },
             {
               "name": "_git_show",
-              "line_start": 674,
-              "line_end": 683,
+              "line_start": 673,
+              "line_end": 682,
               "hash": "217744dfda2a27d8"
             },
             {
               "name": "_git_show_bytes",
-              "line_start": 686,
-              "line_end": 694,
+              "line_start": 685,
+              "line_end": 693,
               "hash": "7c4e0b046c23af57"
             },
             {
               "name": "_has_backend_symbol_changes",
-              "line_start": 568,
-              "line_end": 569,
+              "line_start": 567,
+              "line_end": 568,
               "hash": "4478b77a828650dd"
             },
             {
               "name": "_hash",
-              "line_start": 297,
-              "line_end": 298,
+              "line_start": 296,
+              "line_end": 297,
               "hash": "db71a8006b500dc6"
             },
             {
               "name": "_imports_section",
-              "line_start": 509,
-              "line_end": 519,
+              "line_start": 508,
+              "line_end": 518,
               "hash": "a366ca19dbb2d3c8"
             },
             {
               "name": "_index_file_symbols",
-              "line_start": 424,
-              "line_end": 437,
+              "line_start": 423,
+              "line_end": 436,
               "hash": "468a8cca3b052ff3"
             },
             {
               "name": "_index_map",
-              "line_start": 413,
-              "line_end": 421,
+              "line_start": 412,
+              "line_end": 420,
               "hash": "ddc86a6c7943b204"
             },
             {
               "name": "_is_mapped_source",
-              "line_start": 623,
-              "line_end": 632,
+              "line_start": 622,
+              "line_end": 631,
               "hash": "4187502fa58a726b"
             },
             {
               "name": "_is_test_file",
-              "line_start": 572,
-              "line_end": 573,
+              "line_start": 571,
+              "line_end": 572,
               "hash": "8b940508d5df3604"
             },
             {
               "name": "_iter_changes",
-              "line_start": 560,
-              "line_end": 565,
+              "line_start": 559,
+              "line_end": 564,
               "hash": "16c5c1af227b61d4"
             },
             {
               "name": "_list_index",
-              "line_start": 639,
-              "line_end": 640,
+              "line_start": 638,
+              "line_end": 639,
               "hash": "c879f88b93fae447"
             },
             {
               "name": "_list_tree",
-              "line_start": 635,
-              "line_end": 636,
+              "line_start": 634,
+              "line_end": 635,
               "hash": "8c95d0461b143e61"
             },
             {
               "name": "_map_at_ref",
-              "line_start": 602,
-              "line_end": 604,
+              "line_start": 601,
+              "line_end": 603,
               "hash": "4ac11bbbd4cdccf6"
             },
             {
               "name": "_materialize_index",
-              "line_start": 615,
-              "line_end": 620,
+              "line_start": 614,
+              "line_end": 619,
               "hash": "dc4b4e4e4bb586b3"
             },
             {
               "name": "_materialize_ref",
-              "line_start": 607,
-              "line_end": 612,
+              "line_start": 606,
+              "line_end": 611,
               "hash": "cc351528a9f2ecf8"
             },
             {
               "name": "_merge_base",
-              "line_start": 654,
-              "line_end": 655,
+              "line_start": 653,
+              "line_end": 654,
               "hash": "5466ec99cb0eee1b"
             },
             {
               "name": "_node_hash",
-              "line_start": 278,
-              "line_end": 279,
+              "line_start": 277,
+              "line_end": 278,
               "hash": "a20782971ff67c48"
             },
             {
@@ -688,104 +688,104 @@
             },
             {
               "name": "_put",
-              "line_start": 440,
-              "line_end": 448,
+              "line_start": 439,
+              "line_end": 447,
               "hash": "bc97fa054765c30c"
             },
             {
               "name": "_python_area",
-              "line_start": 178,
-              "line_end": 187,
+              "line_start": 177,
+              "line_end": 186,
               "hash": "8d01fca9b38d0185"
             },
             {
               "name": "_python_imports",
-              "line_start": 267,
-              "line_end": 275,
+              "line_start": 266,
+              "line_end": 274,
               "hash": "21e3b418aa2bac82"
             },
             {
               "name": "_read_text_or_empty",
-              "line_start": 702,
-              "line_end": 706,
+              "line_start": 701,
+              "line_end": 705,
               "hash": "e4326e34bcc1524d"
             },
             {
               "name": "_repo_relative",
-              "line_start": 697,
-              "line_end": 699,
+              "line_start": 696,
+              "line_end": 698,
               "hash": "9eed1682695dc13b"
             },
             {
               "name": "_rev_parse",
-              "line_start": 658,
-              "line_end": 659,
+              "line_start": 657,
+              "line_end": 658,
               "hash": "e5659844eebcb188"
             },
             {
               "name": "_review_focus",
-              "line_start": 541,
-              "line_end": 552,
+              "line_start": 540,
+              "line_end": 551,
               "hash": "3729221ec1c4ee7d"
             },
             {
               "name": "_routes_from_function",
-              "line_start": 232,
-              "line_end": 249,
+              "line_start": 231,
+              "line_end": 248,
               "hash": "bdd412446161a2d9"
             },
             {
               "name": "_routes_section",
-              "line_start": 499,
-              "line_end": 506,
+              "line_start": 498,
+              "line_end": 505,
               "hash": "ba1b3378883e4c59"
             },
             {
               "name": "_split_range",
-              "line_start": 648,
-              "line_end": 651,
+              "line_start": 647,
+              "line_end": 650,
               "hash": "7f17af0157df1c4b"
             },
             {
               "name": "_symbol",
-              "line_start": 258,
-              "line_end": 264,
+              "line_start": 257,
+              "line_end": 263,
               "hash": "f712d4ffd70cc910"
             },
             {
               "name": "_symbol_line",
-              "line_start": 555,
-              "line_end": 557,
+              "line_start": 554,
+              "line_end": 556,
               "hash": "3aee28ba9b98aa9f"
             },
             {
               "name": "_symbols_section",
-              "line_start": 489,
-              "line_end": 496,
+              "line_start": 488,
+              "line_end": 495,
               "hash": "04232f8f0600f8c9"
             },
             {
               "name": "_tests_section",
-              "line_start": 522,
-              "line_end": 532,
+              "line_start": 521,
+              "line_end": 531,
               "hash": "dbedd72a6b34552f"
             },
             {
               "name": "build_map",
-              "line_start": 160,
-              "line_end": 170,
+              "line_start": 159,
+              "line_end": 169,
               "hash": "ab4a1137cf1e7500"
             },
             {
               "name": "diff_maps",
-              "line_start": 362,
-              "line_end": 376,
+              "line_start": 361,
+              "line_end": 375,
               "hash": "fe09726e67d70414"
             },
             {
               "name": "dump_map",
-              "line_start": 173,
-              "line_end": 175,
+              "line_start": 172,
+              "line_end": 174,
               "hash": "81e17fc90f1df94d"
             },
             {
@@ -796,8 +796,8 @@
             },
             {
               "name": "render_markdown",
-              "line_start": 456,
-              "line_end": 474,
+              "line_start": 455,
+              "line_end": 473,
               "hash": "c7fc952749a1523d"
             }
           ],
@@ -811,22 +811,22 @@
             },
             {
               "name": "DiffResult",
-              "line_start": 342,
-              "line_end": 350,
+              "line_start": 341,
+              "line_end": 349,
               "hash": "9f8cf93768863f0e",
               "methods": []
             },
             {
               "name": "ImportChange",
-              "line_start": 333,
-              "line_end": 338,
+              "line_start": 332,
+              "line_end": 337,
               "hash": "ad704c360c13a9e0",
               "methods": []
             },
             {
               "name": "MarkdownContext",
-              "line_start": 354,
-              "line_end": 359,
+              "line_start": 353,
+              "line_end": 358,
               "hash": "a155a02bd00776b4",
               "methods": []
             },
@@ -839,33 +839,33 @@
             },
             {
               "name": "SymbolChange",
-              "line_start": 322,
-              "line_end": 329,
+              "line_start": 321,
+              "line_end": 328,
               "hash": "a194c3440d15637c",
               "methods": []
             },
             {
               "name": "_Materialized",
-              "line_start": 581,
-              "line_end": 599,
+              "line_start": 580,
+              "line_end": 598,
               "hash": "42914242f0116e18",
               "methods": [
                 {
                   "name": "__enter__",
-                  "line_start": 588,
-                  "line_end": 595,
+                  "line_start": 587,
+                  "line_end": 594,
                   "hash": "acfbe5234d0c2297"
                 },
                 {
                   "name": "__exit__",
-                  "line_start": 597,
-                  "line_end": 599,
+                  "line_start": 596,
+                  "line_end": 598,
                   "hash": "7d22a7ac549150a2"
                 },
                 {
                   "name": "__init__",
-                  "line_start": 584,
-                  "line_end": 586,
+                  "line_start": 583,
+                  "line_end": 585,
                   "hash": "af0d602a1efc8fb6"
                 }
               ]
