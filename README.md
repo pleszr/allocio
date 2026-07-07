@@ -9,7 +9,7 @@ Docs:
 
 ## Local development
 
-Prerequisites: Docker, Node 20+, and [uv](https://docs.astral.sh/uv/) (`brew install uv`). uv will install Python 3.13 on first use.
+Prerequisites: Docker, Node 20+, and [uv](https://docs.astral.sh/uv/) (`brew install uv`). uv will install Python 3.14 on first use.
 
 ### Secret scanning (one-time setup)
 

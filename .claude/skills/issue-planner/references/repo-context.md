@@ -22,7 +22,7 @@ Read this when the issue is about scope, decomposition, or how repo issues are w
 
 - Frontend product app: React 18 + TypeScript + Vite
 - Public marketing site: server-rendered HTML from the Python app when it exists
-- Backend: Python 3.13 + FastAPI + SQLAlchemy 2.x + Alembic
+- Backend: Python 3.14 + FastAPI + SQLAlchemy 2.x + Alembic
 - Backend toolchain: `uv`, `pytest`
 - Database: PostgreSQL 16
 - Deployment target: single AWS Lightsail VM for MVP, not managed AWS services by default

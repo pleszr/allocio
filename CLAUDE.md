@@ -68,14 +68,14 @@ When work starts from an issue-planner requirements file under `.claude/plans/`,
 
 The requirements file is a temporary working artifact. Delete it before the final commit or PR unless Roland explicitly asks to keep it.
 
-The PR body must also include a `Structural Changes` section pasted verbatim from `uv run --python 3.13 python tools/code_map.py --diff main...HEAD --format markdown`, including the `<!-- structural-changes:start -->` / `<!-- structural-changes:end -->` markers. The `structural-diff` CI workflow re-generates that section and fails the PR if the body does not match it exactly.
+The PR body must also include a `Structural Changes` section pasted verbatim from `uv run --python 3.14 python tools/code_map.py --diff main...HEAD --format markdown`, including the `<!-- structural-changes:start -->` / `<!-- structural-changes:end -->` markers. The `structural-diff` CI workflow re-generates that section and fails the PR if the body does not match it exactly.
 
 ## Structural Code Map
 
-- `docs/code-map.json` is a generated, deterministic map of backend, frontend, and tooling symbols. Symbol hashes are derived from the parsed AST, so the generator must run under Python 3.13 (the documented runtime) for reproducible output. Always invoke it via `uv run --python 3.13 python tools/code_map.py ...`, never the bare system `python3`.
-- Regenerate and re-stage the map whenever backend, frontend, or tooling source changes: `uv run --python 3.13 python tools/code_map.py --write docs/code-map.json && git add docs/code-map.json`.
+- `docs/code-map.json` is a generated, deterministic map of backend, frontend, and tooling symbols. Symbol hashes are derived from the parsed AST, so the generator must run under Python 3.14 (the documented runtime) for reproducible output. Always invoke it via `uv run --python 3.14 python tools/code_map.py ...`, never the bare system `python3`.
+- Regenerate and re-stage the map whenever backend, frontend, or tooling source changes: `uv run --python 3.14 python tools/code_map.py --write docs/code-map.json && git add docs/code-map.json`.
 - A pre-commit hook (`code-map-staged-check` in `.pre-commit-config.yaml`) blocks commits when staged source and the staged `docs/code-map.json` disagree; the `structural-diff` CI workflow re-checks it on pull requests. The hook only validates — it never regenerates files.
-- Review staged structural changes before commit with `uv run --python 3.13 python tools/code_map.py --staged --format markdown`.
+- Review staged structural changes before commit with `uv run --python 3.14 python tools/code_map.py --staged --format markdown`.
 
 ## Secret Scanning
 

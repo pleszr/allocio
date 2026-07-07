@@ -14,7 +14,7 @@ Derived 2026-05-12 from a full review of `pleszr/skyeGPT/skyegpt-backend` (58 so
 - Type checker: Pyright in `strict` mode on `app/`
 - Import linter: `import-linter` or `tach` to enforce layering (see `python-patterns.md`)
 - Line length: 120
-- Target: py313
+- Target: py314
 - Docstring convention: Google (`[tool.ruff.lint.pydocstyle] convention = "google"`)
 - Ruff `ignore`: `E203`, `D203`, `D213`
 - Per-file ignores: `app/api/**/*.py` → `B008`; `tests/**/*.py` → `D101,D102,D103`; `alembic/versions/*` → `D,E,F`

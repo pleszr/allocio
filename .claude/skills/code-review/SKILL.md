@@ -42,7 +42,7 @@ Read [references/review-context.md](references/review-context.md) before finaliz
      - the PR `## Requirements` section when present
      - the PR `## Structural Changes` section when present
      - `docs/code-map.json`
-     - `uv run --python 3.13 python tools/code_map.py --staged --format markdown` for staged-diff reviews
+     - `uv run --python 3.14 python tools/code_map.py --staged --format markdown` for staged-diff reviews
      - `git diff --stat`
      - `git diff --name-only`
    - Read the diff or snippet first.
@@ -109,7 +109,7 @@ Apply when reviewing `frontend/` changes.
 
 ### 5. Idiomatic Stack Usage
 
-- Backend: Python 3.13, FastAPI, SQLAlchemy, Alembic, `uv`, and repo layering
+- Backend: Python 3.14, FastAPI, SQLAlchemy, Alembic, `uv`, and repo layering
 - Frontend: React 18, TypeScript, Vite, current lightweight app structure
 - Prefer existing repo conventions over introducing new patterns without a strong reason
 - Treat claims about best practices as suspect until validated when they rely on unstable framework behavior
