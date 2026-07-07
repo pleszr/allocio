@@ -34,15 +34,15 @@ git diff --staged --name-only
 git diff --staged
 ```
 
-Then run the deterministic structural checks. These are required before commit:
+Then run the deterministic structural checks. These are required before commit. The generator must run under Python 3.13, so always invoke it via `uv run --python 3.13`:
 
 ```bash
-python tools/code_map.py --check docs/code-map.json
-python tools/code_map.py --staged --format markdown
-python tools/code_map.py --diff main...HEAD --format markdown
+uv run --python 3.13 python tools/code_map.py --check docs/code-map.json
+uv run --python 3.13 python tools/code_map.py --staged --format markdown
+uv run --python 3.13 python tools/code_map.py --diff main...HEAD --format markdown
 ```
 
-- `--check docs/code-map.json` must pass. If it fails, run `python tools/code_map.py --write docs/code-map.json && git add docs/code-map.json` and re-stage before continuing.
+- `--check docs/code-map.json` must pass. If it fails, run `uv run --python 3.13 python tools/code_map.py --write docs/code-map.json && git add docs/code-map.json` and re-stage before continuing.
 - `--staged --format markdown` is the staged-change review surface: read it to confirm the staged symbol, route, import, and component changes match intent before committing.
 - `--diff main...HEAD --format markdown` produces the PR structural section. Capture its full output, including the `<!-- structural-changes:start -->` / `<!-- structural-changes:end -->` markers.
 
@@ -153,7 +153,7 @@ If no update is needed for an audited file, say `No changes needed.` when that i
 
 The surrounding workflow creates the PR after this audit is approved. The PR body it produces must include:
 
-- A `## Structural Changes` section containing the output of `python tools/code_map.py --diff main...HEAD --format markdown` pasted verbatim, including the `<!-- structural-changes:start -->` and `<!-- structural-changes:end -->` markers. The `structural-diff` workflow re-generates this section and fails the PR if the body does not match it exactly.
+- A `## Structural Changes` section containing the output of `uv run --python 3.13 python tools/code_map.py --diff main...HEAD --format markdown` pasted verbatim, including the `<!-- structural-changes:start -->` and `<!-- structural-changes:end -->` markers. The `structural-diff` workflow re-generates this section and fails the PR if the body does not match it exactly.
 - A `## Requirements` section containing the full contents of any issue-planner requirements file used for the implementation (see `CLAUDE.md`). That temporary file under `.claude/plans/` must be deleted before the final commit or PR unless Roland asks to keep it.
 
 ## What This Skill Does Not Do

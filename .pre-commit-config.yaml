@@ -7,7 +7,7 @@ repos:
     hooks:
       - id: code-map-staged-check
         name: code map staged structural check
-        entry: python3 tools/code_map.py --check-staged docs/code-map.json
+        entry: uv run --python 3.13 python tools/code_map.py --check-staged docs/code-map.json
         language: system
         pass_filenames: false
         files: '^(backend/app/|backend/alembic/versions/|tools/.*\.py$|frontend/src/|docs/code-map\.json$)'

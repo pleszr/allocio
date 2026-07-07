@@ -27,6 +27,7 @@ from pathlib import Path
 
 SCHEMA_VERSION = 1
 GENERATOR = "tools/code_map.py"
+CANONICAL_PYTHON = (3, 13)
 REPO_ROOT = Path(__file__).resolve().parent.parent
 NODE_SCRIPT = REPO_ROOT / "tools" / "ts_symbol_map.mjs"
 
@@ -54,10 +55,22 @@ def main(argv: list[str] | None = None) -> int:
     """Dispatch a code-map command and return a process exit code."""
     args = _parse_args(argv)
     try:
+        _require_canonical_python()
         return _dispatch(args)
     except CodeMapError as exc:
         print(str(exc), file=sys.stderr)
         return 1
+
+
+def _require_canonical_python() -> None:
+    if sys.version_info[:2] == CANONICAL_PYTHON:
+        return
+    want = f"{CANONICAL_PYTHON[0]}.{CANONICAL_PYTHON[1]}"
+    have = f"{sys.version_info.major}.{sys.version_info.minor}"
+    raise CodeMapError(
+        f"code_map.py must run under Python {want} for reproducible symbol hashes "
+        f"(found {have}). Run: uv run --python {want} python tools/code_map.py ..."
+    )
 
 
 def _dispatch(args: argparse.Namespace) -> int:

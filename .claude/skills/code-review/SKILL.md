@@ -42,7 +42,7 @@ Read [references/review-context.md](references/review-context.md) before finaliz
      - the PR `## Requirements` section when present
      - the PR `## Structural Changes` section when present
      - `docs/code-map.json`
-     - `python tools/code_map.py --staged --format markdown` for staged-diff reviews
+     - `uv run --python 3.13 python tools/code_map.py --staged --format markdown` for staged-diff reviews
      - `git diff --stat`
      - `git diff --name-only`
    - Read the diff or snippet first.
