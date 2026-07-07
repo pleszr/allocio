@@ -153,7 +153,7 @@ If no update is needed for an audited file, say `No changes needed.` when that i
 
 The surrounding workflow creates the PR after this audit is approved. The PR body it produces must include:
 
-- A `## Structural Changes` section containing the output of `uv run --python 3.13 python tools/code_map.py --diff main...HEAD --format markdown` pasted verbatim, including the `<!-- structural-changes:start -->` and `<!-- structural-changes:end -->` markers. The `structural-diff` workflow re-generates this section and fails the PR if the body does not match it exactly.
+- A `## Structural Changes` section containing the output of `uv run --python 3.13 python tools/code_map.py --diff main...HEAD --format markdown` pasted verbatim, including the `<!-- structural-changes:start -->` and `<!-- structural-changes:end -->` markers. The `structural-diff` workflow re-generates this section and fails the PR if the body does not match it exactly. The section embeds the head commit SHA and head-relative line numbers, so generate it from the final pushed `HEAD` and only then set the PR body. The workflow runs on `edited` pull-request events, so updating the body to match the pushed commit re-triggers the check.
 - A `## Requirements` section containing the full contents of any issue-planner requirements file used for the implementation (see `CLAUDE.md`). That temporary file under `.claude/plans/` must be deleted before the final commit or PR unless Roland asks to keep it.
 
 ## What This Skill Does Not Do
