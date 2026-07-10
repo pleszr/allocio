@@ -73,8 +73,9 @@ The PR body must also include a `Structural Changes` section pasted verbatim fro
 ## Structural Code Map
 
 - `docs/code-map.json` is a generated, deterministic map of backend, frontend, and tooling symbols. Symbol hashes are derived from the parsed AST, so the generator must run under Python 3.14 (the documented runtime) for reproducible output. Always invoke it via `uv run --python 3.14 python tools/code_map.py ...`, never the bare system `python3`.
-- Regenerate and re-stage the map whenever backend, frontend, or tooling source changes: `uv run --python 3.14 python tools/code_map.py --write docs/code-map.json && git add docs/code-map.json`.
-- A pre-commit hook (`code-map-staged-check` in `.pre-commit-config.yaml`) blocks commits when staged source and the staged `docs/code-map.json` disagree; the `structural-diff` CI workflow re-checks it on pull requests. The hook only validates — it never regenerates files.
+- `docs/code-map.md` is the generated human-readable architecture overview (a per-area Mermaid module graph plus a symbol outline). It is derived from the same parsed source — deterministic, no LLM. Regenerate it alongside the JSON whenever source changes: `uv run --python 3.14 python tools/code_map.py --write-overview docs/code-map.md && git add docs/code-map.md`.
+- Regenerate and re-stage the JSON map whenever backend, frontend, or tooling source changes: `uv run --python 3.14 python tools/code_map.py --write docs/code-map.json && git add docs/code-map.json`.
+- Pre-commit hooks (`code-map-staged-check` and `code-map-overview-check` in `.pre-commit-config.yaml`) block commits when staged source and the staged `docs/code-map.json` or `docs/code-map.md` disagree; the `structural-diff` CI workflow re-checks both on pull requests. The hooks only validate — they never regenerate files.
 - Review staged structural changes before commit with `uv run --python 3.14 python tools/code_map.py --staged --format markdown`.
 
 ## Secret Scanning

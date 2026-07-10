@@ -38,11 +38,13 @@ Then run the deterministic structural checks. These are required before commit. 
 
 ```bash
 uv run --python 3.14 python tools/code_map.py --check docs/code-map.json
+uv run --python 3.14 python tools/code_map.py --check-overview docs/code-map.md
 uv run --python 3.14 python tools/code_map.py --staged --format markdown
 uv run --python 3.14 python tools/code_map.py --diff main...HEAD --format markdown
 ```
 
 - `--check docs/code-map.json` must pass. If it fails, run `uv run --python 3.14 python tools/code_map.py --write docs/code-map.json && git add docs/code-map.json` and re-stage before continuing.
+- `--check-overview docs/code-map.md` must pass. If it fails, run `uv run --python 3.14 python tools/code_map.py --write-overview docs/code-map.md && git add docs/code-map.md` and re-stage.
 - `--staged --format markdown` is the staged-change review surface: read it to confirm the staged symbol, route, import, and component changes match intent before committing.
 - `--diff main...HEAD --format markdown` produces the PR structural section. Capture its full output, including the `<!-- structural-changes:start -->` / `<!-- structural-changes:end -->` markers.
 

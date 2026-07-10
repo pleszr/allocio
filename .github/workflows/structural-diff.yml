@@ -25,6 +25,9 @@ jobs:
       - name: Check code map is current
         run: uv run --python 3.14 python tools/code_map.py --check docs/code-map.json
 
+      - name: Check architecture overview is current
+        run: uv run --python 3.14 python tools/code_map.py --check-overview docs/code-map.md
+
       - name: Generate structural diff for the PR range
         run: |
           uv run --python 3.14 python tools/code_map.py \

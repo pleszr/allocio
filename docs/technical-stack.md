@@ -202,7 +202,7 @@ At that point likely changes are:
 
 ## Developer Tooling
 
-- A deterministic code map (`tools/code_map.py`, Python standard library only) generates `docs/code-map.json` and renders structural PR diffs.
+- A deterministic code map (`tools/code_map.py`, Python standard library only) generates `docs/code-map.json`, renders structural PR diffs, and writes a human-readable architecture overview (`docs/code-map.md`: per-area Mermaid module graph plus symbol outline).
 - TypeScript/TSX symbol extraction (`tools/ts_symbol_map.mjs`) reuses the frontend `typescript` dependency via the TypeScript compiler API; it adds no new runtime dependency.
 - These are development and review tools, not part of the deployed runtime stack.
 

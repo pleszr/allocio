@@ -275,6 +275,52 @@ def test_verify_fails_when_section_tampered(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
+# Architecture overview (docs/code-map.md)
+# --------------------------------------------------------------------------- #
+
+
+def test_overview_renders_area_outline(tmp_path):
+    entry = _py_entry(
+        tmp_path,
+        "backend/app/api/things.py",
+        'from fastapi import APIRouter\n\nrouter = APIRouter()\n\n\n@router.get("/things")\ndef list_things():\n    return []\n',
+    )
+    md = cm.render_overview(_map(backend=[entry]))
+    assert "## Backend" in md
+    assert "### backend/app/api/things.py" in md
+    assert "`GET /things` → list_things" in md
+    assert "**fn** `list_things`" in md
+
+
+def test_overview_backend_module_graph_edge(tmp_path):
+    service = _py_entry(tmp_path, "backend/app/services/s.py", "from app.domain.x import X\n\n\ndef go():\n    return X()\n")
+    domain = _py_entry(tmp_path, "backend/app/domain/x.py", "class X:\n    pass\n")
+    md = cm.render_overview(_map(backend=[domain, service]))
+    assert "```mermaid" in md
+    assert "n_backend_app_services_s_py --> n_backend_app_domain_x_py" in md
+
+
+def test_overview_frontend_component_and_relative_import():
+    app = {"path": "frontend/src/App.tsx", "language": "typescript", "imports": ["react"], "exports": ["App", "default"],
+           "functions": [{"name": "App", "line_start": 9, "line_end": 42, "hash": "h"}], "classes": [],
+           "components": [{"name": "App", "line_start": 9, "line_end": 42, "hash": "h"}]}
+    main = {"path": "frontend/src/main.tsx", "language": "typescript", "imports": ["./App", "react"], "exports": [],
+            "functions": [], "classes": [], "components": []}
+    md = cm.render_overview(_map(frontend=[app, main]))
+    assert "## Frontend" in md
+    assert "**component** `App`" in md
+    assert "n_frontend_src_main_tsx --> n_frontend_src_App_tsx" in md
+    # App is a component, not also listed as a bare function
+    assert "**fn** `App`" not in md
+
+
+def test_overview_is_deterministic(tmp_path):
+    entry = _py_entry(tmp_path, "backend/app/svc.py", "class S:\n    def m(self):\n        return 1\n")
+    code_map = _map(backend=[entry])
+    assert cm.render_overview(code_map) == cm.render_overview(code_map)
+
+
+# --------------------------------------------------------------------------- #
 # TypeScript extractor smoke test
 # --------------------------------------------------------------------------- #
 
