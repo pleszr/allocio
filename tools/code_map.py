@@ -40,6 +40,26 @@ MARKER_END = "<!-- structural-changes:end -->"
 HTTP_METHODS = {"get", "post", "put", "patch", "delete", "head", "options", "trace"}
 _HASH_WIDTH = 16
 
+# Architectural layers for the overview module graph. Path segment -> subgraph
+# title; LAYER_ORDER fixes the left-to-right cluster order so the render is stable.
+LAYER_SEGMENTS = (
+    ("app/api/", "API"),
+    ("app/services/", "Services"),
+    ("app/repository/", "Repository"),
+    ("app/domain/", "Domain"),
+    ("app/common/", "Common"),
+    ("alembic/", "Migrations"),
+    ("src/pages/", "Pages"),
+    ("src/components/", "Components"),
+    ("src/hooks/", "Hooks"),
+    ("src/context/", "State"),
+    ("src/api/", "API"),
+)
+LAYER_ORDER = (
+    "App", "Pages", "Components", "Hooks", "State",
+    "API", "Services", "Repository", "Domain", "Common", "Migrations", "Tooling", "Other",
+)
+
 
 class CodeMapError(Exception):
     """A recoverable or reportable failure while building the code map."""
@@ -687,14 +707,42 @@ def _overview_graph(files: list[dict], prefix: str) -> list[str]:
     if not edges:
         return []
     nodes = sorted({node for edge in edges for node in edge})
-    lines = ["```mermaid", "graph LR"]
     identifier = {node: _mermaid_id(node) for node in nodes}
-    for node in nodes:
-        lines.append(f'  {identifier[node]}["{_strip_prefix(node, prefix)}"]')
+    lines = ["```mermaid", "graph LR"]
+    lines += _overview_graph_layers(nodes, identifier, prefix)
     for source, target in sorted(edges):
         lines.append(f"  {identifier[source]} --> {identifier[target]}")
     lines += ["```", ""]
     return lines
+
+
+def _overview_graph_layers(nodes: list[str], identifier: dict[str, str], prefix: str) -> list[str]:
+    grouped: dict[str, list[str]] = {}
+    for node in nodes:
+        grouped.setdefault(_layer_of(node), []).append(node)
+    lines = []
+    for layer in LAYER_ORDER:
+        members = grouped.get(layer)
+        if not members:
+            continue
+        lines.append(f"  subgraph {layer}")
+        for node in sorted(members):
+            lines.append(f'    {identifier[node]}["{_strip_prefix(node, prefix)}"]')
+        lines.append("  end")
+    return lines
+
+
+def _layer_of(path: str) -> str:
+    for segment, title in LAYER_SEGMENTS:
+        if segment in path:
+            return title
+    if path.startswith("backend/app/"):
+        return "Common"
+    if path.startswith("frontend/src/"):
+        return "App"
+    if path.startswith("tools/"):
+        return "Tooling"
+    return "Other"
 
 
 def _python_module_index(files: list[dict]) -> dict[str, str]:

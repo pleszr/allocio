@@ -300,6 +300,14 @@ def test_overview_backend_module_graph_edge(tmp_path):
     assert "n_backend_app_services_s_py --> n_backend_app_domain_x_py" in md
 
 
+def test_overview_graph_groups_by_layer(tmp_path):
+    service = _py_entry(tmp_path, "backend/app/services/s.py", "from app.domain.x import X\n\n\ndef go():\n    return X()\n")
+    domain = _py_entry(tmp_path, "backend/app/domain/x.py", "class X:\n    pass\n")
+    md = cm.render_overview(_map(backend=[domain, service]))
+    assert "subgraph Services" in md
+    assert "subgraph Domain" in md
+
+
 def test_overview_frontend_component_and_relative_import():
     app = {"path": "frontend/src/App.tsx", "language": "typescript", "imports": ["react"], "exports": ["App", "default"],
            "functions": [{"name": "App", "line_start": 9, "line_end": 42, "hash": "h"}], "classes": [],

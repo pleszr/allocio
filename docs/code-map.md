@@ -8,21 +8,31 @@ Deterministic architecture overview — a module graph and a symbol outline per 
 
 ```mermaid
 graph LR
-  n_backend_app_api___init___py["app/api/__init__.py"]
-  n_backend_app_api_greetings_py["app/api/greetings.py"]
-  n_backend_app_api_health_py["app/api/health.py"]
-  n_backend_app_api_schemas_responses_py["app/api/schemas/responses.py"]
-  n_backend_app_common___init___py["app/common/__init__.py"]
-  n_backend_app_common_exceptions_py["app/common/exceptions.py"]
-  n_backend_app_common_message_bundle_py["app/common/message_bundle.py"]
-  n_backend_app_config_py["app/config.py"]
-  n_backend_app_db_py["app/db.py"]
-  n_backend_app_domain_greeting_py["app/domain/greeting.py"]
-  n_backend_app_main_py["app/main.py"]
-  n_backend_app_repository___init___py["app/repository/__init__.py"]
-  n_backend_app_repository_greetings_repository_py["app/repository/greetings_repository.py"]
-  n_backend_app_services_dependencies_py["app/services/dependencies.py"]
-  n_backend_app_services_greetings_service_py["app/services/greetings_service.py"]
+  subgraph API
+    n_backend_app_api___init___py["app/api/__init__.py"]
+    n_backend_app_api_greetings_py["app/api/greetings.py"]
+    n_backend_app_api_health_py["app/api/health.py"]
+    n_backend_app_api_schemas_responses_py["app/api/schemas/responses.py"]
+  end
+  subgraph Services
+    n_backend_app_services_dependencies_py["app/services/dependencies.py"]
+    n_backend_app_services_greetings_service_py["app/services/greetings_service.py"]
+  end
+  subgraph Repository
+    n_backend_app_repository___init___py["app/repository/__init__.py"]
+    n_backend_app_repository_greetings_repository_py["app/repository/greetings_repository.py"]
+  end
+  subgraph Domain
+    n_backend_app_domain_greeting_py["app/domain/greeting.py"]
+  end
+  subgraph Common
+    n_backend_app_common___init___py["app/common/__init__.py"]
+    n_backend_app_common_exceptions_py["app/common/exceptions.py"]
+    n_backend_app_common_message_bundle_py["app/common/message_bundle.py"]
+    n_backend_app_config_py["app/config.py"]
+    n_backend_app_db_py["app/db.py"]
+    n_backend_app_main_py["app/main.py"]
+  end
   n_backend_app_api_greetings_py --> n_backend_app_api_schemas_responses_py
   n_backend_app_api_greetings_py --> n_backend_app_common___init___py
   n_backend_app_api_greetings_py --> n_backend_app_db_py
@@ -110,8 +120,10 @@ graph LR
 
 ```mermaid
 graph LR
-  n_frontend_src_App_tsx["src/App.tsx"]
-  n_frontend_src_main_tsx["src/main.tsx"]
+  subgraph App
+    n_frontend_src_App_tsx["src/App.tsx"]
+    n_frontend_src_main_tsx["src/main.tsx"]
+  end
   n_frontend_src_main_tsx --> n_frontend_src_App_tsx
 ```
 
@@ -123,84 +135,86 @@ graph LR
 
 ### tools/code_map.py
 
-- **class** `CodeMapError` · L44–45
-- **class** `DiffResult` · L378–386
-- **class** `ImportChange` · L369–374
-- **class** `MarkdownContext` · L390–395
-- **class** `ParseError` · L48–49
-- **class** `SymbolChange` · L358–365
-- **class** `_Materialized` · L752–770
-  - `__enter__()` · L759–766
-  - `__exit__()` · L768–770
-  - `__init__()` · L755–757
-- **fn** `_change_from` · L439–446
-- **fn** `_changed_files` · L814–816
-- **fn** `_class_entry` · L253–265
-- **fn** `_class_shell_hash` · L318–330
-- **fn** `_classify_imports` · L427–436
-- **fn** `_classify_symbols` · L415–424
-- **fn** `_command_check` · L123–130
-- **fn** `_command_check_overview` · L166–172
-- **fn** `_command_check_staged` · L133–142
-- **fn** `_command_markdown_diff` · L175–188
-- **fn** `_command_markdown_staged` · L145–157
-- **fn** `_command_write` · L116–120
-- **fn** `_command_write_overview` · L160–163
-- **fn** `_dispatch` · L79–95
-- **fn** `_extract_python` · L226–250
-- **fn** `_files_section` · L513–522
-- **fn** `_first_string_arg` · L288–291
-- **fn** `_focus_section` · L571–574
-- **fn** `_frontend_area` · L337–349
-- **fn** `_git` · L833–842
-- **fn** `_git_show` · L845–854
-- **fn** `_git_show_bytes` · L857–865
-- **fn** `_has_backend_symbol_changes` · L604–605
-- **fn** `_hash` · L333–334
-- **fn** `_imports_section` · L545–555
-- **fn** `_index_file_symbols` · L460–473
-- **fn** `_index_map` · L449–457
-- **fn** `_is_mapped_source` · L794–803
-- **fn** `_is_test_file` · L608–609
-- **fn** `_iter_changes` · L596–601
-- **fn** `_list_index` · L810–811
-- **fn** `_list_tree` · L806–807
-- **fn** `_loc` · L669–674
-- **fn** `_map_at_ref` · L773–775
-- **fn** `_materialize_index` · L786–791
-- **fn** `_materialize_ref` · L778–783
-- **fn** `_merge_base` · L825–826
-- **fn** `_mermaid_id` · L743–744
-- **fn** `_node_hash` · L314–315
-- **fn** `_overview_area` · L636–643
-- **fn** `_overview_file` · L646–666
-- **fn** `_overview_graph` · L677–697
-- **fn** `_parse_args` · L98–108
-- **fn** `_put` · L476–484
-- **fn** `_python_area` · L214–223
-- **fn** `_python_imports` · L303–311
-- **fn** `_python_module_index` · L700–712
-- **fn** `_read_text_or_empty` · L873–877
-- **fn** `_repo_relative` · L868–870
-- **fn** `_require_canonical_python` · L68–76
-- **fn** `_resolve_import` · L715–718
-- **fn** `_resolve_relative_import` · L721–736
-- **fn** `_rev_parse` · L829–830
-- **fn** `_review_focus` · L577–588
-- **fn** `_routes_from_function` · L268–285
-- **fn** `_routes_section` · L535–542
-- **fn** `_split_range` · L819–822
-- **fn** `_strip_prefix` · L739–740
-- **fn** `_symbol` · L294–300
-- **fn** `_symbol_line` · L591–593
-- **fn** `_symbols_section` · L525–532
-- **fn** `_tests_section` · L558–568
-- **fn** `build_map` · L196–206
-- **fn** `diff_maps` · L398–412
-- **fn** `dump_map` · L209–211
-- **fn** `main` · L57–65
-- **fn** `render_markdown` · L492–510
-- **fn** `render_overview` · L617–633
+- **class** `CodeMapError` · L64–65
+- **class** `DiffResult` · L398–406
+- **class** `ImportChange` · L389–394
+- **class** `MarkdownContext` · L410–415
+- **class** `ParseError` · L68–69
+- **class** `SymbolChange` · L378–385
+- **class** `_Materialized` · L800–818
+  - `__enter__()` · L807–814
+  - `__exit__()` · L816–818
+  - `__init__()` · L803–805
+- **fn** `_change_from` · L459–466
+- **fn** `_changed_files` · L862–864
+- **fn** `_class_entry` · L273–285
+- **fn** `_class_shell_hash` · L338–350
+- **fn** `_classify_imports` · L447–456
+- **fn** `_classify_symbols` · L435–444
+- **fn** `_command_check` · L143–150
+- **fn** `_command_check_overview` · L186–192
+- **fn** `_command_check_staged` · L153–162
+- **fn** `_command_markdown_diff` · L195–208
+- **fn** `_command_markdown_staged` · L165–177
+- **fn** `_command_write` · L136–140
+- **fn** `_command_write_overview` · L180–183
+- **fn** `_dispatch` · L99–115
+- **fn** `_extract_python` · L246–270
+- **fn** `_files_section` · L533–542
+- **fn** `_first_string_arg` · L308–311
+- **fn** `_focus_section` · L591–594
+- **fn** `_frontend_area` · L357–369
+- **fn** `_git` · L881–890
+- **fn** `_git_show` · L893–902
+- **fn** `_git_show_bytes` · L905–913
+- **fn** `_has_backend_symbol_changes` · L624–625
+- **fn** `_hash` · L353–354
+- **fn** `_imports_section` · L565–575
+- **fn** `_index_file_symbols` · L480–493
+- **fn** `_index_map` · L469–477
+- **fn** `_is_mapped_source` · L842–851
+- **fn** `_is_test_file` · L628–629
+- **fn** `_iter_changes` · L616–621
+- **fn** `_layer_of` · L735–745
+- **fn** `_list_index` · L858–859
+- **fn** `_list_tree` · L854–855
+- **fn** `_loc` · L689–694
+- **fn** `_map_at_ref` · L821–823
+- **fn** `_materialize_index` · L834–839
+- **fn** `_materialize_ref` · L826–831
+- **fn** `_merge_base` · L873–874
+- **fn** `_mermaid_id` · L791–792
+- **fn** `_node_hash` · L334–335
+- **fn** `_overview_area` · L656–663
+- **fn** `_overview_file` · L666–686
+- **fn** `_overview_graph` · L697–716
+- **fn** `_overview_graph_layers` · L719–732
+- **fn** `_parse_args` · L118–128
+- **fn** `_put` · L496–504
+- **fn** `_python_area` · L234–243
+- **fn** `_python_imports` · L323–331
+- **fn** `_python_module_index` · L748–760
+- **fn** `_read_text_or_empty` · L921–925
+- **fn** `_repo_relative` · L916–918
+- **fn** `_require_canonical_python` · L88–96
+- **fn** `_resolve_import` · L763–766
+- **fn** `_resolve_relative_import` · L769–784
+- **fn** `_rev_parse` · L877–878
+- **fn** `_review_focus` · L597–608
+- **fn** `_routes_from_function` · L288–305
+- **fn** `_routes_section` · L555–562
+- **fn** `_split_range` · L867–870
+- **fn** `_strip_prefix` · L787–788
+- **fn** `_symbol` · L314–320
+- **fn** `_symbol_line` · L611–613
+- **fn** `_symbols_section` · L545–552
+- **fn** `_tests_section` · L578–588
+- **fn** `build_map` · L216–226
+- **fn** `diff_maps` · L418–432
+- **fn** `dump_map` · L229–231
+- **fn** `main` · L77–85
+- **fn** `render_markdown` · L512–530
+- **fn** `render_overview` · L637–653
 
 ### tools/verify_pr_structural_section.py
 
