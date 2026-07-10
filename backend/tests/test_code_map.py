@@ -322,6 +322,16 @@ def test_overview_frontend_component_and_relative_import():
     assert "**fn** `App`" not in md
 
 
+def test_overview_section_has_area_graphs(tmp_path):
+    service = _py_entry(tmp_path, "backend/app/services/s.py", "from app.domain.x import X\n\n\ndef go():\n    return X()\n")
+    domain = _py_entry(tmp_path, "backend/app/domain/x.py", "class X:\n    pass\n")
+    section = cm.render_overview_section(_map(backend=[domain, service]))
+    assert "## Architecture Overview" in section
+    assert "### Backend module graph" in section
+    assert "subgraph Services" in section
+    assert "```mermaid" in section
+
+
 def test_overview_is_deterministic(tmp_path):
     entry = _py_entry(tmp_path, "backend/app/svc.py", "class S:\n    def m(self):\n        return 1\n")
     code_map = _map(backend=[entry])

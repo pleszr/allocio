@@ -41,12 +41,14 @@ uv run --python 3.14 python tools/code_map.py --check docs/code-map.json
 uv run --python 3.14 python tools/code_map.py --check-overview docs/code-map.md
 uv run --python 3.14 python tools/code_map.py --staged --format markdown
 uv run --python 3.14 python tools/code_map.py --diff main...HEAD --format markdown
+uv run --python 3.14 python tools/code_map.py --overview-section
 ```
 
 - `--check docs/code-map.json` must pass. If it fails, run `uv run --python 3.14 python tools/code_map.py --write docs/code-map.json && git add docs/code-map.json` and re-stage before continuing.
 - `--check-overview docs/code-map.md` must pass. If it fails, run `uv run --python 3.14 python tools/code_map.py --write-overview docs/code-map.md && git add docs/code-map.md` and re-stage.
 - `--staged --format markdown` is the staged-change review surface: read it to confirm the staged symbol, route, import, and component changes match intent before committing.
 - `--diff main...HEAD --format markdown` produces the PR structural section. Capture its full output, including the `<!-- structural-changes:start -->` / `<!-- structural-changes:end -->` markers.
+- `--overview-section` produces the PR Architecture Overview: the per-area Mermaid module graphs that render inline in the GitHub Conversation tab.
 
 Identify:
 
@@ -156,6 +158,7 @@ If no update is needed for an audited file, say `No changes needed.` when that i
 The surrounding workflow creates the PR after this audit is approved. The PR body it produces must include:
 
 - A `## Structural Changes` section containing the output of `uv run --python 3.14 python tools/code_map.py --diff main...HEAD --format markdown` pasted verbatim, including the `<!-- structural-changes:start -->` and `<!-- structural-changes:end -->` markers. The `structural-diff` workflow re-generates this section and fails the PR if the body does not match it exactly. The section embeds the head commit SHA and head-relative line numbers, so generate it from the final pushed `HEAD` and only then set the PR body. The workflow runs on `edited` pull-request events, so updating the body to match the pushed commit re-triggers the check.
+- An `## Architecture Overview` section containing the output of `uv run --python 3.14 python tools/code_map.py --overview-section` pasted verbatim, so the backend and frontend module graphs render inline in the Conversation tab. Regenerate it from the final pushed `HEAD` alongside the structural section. Unlike `## Structural Changes`, this section is not CI-verified — it is an orientation aid.
 - A `## Requirements` section containing the full contents of any issue-planner requirements file used for the implementation (see `CLAUDE.md`). That temporary file under `.claude/plans/` must be deleted before the final commit or PR unless Roland asks to keep it.
 
 ## What This Skill Does Not Do

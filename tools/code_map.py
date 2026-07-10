@@ -14,6 +14,7 @@ Commands:
     python tools/code_map.py --diff main...HEAD --format markdown
     python tools/code_map.py --write-overview docs/code-map.md
     python tools/code_map.py --check-overview docs/code-map.md
+    python tools/code_map.py --overview-section
 """
 from __future__ import annotations
 
@@ -111,6 +112,8 @@ def _dispatch(args: argparse.Namespace) -> int:
         return _command_write_overview(Path(args.write_overview))
     if args.check_overview:
         return _command_check_overview(Path(args.check_overview))
+    if args.overview_section:
+        return _command_overview_section()
     print("No command given. See --help.", file=sys.stderr)
     return 1
 
@@ -125,6 +128,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--format", choices=["markdown"], help="Output format for --staged and --diff.")
     parser.add_argument("--write-overview", dest="write_overview", metavar="PATH", help="Write the human-readable architecture overview to PATH.")
     parser.add_argument("--check-overview", dest="check_overview", metavar="PATH", help="Fail if the overview PATH is stale versus the working tree.")
+    parser.add_argument("--overview-section", dest="overview_section", action="store_true", help="Print the per-area module graphs as a PR-body Architecture Overview section.")
     return parser.parse_args(argv)
 
 
@@ -190,6 +194,11 @@ def _command_check_overview(path: Path) -> int:
     print(f"{path} is stale versus the working tree.", file=sys.stderr)
     print(f"Run: python tools/code_map.py --write-overview {path}", file=sys.stderr)
     return 1
+
+
+def _command_overview_section() -> int:
+    print(render_overview_section(build_map(REPO_ROOT)))
+    return 0
 
 
 def _command_markdown_diff(range_expr: str) -> int:
@@ -650,6 +659,22 @@ def render_overview(code_map: dict) -> str:
     lines += _overview_area("Backend", code_map["areas"]["backend"]["files"], "backend/")
     lines += _overview_area("Frontend", code_map["areas"]["frontend"]["files"], "frontend/")
     lines += _overview_area("Tooling", code_map["areas"]["tooling"]["files"], "")
+    return "\n".join(lines).rstrip("\n") + "\n"
+
+
+def render_overview_section(code_map: dict) -> str:
+    """Render the PR-body Architecture Overview: the per-area module graphs only."""
+    lines = [
+        "## Architecture Overview",
+        "",
+        "_Deterministic module graph per area, generated from parsed source (no LLM). "
+        "Full detail with symbol outlines is in `docs/code-map.md`._",
+        "",
+    ]
+    for title, area, prefix in (("Backend", "backend", "backend/"), ("Frontend", "frontend", "frontend/")):
+        graph = _overview_graph(code_map["areas"][area]["files"], prefix)
+        if graph:
+            lines += [f"### {title} module graph", ""] + graph
     return "\n".join(lines).rstrip("\n") + "\n"
 
 
