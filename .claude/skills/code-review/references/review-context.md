@@ -18,7 +18,7 @@ Read these when the reviewed change touches product rules or persistence semanti
 ## Stack
 
 - Frontend: React 18 + TypeScript + Vite
-- Backend: Python 3.13 + FastAPI + SQLAlchemy 2.x + Alembic
+- Backend: Python 3.14 + FastAPI + SQLAlchemy 2.x + Alembic
 - Database: PostgreSQL 16
 - Deployment target: single Lightsail VM for MVP
 

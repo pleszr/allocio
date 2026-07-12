@@ -1,6 +1,6 @@
 # Allocio Backend
 
-FastAPI backend for Allocio. Python 3.13, SQLAlchemy 2.x, Alembic, psycopg 3, and `uv`.
+FastAPI backend for Allocio. Python 3.14, SQLAlchemy 2.x, Alembic, psycopg 3, and `uv`.
 
 ## Structure
 

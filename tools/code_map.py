@@ -27,7 +27,7 @@ from pathlib import Path
 
 SCHEMA_VERSION = 1
 GENERATOR = "tools/code_map.py"
-CANONICAL_PYTHON = (3, 13)
+CANONICAL_PYTHON = (3, 14)
 REPO_ROOT = Path(__file__).resolve().parent.parent
 NODE_SCRIPT = REPO_ROOT / "tools" / "ts_symbol_map.mjs"
 

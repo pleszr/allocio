@@ -23,11 +23,11 @@ jobs:
         run: cd frontend && npm install
 
       - name: Check code map is current
-        run: uv run --python 3.13 python tools/code_map.py --check docs/code-map.json
+        run: uv run --python 3.14 python tools/code_map.py --check docs/code-map.json
 
       - name: Generate structural diff for the PR range
         run: |
-          uv run --python 3.13 python tools/code_map.py \
+          uv run --python 3.14 python tools/code_map.py \
             --diff "origin/${{ github.base_ref }}...HEAD" \
             --format markdown > structural-diff.md
           cat structural-diff.md
@@ -35,4 +35,4 @@ jobs:
       - name: Verify the PR body contains the structural section
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
-        run: uv run --python 3.13 python tools/verify_pr_structural_section.py --expected structural-diff.md
+        run: uv run --python 3.14 python tools/verify_pr_structural_section.py --expected structural-diff.md

@@ -1,7 +1,7 @@
 # Allocio Technical Stack And Infrastructure
 
 Status: Chosen for MVP v1
-Last updated: 2026-07-04
+Last updated: 2026-07-07
 
 ## Purpose
 
@@ -41,7 +41,7 @@ Reasoning:
 
 ### Backend
 
-- Python 3.13
+- Python 3.14
 - FastAPI
 - SQLAlchemy 2.x
 - Alembic for schema migrations
