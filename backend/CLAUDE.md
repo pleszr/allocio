@@ -6,7 +6,7 @@ FastAPI backend for Allocio. Python 3.14, SQLAlchemy 2.x, Alembic, psycopg 3, an
 
 - `app/main.py` — FastAPI app composition and exception handlers
 - `app/api/` — routers and API schema modules
-- `app/services/` — use-case orchestration; add `dependencies.py` for `get_*_service()` `Depends` providers when the first service lands
+- `app/services/` — use-case orchestration; `dependencies.py` holds `get_*_service()` and other `Depends` providers
 - `app/repository/` — persistence access
 - `app/domain/` — domain and persistence models
 - `app/common/` — shared exceptions, logger, and messages
@@ -28,7 +28,7 @@ uv run pytest
 - Preserve the current layering:
   - `app/api/` -> `app/services/` -> `app/repository/` / `app/domain/`
 - Keep route handlers thin and move orchestration into service classes.
-- Put FastAPI `Depends` providers in `app/services/dependencies.py` (create it when adding the first service).
+- Put FastAPI `Depends` providers in `app/services/dependencies.py`.
 - Use typed app exceptions instead of raw `Exception`.
 - If a backend change alters business rules, validate it against `docs/domain-model.md` and `docs/vehicle-rules.md`.
 - If a backend change alters schema or persistence shape, coordinate it with an Alembic migration and the database guide.

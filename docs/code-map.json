@@ -31,6 +31,30 @@
           "routes": []
         },
         {
+          "path": "backend/alembic/versions/0003_allow_other_maintenance_no_interval.py",
+          "language": "python",
+          "imports": [
+            "alembic",
+            "typing"
+          ],
+          "functions": [
+            {
+              "name": "downgrade",
+              "line_start": 27,
+              "line_end": 29,
+              "hash": "85f1fcc33e506fe0"
+            },
+            {
+              "name": "upgrade",
+              "line_start": 22,
+              "line_end": 24,
+              "hash": "471874be851564c3"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        },
+        {
           "path": "backend/app/__init__.py",
           "language": "python",
           "imports": [],
@@ -82,7 +106,7 @@
           "routes": []
         },
         {
-          "path": "backend/app/api/schemas/responses.py",
+          "path": "backend/app/api/schemas/requests.py",
           "language": "python",
           "imports": [
             "pydantic"
@@ -90,14 +114,116 @@
           "functions": [],
           "classes": [
             {
-              "name": "HealthResponse",
+              "name": "CreateVehicleRequest",
               "line_start": 5,
-              "line_end": 8,
-              "hash": "e814a3bf78429c15",
+              "line_end": 20,
+              "hash": "50acc57d812205fe",
               "methods": []
             }
           ],
           "routes": []
+        },
+        {
+          "path": "backend/app/api/schemas/responses.py",
+          "language": "python",
+          "imports": [
+            "datetime",
+            "decimal",
+            "pydantic",
+            "uuid"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "AssetResponse",
+              "line_start": 15,
+              "line_end": 25,
+              "hash": "150916c4a03f3606",
+              "methods": []
+            },
+            {
+              "name": "BucketResponse",
+              "line_start": 40,
+              "line_end": 48,
+              "hash": "b12b05c9272cb618",
+              "methods": []
+            },
+            {
+              "name": "CreateVehicleResponse",
+              "line_start": 95,
+              "line_end": 105,
+              "hash": "49dc5efd23a0abbe",
+              "methods": []
+            },
+            {
+              "name": "HealthResponse",
+              "line_start": 9,
+              "line_end": 12,
+              "hash": "e814a3bf78429c15",
+              "methods": []
+            },
+            {
+              "name": "MaintenanceItemResponse",
+              "line_start": 80,
+              "line_end": 92,
+              "hash": "af865d9c25f28782",
+              "methods": []
+            },
+            {
+              "name": "TimeBasedCostResponse",
+              "line_start": 51,
+              "line_end": 62,
+              "hash": "5336631767f0e3ff",
+              "methods": []
+            },
+            {
+              "name": "UsageBasedCostResponse",
+              "line_start": 65,
+              "line_end": 77,
+              "hash": "e30af42e95f79425",
+              "methods": []
+            },
+            {
+              "name": "VehicleProfileResponse",
+              "line_start": 28,
+              "line_end": 37,
+              "hash": "7b2d696b7b2a71f4",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
+          "path": "backend/app/api/vehicles.py",
+          "language": "python",
+          "imports": [
+            "app.api.schemas.requests",
+            "app.api.schemas.responses",
+            "app.common.message_bundle",
+            "app.services.dependencies",
+            "app.services.vehicle_service",
+            "fastapi",
+            "uuid"
+          ],
+          "functions": [
+            {
+              "name": "create_vehicle",
+              "line_start": 29,
+              "line_end": 45,
+              "hash": "ed82de6de7cc2c55"
+            }
+          ],
+          "classes": [],
+          "routes": [
+            {
+              "method": "post",
+              "path": "/vehicles",
+              "handler": "create_vehicle",
+              "line_start": 29,
+              "line_end": 45,
+              "hash": "ed82de6de7cc2c55"
+            }
+          ]
         },
         {
           "path": "backend/app/common/__init__.py",
@@ -338,8 +464,8 @@
             {
               "name": "MaintenanceItem",
               "line_start": 49,
-              "line_end": 72,
-              "hash": "7800cc4dcb3ac2e9",
+              "line_end": 73,
+              "hash": "44b171daea4946ef",
               "methods": []
             },
             {
@@ -413,8 +539,8 @@
           "functions": [
             {
               "name": "_not_found_handler",
-              "line_start": 14,
-              "line_end": 15,
+              "line_start": 15,
+              "line_end": 16,
               "hash": "9a953235772419d0"
             }
           ],
@@ -430,11 +556,107 @@
           "routes": []
         },
         {
+          "path": "backend/app/repository/vehicle_repository.py",
+          "language": "python",
+          "imports": [
+            "app.domain.asset",
+            "app.domain.cost",
+            "sqlalchemy.orm"
+          ],
+          "functions": [
+            {
+              "name": "insert_vehicle_dependents",
+              "line_start": 19,
+              "line_end": 37,
+              "hash": "6840c1811d593e75"
+            },
+            {
+              "name": "persist_asset",
+              "line_start": 9,
+              "line_end": 16,
+              "hash": "5f9f06f3cee7a188"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        },
+        {
           "path": "backend/app/services/__init__.py",
           "language": "python",
           "imports": [],
           "functions": [],
           "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/services/dependencies.py",
+          "language": "python",
+          "imports": [
+            "app.db",
+            "app.services.vehicle_service",
+            "fastapi",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [
+            {
+              "name": "get_current_user_id",
+              "line_start": 13,
+              "line_end": 15,
+              "hash": "e2d5767e2d9f43e8"
+            },
+            {
+              "name": "get_vehicle_service",
+              "line_start": 18,
+              "line_end": 20,
+              "hash": "589b2f3cc07fc76c"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/services/vehicle_service.py",
+          "language": "python",
+          "imports": [
+            "app.domain.asset",
+            "app.domain.cost",
+            "app.domain.vehicle_defaults",
+            "app.repository.vehicle_repository",
+            "dataclasses",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "CreatedVehicle",
+              "line_start": 17,
+              "line_end": 25,
+              "hash": "837c0efbbbc5e73f",
+              "methods": []
+            },
+            {
+              "name": "VehicleService",
+              "line_start": 28,
+              "line_end": 72,
+              "hash": "90137885631966dd",
+              "methods": [
+                {
+                  "name": "__init__",
+                  "line_start": 31,
+                  "line_end": 32,
+                  "hash": "2c8f2810305a160d"
+                },
+                {
+                  "name": "create_vehicle",
+                  "line_start": 34,
+                  "line_end": 72,
+                  "hash": "28bfc3efb1207048"
+                }
+              ]
+            }
+          ],
           "routes": []
         }
       ]
