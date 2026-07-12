@@ -30,6 +30,32 @@
           "routes": []
         },
         {
+          "path": "backend/alembic/versions/0002_create_vehicle_schema.py",
+          "language": "python",
+          "imports": [
+            "alembic",
+            "sqlalchemy",
+            "sqlalchemy.dialects",
+            "typing"
+          ],
+          "functions": [
+            {
+              "name": "downgrade",
+              "line_start": 166,
+              "line_end": 175,
+              "hash": "4f4542fc6eb5f21c"
+            },
+            {
+              "name": "upgrade",
+              "line_start": 21,
+              "line_end": 163,
+              "hash": "a03d5fef2dbb8d55"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        },
+        {
           "path": "backend/app/__init__.py",
           "language": "python",
           "imports": [],
@@ -282,6 +308,119 @@
           "imports": [],
           "functions": [],
           "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/domain/asset.py",
+          "language": "python",
+          "imports": [
+            "app.db",
+            "datetime",
+            "sqlalchemy",
+            "sqlalchemy.dialects.postgresql",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "Asset",
+              "line_start": 13,
+              "line_end": 26,
+              "hash": "c16394d2370c7f8f",
+              "methods": []
+            },
+            {
+              "name": "Bucket",
+              "line_start": 43,
+              "line_end": 56,
+              "hash": "e8faf7f12696f1f6",
+              "methods": []
+            },
+            {
+              "name": "VehicleProfile",
+              "line_start": 29,
+              "line_end": 40,
+              "hash": "3721d0f43c2daa2a",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
+          "path": "backend/app/domain/check_in.py",
+          "language": "python",
+          "imports": [
+            "app.db",
+            "datetime",
+            "decimal",
+            "sqlalchemy",
+            "sqlalchemy.dialects.postgresql",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "AllocationEvent",
+              "line_start": 34,
+              "line_end": 52,
+              "hash": "6e4e360c2cc65718",
+              "methods": []
+            },
+            {
+              "name": "CheckIn",
+              "line_start": 14,
+              "line_end": 31,
+              "hash": "a566de5710d44432",
+              "methods": []
+            },
+            {
+              "name": "ExpenseEvent",
+              "line_start": 55,
+              "line_end": 76,
+              "hash": "9a5ae4adeaac5145",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
+          "path": "backend/app/domain/cost.py",
+          "language": "python",
+          "imports": [
+            "app.db",
+            "datetime",
+            "decimal",
+            "sqlalchemy",
+            "sqlalchemy.dialects.postgresql",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "MaintenanceItem",
+              "line_start": 49,
+              "line_end": 72,
+              "hash": "7800cc4dcb3ac2e9",
+              "methods": []
+            },
+            {
+              "name": "TimeBasedCost",
+              "line_start": 14,
+              "line_end": 29,
+              "hash": "de16afcb2ffc9665",
+              "methods": []
+            },
+            {
+              "name": "UsageBasedCost",
+              "line_start": 32,
+              "line_end": 46,
+              "hash": "b6b0729ec3bd4af1",
+              "methods": []
+            }
+          ],
           "routes": []
         },
         {

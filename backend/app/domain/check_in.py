@@ -1,0 +1,76 @@
+"""Check-in and posted-event ORM models: check-ins plus immutable allocation and expense events."""
+
+import uuid
+from datetime import date, datetime
+from decimal import Decimal
+
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, Text, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db import Base
+
+
+class CheckIn(Base):
+    """Monthly review record for one asset; posting it creates the period's auditable events."""
+
+    __tablename__ = "check_ins"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"), default=uuid.uuid4
+    )
+    asset_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("assets.id"), nullable=False, index=True)
+    period_start: Mapped[date] = mapped_column(Date, nullable=False)
+    period_end: Mapped[date] = mapped_column(Date, nullable=False)
+    checked_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    odometer_start: Mapped[int] = mapped_column(Integer, nullable=False)
+    odometer_end: Mapped[int] = mapped_column(Integer, nullable=False)
+    usage_km: Mapped[int] = mapped_column(Integer, nullable=False)
+    active_tire_type: Mapped[str | None] = mapped_column(String, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String, nullable=False, server_default=text("'draft'"))
+
+
+class AllocationEvent(Base):
+    """Immutable posted inflow moving value into the bucket."""
+
+    __tablename__ = "allocation_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"), default=uuid.uuid4
+    )
+    bucket_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("buckets.id"), nullable=False, index=True
+    )
+    check_in_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("check_ins.id"), nullable=False, index=True
+    )
+    event_date: Mapped[date] = mapped_column(Date, nullable=False)
+    source_type: Mapped[str] = mapped_column(String, nullable=False)
+    source_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    metadata_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+
+class ExpenseEvent(Base):
+    """Posted outflow moving value out of the bucket; may be a manual `other` expense."""
+
+    __tablename__ = "expense_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"), default=uuid.uuid4
+    )
+    bucket_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("buckets.id"), nullable=False, index=True
+    )
+    check_in_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("check_ins.id"), nullable=True, index=True
+    )
+    event_date: Mapped[date] = mapped_column(Date, nullable=False)
+    odometer_at_event: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    kind: Mapped[str] = mapped_column(String, nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_type: Mapped[str | None] = mapped_column(String, nullable=True)
+    source_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    metadata_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
