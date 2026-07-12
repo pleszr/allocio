@@ -1,0 +1,38 @@
+name: structural-diff
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+permissions:
+  contents: read
+jobs:
+  structural-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+
+      - name: Check code map is current
+        run: uv run --python 3.13 python tools/code_map.py --check docs/code-map.json
+
+      - name: Generate structural diff for the PR range
+        run: |
+          uv run --python 3.13 python tools/code_map.py \
+            --diff "origin/${{ github.base_ref }}...HEAD" \
+            --format markdown > structural-diff.md
+          cat structural-diff.md
+
+      - name: Verify the PR body contains the structural section
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: uv run --python 3.13 python tools/verify_pr_structural_section.py --expected structural-diff.md

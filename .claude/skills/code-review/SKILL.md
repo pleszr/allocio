@@ -38,6 +38,13 @@ Read [references/review-context.md](references/review-context.md) before finaliz
    - `unknown`
    - If the source is unknown, apply the stricter `ai-authored` validation to risky API or framework usage instead of asking by default.
 3. Gather context.
+   - For `diff mode`, start by reading the deterministic structural context before the line-level diff:
+     - the PR `## Requirements` section when present
+     - the PR `## Structural Changes` section when present
+     - `docs/code-map.json`
+     - `uv run --python 3.13 python tools/code_map.py --staged --format markdown` for staged-diff reviews
+     - `git diff --stat`
+     - `git diff --name-only`
    - Read the diff or snippet first.
    - Read only the minimal surrounding code needed to validate behavior.
    - Read the relevant docs from [references/review-context.md](references/review-context.md) when domain rules, persistence rules, or review standards matter.
@@ -126,7 +133,7 @@ Apply when reviewing `frontend/` changes.
 - Prefer behavioral verification over shallow implementation testing.
 - Respect the current repo reality:
   - no frontend test runner is configured yet
-  - no project-specific backend tests are checked in yet
+  - backend tests live under `backend/tests/` and run via `uv run pytest`
 - If tests are missing, explain the risk concretely rather than asking for generic coverage.
 
 ## AI-Authored Code Rules

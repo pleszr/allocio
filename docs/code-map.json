@@ -1,0 +1,954 @@
+{
+  "schema_version": 1,
+  "generator": "tools/code_map.py",
+  "areas": {
+    "backend": {
+      "files": [
+        {
+          "path": "backend/alembic/versions/0001_create_greetings.py",
+          "language": "python",
+          "imports": [
+            "alembic",
+            "sqlalchemy",
+            "typing"
+          ],
+          "functions": [
+            {
+              "name": "downgrade",
+              "line_start": 36,
+              "line_end": 37,
+              "hash": "e6ca31fa9b11fa2d"
+            },
+            {
+              "name": "upgrade",
+              "line_start": 20,
+              "line_end": 33,
+              "hash": "ba1dd426493fb232"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/__init__.py",
+          "language": "python",
+          "imports": [],
+          "functions": [],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/api/__init__.py",
+          "language": "python",
+          "imports": [],
+          "functions": [],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/api/greetings.py",
+          "language": "python",
+          "imports": [
+            "app.api.schemas.responses",
+            "app.common",
+            "app.db",
+            "app.services.dependencies",
+            "app.services.greetings_service",
+            "fastapi",
+            "sqlalchemy.orm"
+          ],
+          "functions": [
+            {
+              "name": "get_greeting",
+              "line_start": 26,
+              "line_end": 32,
+              "hash": "e1bac15840d8b373"
+            }
+          ],
+          "classes": [],
+          "routes": [
+            {
+              "method": "get",
+              "path": "/greeting",
+              "handler": "get_greeting",
+              "line_start": 26,
+              "line_end": 32,
+              "hash": "e1bac15840d8b373"
+            }
+          ]
+        },
+        {
+          "path": "backend/app/api/health.py",
+          "language": "python",
+          "imports": [
+            "app.api.schemas.responses",
+            "fastapi"
+          ],
+          "functions": [
+            {
+              "name": "health",
+              "line_start": 17,
+              "line_end": 19,
+              "hash": "dd7cf1aa312e008d"
+            }
+          ],
+          "classes": [],
+          "routes": [
+            {
+              "method": "get",
+              "path": "/health",
+              "handler": "health",
+              "line_start": 17,
+              "line_end": 19,
+              "hash": "dd7cf1aa312e008d"
+            }
+          ]
+        },
+        {
+          "path": "backend/app/api/schemas/__init__.py",
+          "language": "python",
+          "imports": [],
+          "functions": [],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/api/schemas/responses.py",
+          "language": "python",
+          "imports": [
+            "pydantic"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "GreetingResponse",
+              "line_start": 5,
+              "line_end": 11,
+              "hash": "4d9ad4ee923f49cb",
+              "methods": []
+            },
+            {
+              "name": "HealthResponse",
+              "line_start": 14,
+              "line_end": 17,
+              "hash": "e814a3bf78429c15",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
+          "path": "backend/app/common/__init__.py",
+          "language": "python",
+          "imports": [],
+          "functions": [],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/common/exceptions.py",
+          "language": "python",
+          "imports": [],
+          "functions": [],
+          "classes": [
+            {
+              "name": "AllocioException",
+              "line_start": 4,
+              "line_end": 5,
+              "hash": "e610555ec179cf65",
+              "methods": []
+            },
+            {
+              "name": "NotFoundError",
+              "line_start": 8,
+              "line_end": 9,
+              "hash": "230ef3fad82bc985",
+              "methods": []
+            },
+            {
+              "name": "ValidationError",
+              "line_start": 12,
+              "line_end": 13,
+              "hash": "85e458e789e7e376",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
+          "path": "backend/app/common/logger.py",
+          "language": "python",
+          "imports": [
+            "logging"
+          ],
+          "functions": [
+            {
+              "name": "critical",
+              "line_start": 32,
+              "line_end": 34,
+              "hash": "bec2bbfc2b9478a8"
+            },
+            {
+              "name": "debug",
+              "line_start": 7,
+              "line_end": 9,
+              "hash": "fbfbd96246d08d49"
+            },
+            {
+              "name": "error",
+              "line_start": 22,
+              "line_end": 24,
+              "hash": "602ebc2af1f7a029"
+            },
+            {
+              "name": "exception",
+              "line_start": 27,
+              "line_end": 29,
+              "hash": "7487e246513400d5"
+            },
+            {
+              "name": "info",
+              "line_start": 12,
+              "line_end": 14,
+              "hash": "7d0c7a02cd10cd58"
+            },
+            {
+              "name": "warning",
+              "line_start": 17,
+              "line_end": 19,
+              "hash": "c82708be289e1fb3"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/common/message_bundle.py",
+          "language": "python",
+          "imports": [],
+          "functions": [],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/config.py",
+          "language": "python",
+          "imports": [
+            "pydantic_settings"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "Settings",
+              "line_start": 4,
+              "line_end": 7,
+              "hash": "2280de3f6aa232eb",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
+          "path": "backend/app/db.py",
+          "language": "python",
+          "imports": [
+            "app.config",
+            "collections.abc",
+            "sqlalchemy",
+            "sqlalchemy.orm"
+          ],
+          "functions": [
+            {
+              "name": "get_session",
+              "line_start": 16,
+              "line_end": 21,
+              "hash": "c5076ce787da7174"
+            }
+          ],
+          "classes": [
+            {
+              "name": "Base",
+              "line_start": 12,
+              "line_end": 13,
+              "hash": "2f52f1b8e7edd193",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
+          "path": "backend/app/domain/__init__.py",
+          "language": "python",
+          "imports": [],
+          "functions": [],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/domain/greeting.py",
+          "language": "python",
+          "imports": [
+            "app.db",
+            "sqlalchemy.orm"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "Greeting",
+              "line_start": 7,
+              "line_end": 13,
+              "hash": "1f9b2b042976b8b4",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
+          "path": "backend/app/main.py",
+          "language": "python",
+          "imports": [
+            "app.api",
+            "app.common.exceptions",
+            "fastapi",
+            "fastapi.responses"
+          ],
+          "functions": [
+            {
+              "name": "_not_found_handler",
+              "line_start": 15,
+              "line_end": 16,
+              "hash": "9a953235772419d0"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/repository/__init__.py",
+          "language": "python",
+          "imports": [],
+          "functions": [],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/repository/greetings_repository.py",
+          "language": "python",
+          "imports": [
+            "app.common.exceptions",
+            "app.common.message_bundle",
+            "app.domain.greeting",
+            "sqlalchemy",
+            "sqlalchemy.orm"
+          ],
+          "functions": [
+            {
+              "name": "get_first_greeting",
+              "line_start": 10,
+              "line_end": 15,
+              "hash": "4d8dd6ef7ee1d75c"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/services/__init__.py",
+          "language": "python",
+          "imports": [],
+          "functions": [],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/services/dependencies.py",
+          "language": "python",
+          "imports": [
+            "app.services.greetings_service"
+          ],
+          "functions": [
+            {
+              "name": "get_greetings_service",
+              "line_start": 5,
+              "line_end": 7,
+              "hash": "cb0a2e201aea6785"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/services/greetings_service.py",
+          "language": "python",
+          "imports": [
+            "app.domain.greeting",
+            "app.repository",
+            "sqlalchemy.orm"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "GreetingsService",
+              "line_start": 8,
+              "line_end": 13,
+              "hash": "e42e8870badf9dd6",
+              "methods": [
+                {
+                  "name": "get_first",
+                  "line_start": 11,
+                  "line_end": 13,
+                  "hash": "c4538f6127708834"
+                }
+              ]
+            }
+          ],
+          "routes": []
+        }
+      ]
+    },
+    "frontend": {
+      "files": [
+        {
+          "path": "frontend/src/App.tsx",
+          "language": "typescript",
+          "imports": [
+            "react"
+          ],
+          "exports": [
+            "App",
+            "default"
+          ],
+          "functions": [
+            {
+              "name": "App",
+              "line_start": 9,
+              "line_end": 42,
+              "hash": "65d9ab1712ef1708"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "App",
+              "line_start": 9,
+              "line_end": 42,
+              "hash": "65d9ab1712ef1708",
+              "kind": "function"
+            }
+          ]
+        },
+        {
+          "path": "frontend/src/main.tsx",
+          "language": "typescript",
+          "imports": [
+            "./App",
+            "react",
+            "react-dom/client"
+          ],
+          "exports": [],
+          "functions": [],
+          "classes": [],
+          "components": []
+        }
+      ]
+    },
+    "tooling": {
+      "files": [
+        {
+          "path": "tools/code_map.py",
+          "language": "python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "ast",
+            "dataclasses",
+            "hashlib",
+            "json",
+            "pathlib",
+            "subprocess",
+            "sys",
+            "tempfile"
+          ],
+          "functions": [
+            {
+              "name": "_change_from",
+              "line_start": 415,
+              "line_end": 422,
+              "hash": "600a8d387988179a"
+            },
+            {
+              "name": "_changed_files",
+              "line_start": 655,
+              "line_end": 657,
+              "hash": "f5ae1084879556d3"
+            },
+            {
+              "name": "_class_entry",
+              "line_start": 229,
+              "line_end": 241,
+              "hash": "dcad341269ef1164"
+            },
+            {
+              "name": "_class_shell_hash",
+              "line_start": 294,
+              "line_end": 306,
+              "hash": "84b95db3b77734c5"
+            },
+            {
+              "name": "_classify_imports",
+              "line_start": 403,
+              "line_end": 412,
+              "hash": "bb1824db305d64a0"
+            },
+            {
+              "name": "_classify_symbols",
+              "line_start": 391,
+              "line_end": 400,
+              "hash": "9dfb8a7e47ada603"
+            },
+            {
+              "name": "_command_check",
+              "line_start": 114,
+              "line_end": 121,
+              "hash": "e2ce2de2a648e193"
+            },
+            {
+              "name": "_command_check_staged",
+              "line_start": 124,
+              "line_end": 133,
+              "hash": "1db0ac6349382939"
+            },
+            {
+              "name": "_command_markdown_diff",
+              "line_start": 151,
+              "line_end": 164,
+              "hash": "c21c8800801520e0"
+            },
+            {
+              "name": "_command_markdown_staged",
+              "line_start": 136,
+              "line_end": 148,
+              "hash": "af882fcf44b3eb65"
+            },
+            {
+              "name": "_command_write",
+              "line_start": 107,
+              "line_end": 111,
+              "hash": "e188de768f9b27bf"
+            },
+            {
+              "name": "_dispatch",
+              "line_start": 76,
+              "line_end": 88,
+              "hash": "e62c3bccf94e1bbb"
+            },
+            {
+              "name": "_extract_python",
+              "line_start": 202,
+              "line_end": 226,
+              "hash": "d9d72cf6d9535acc"
+            },
+            {
+              "name": "_files_section",
+              "line_start": 489,
+              "line_end": 498,
+              "hash": "9ba92c91bc607413"
+            },
+            {
+              "name": "_first_string_arg",
+              "line_start": 264,
+              "line_end": 267,
+              "hash": "6c5e3f122b8e702b"
+            },
+            {
+              "name": "_focus_section",
+              "line_start": 547,
+              "line_end": 550,
+              "hash": "92efda3abfa08fa3"
+            },
+            {
+              "name": "_frontend_area",
+              "line_start": 313,
+              "line_end": 325,
+              "hash": "3e00e267d517fb37"
+            },
+            {
+              "name": "_git",
+              "line_start": 674,
+              "line_end": 683,
+              "hash": "ddb77edec745c95a"
+            },
+            {
+              "name": "_git_show",
+              "line_start": 686,
+              "line_end": 695,
+              "hash": "da282d9a924d6eda"
+            },
+            {
+              "name": "_git_show_bytes",
+              "line_start": 698,
+              "line_end": 706,
+              "hash": "8ddf0313e28a0c84"
+            },
+            {
+              "name": "_has_backend_symbol_changes",
+              "line_start": 580,
+              "line_end": 581,
+              "hash": "7ba6168571ed716e"
+            },
+            {
+              "name": "_hash",
+              "line_start": 309,
+              "line_end": 310,
+              "hash": "422aceb8881ba90a"
+            },
+            {
+              "name": "_imports_section",
+              "line_start": 521,
+              "line_end": 531,
+              "hash": "263c0347fda52897"
+            },
+            {
+              "name": "_index_file_symbols",
+              "line_start": 436,
+              "line_end": 449,
+              "hash": "7177b79aa75f1b00"
+            },
+            {
+              "name": "_index_map",
+              "line_start": 425,
+              "line_end": 433,
+              "hash": "fddcda5f97caf989"
+            },
+            {
+              "name": "_is_mapped_source",
+              "line_start": 635,
+              "line_end": 644,
+              "hash": "dab8055e1319a75c"
+            },
+            {
+              "name": "_is_test_file",
+              "line_start": 584,
+              "line_end": 585,
+              "hash": "72ad8efa1f6cb8a9"
+            },
+            {
+              "name": "_iter_changes",
+              "line_start": 572,
+              "line_end": 577,
+              "hash": "5afb583fa57aa4a2"
+            },
+            {
+              "name": "_list_index",
+              "line_start": 651,
+              "line_end": 652,
+              "hash": "3810eab24318eb3e"
+            },
+            {
+              "name": "_list_tree",
+              "line_start": 647,
+              "line_end": 648,
+              "hash": "477774a47270b196"
+            },
+            {
+              "name": "_map_at_ref",
+              "line_start": 614,
+              "line_end": 616,
+              "hash": "dc44396bed0724f7"
+            },
+            {
+              "name": "_materialize_index",
+              "line_start": 627,
+              "line_end": 632,
+              "hash": "0a170f5eb45e444c"
+            },
+            {
+              "name": "_materialize_ref",
+              "line_start": 619,
+              "line_end": 624,
+              "hash": "233d56cfeeaf4e7f"
+            },
+            {
+              "name": "_merge_base",
+              "line_start": 666,
+              "line_end": 667,
+              "hash": "e282a4d7c6d43617"
+            },
+            {
+              "name": "_node_hash",
+              "line_start": 290,
+              "line_end": 291,
+              "hash": "3209b5d59513d809"
+            },
+            {
+              "name": "_parse_args",
+              "line_start": 91,
+              "line_end": 99,
+              "hash": "adcd2e41059e3342"
+            },
+            {
+              "name": "_put",
+              "line_start": 452,
+              "line_end": 460,
+              "hash": "a8c777d997dce61e"
+            },
+            {
+              "name": "_python_area",
+              "line_start": 190,
+              "line_end": 199,
+              "hash": "d3e2f23eb0fad802"
+            },
+            {
+              "name": "_python_imports",
+              "line_start": 279,
+              "line_end": 287,
+              "hash": "f8a96f6869c77561"
+            },
+            {
+              "name": "_read_text_or_empty",
+              "line_start": 714,
+              "line_end": 718,
+              "hash": "bd49a91f226ac5c2"
+            },
+            {
+              "name": "_repo_relative",
+              "line_start": 709,
+              "line_end": 711,
+              "hash": "cb498daa5f1e1132"
+            },
+            {
+              "name": "_require_canonical_python",
+              "line_start": 65,
+              "line_end": 73,
+              "hash": "39f6164db4c90ee8"
+            },
+            {
+              "name": "_rev_parse",
+              "line_start": 670,
+              "line_end": 671,
+              "hash": "7c0d76b2adb80692"
+            },
+            {
+              "name": "_review_focus",
+              "line_start": 553,
+              "line_end": 564,
+              "hash": "85064d577dd8accf"
+            },
+            {
+              "name": "_routes_from_function",
+              "line_start": 244,
+              "line_end": 261,
+              "hash": "c9cc06f6f695362a"
+            },
+            {
+              "name": "_routes_section",
+              "line_start": 511,
+              "line_end": 518,
+              "hash": "6b039144a3c29e2a"
+            },
+            {
+              "name": "_split_range",
+              "line_start": 660,
+              "line_end": 663,
+              "hash": "105d3e1ac08209dd"
+            },
+            {
+              "name": "_symbol",
+              "line_start": 270,
+              "line_end": 276,
+              "hash": "d999a6bce3ee56f7"
+            },
+            {
+              "name": "_symbol_line",
+              "line_start": 567,
+              "line_end": 569,
+              "hash": "101ae17fd0ce5493"
+            },
+            {
+              "name": "_symbols_section",
+              "line_start": 501,
+              "line_end": 508,
+              "hash": "844526dd7704efd4"
+            },
+            {
+              "name": "_tests_section",
+              "line_start": 534,
+              "line_end": 544,
+              "hash": "55dd7405dddbf288"
+            },
+            {
+              "name": "build_map",
+              "line_start": 172,
+              "line_end": 182,
+              "hash": "98b524f9f7a157a1"
+            },
+            {
+              "name": "diff_maps",
+              "line_start": 374,
+              "line_end": 388,
+              "hash": "f6795ff3cec3cf74"
+            },
+            {
+              "name": "dump_map",
+              "line_start": 185,
+              "line_end": 187,
+              "hash": "ff188383cd46c649"
+            },
+            {
+              "name": "main",
+              "line_start": 54,
+              "line_end": 62,
+              "hash": "4b1995e2186b6afd"
+            },
+            {
+              "name": "render_markdown",
+              "line_start": 468,
+              "line_end": 486,
+              "hash": "0c5f5a447de7847f"
+            }
+          ],
+          "classes": [
+            {
+              "name": "CodeMapError",
+              "line_start": 41,
+              "line_end": 42,
+              "hash": "5ae489fb04f2a24d",
+              "methods": []
+            },
+            {
+              "name": "DiffResult",
+              "line_start": 354,
+              "line_end": 362,
+              "hash": "73a0f0fdeb1df442",
+              "methods": []
+            },
+            {
+              "name": "ImportChange",
+              "line_start": 345,
+              "line_end": 350,
+              "hash": "ad704c360c13a9e0",
+              "methods": []
+            },
+            {
+              "name": "MarkdownContext",
+              "line_start": 366,
+              "line_end": 371,
+              "hash": "a155a02bd00776b4",
+              "methods": []
+            },
+            {
+              "name": "ParseError",
+              "line_start": 45,
+              "line_end": 46,
+              "hash": "0afd61834040331d",
+              "methods": []
+            },
+            {
+              "name": "SymbolChange",
+              "line_start": 334,
+              "line_end": 341,
+              "hash": "a194c3440d15637c",
+              "methods": []
+            },
+            {
+              "name": "_Materialized",
+              "line_start": 593,
+              "line_end": 611,
+              "hash": "42914242f0116e18",
+              "methods": [
+                {
+                  "name": "__enter__",
+                  "line_start": 600,
+                  "line_end": 607,
+                  "hash": "814758e87429b1f1"
+                },
+                {
+                  "name": "__exit__",
+                  "line_start": 609,
+                  "line_end": 611,
+                  "hash": "1b1bfe7803cd853a"
+                },
+                {
+                  "name": "__init__",
+                  "line_start": 596,
+                  "line_end": 598,
+                  "hash": "9cc9b465ca5b9f63"
+                }
+              ]
+            }
+          ],
+          "routes": []
+        },
+        {
+          "path": "tools/verify_pr_structural_section.py",
+          "language": "python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "difflib",
+            "os",
+            "sys"
+          ],
+          "functions": [
+            {
+              "name": "_diff",
+              "line_start": 77,
+              "line_end": 89,
+              "hash": "cf35356c7d1c3127"
+            },
+            {
+              "name": "_extract_block",
+              "line_start": 68,
+              "line_end": 74,
+              "hash": "fa3f1cd23595a495"
+            },
+            {
+              "name": "_normalize",
+              "line_start": 100,
+              "line_end": 101,
+              "hash": "632b50b0c5cd7383"
+            },
+            {
+              "name": "_parse_args",
+              "line_start": 43,
+              "line_end": 47,
+              "hash": "a183b7d74c464459"
+            },
+            {
+              "name": "_read_expected",
+              "line_start": 50,
+              "line_end": 56,
+              "hash": "6087248d1b734d4d"
+            },
+            {
+              "name": "_read_file",
+              "line_start": 104,
+              "line_end": 106,
+              "hash": "d04319bdf40ef0dc"
+            },
+            {
+              "name": "_read_pr_body",
+              "line_start": 59,
+              "line_end": 65,
+              "hash": "d99b7e0c060ea6af"
+            },
+            {
+              "name": "_slice_markers",
+              "line_start": 92,
+              "line_end": 97,
+              "hash": "db6283fbdd9fec8c"
+            },
+            {
+              "name": "main",
+              "line_start": 23,
+              "line_end": 40,
+              "hash": "fa837e4c4ccc8724"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        }
+      ]
+    }
+  }
+}

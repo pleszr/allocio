@@ -1,7 +1,7 @@
 # Allocio Technical Stack And Infrastructure
 
 Status: Chosen for MVP v1
-Last updated: 2026-05-12
+Last updated: 2026-07-04
 
 ## Purpose
 
@@ -199,6 +199,12 @@ At that point likely changes are:
 - move app runtime to App Runner or ECS
 - evaluate Cognito for broader identity support
 - move any file handling fully to S3-backed workflows
+
+## Developer Tooling
+
+- A deterministic code map (`tools/code_map.py`, Python standard library only) generates `docs/code-map.json` and renders structural PR diffs.
+- TypeScript/TSX symbol extraction (`tools/ts_symbol_map.mjs`) reuses the frontend `typescript` dependency via the TypeScript compiler API; it adds no new runtime dependency.
+- These are development and review tools, not part of the deployed runtime stack.
 
 ## Where This Decision Lives
 
