@@ -100,13 +100,15 @@ Use only commands that exist in this repo today.
 
 Executing agents finish work with this flow (never commit, merge, or push on `main` — a repo hook blocks it):
 
+- `git fetch` then `git checkout main` then `git pull` (start from an up-to-date `main`)
 - `git checkout -b <feature-branch>`
 - `git add <changed-files>`
 - `git diff --cached --name-only`
-- `git commit -m "<descriptive message>"` (gitleaks pre-commit hook runs; surface findings, never bypass)
+- `git commit -m "<descriptive message>"` (pre-commit hooks run, including gitleaks; surface findings, never bypass)
 - run the `pr-prep` skill and get approval on its proposals
 - `git push -u origin <feature-branch>`
 - `gh pr create` targeting `main`
+- after the PR is confirmed, `gh pr checks <pr> --watch`; on failure, read the failing job logs, fix, commit, push, and re-watch until green. Fix straightforward failures autonomously; stop and surface to Roland after ~3 unsuccessful cycles or on ambiguous/scope-widening/gitleaks/infra failures. `claude-pr-prep` and `claude-review` are advisory and never gate green.
 
 ## Current Testing Reality
 
