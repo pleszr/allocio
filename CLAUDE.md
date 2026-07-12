@@ -30,7 +30,7 @@ Predictive cost-allocation app for smoothing irregular future vehicle costs into
 - `frontend/` — React 18 + TypeScript + Vite product app. See `frontend/CLAUDE.md`.
 - `backend/alembic/` plus `docker-compose.yml` — PostgreSQL migrations and local database runtime. See `backend/alembic/CLAUDE.md`.
 - `docs/` — source-of-truth product, domain, and architecture docs.
-- `tools/` — deterministic source-derived code map (`code_map.py`), TypeScript symbol extractor (`ts_symbol_map.mjs`), and PR structural-section verifier (`verify_pr_structural_section.py`).
+- `tools/` — deterministic source-derived code map (`code_map.py`) and TypeScript symbol extractor (`ts_symbol_map.mjs`).
 
 ## Source Of Truth
 
@@ -60,7 +60,8 @@ See the referenced module `CLAUDE.md` files for exact commands. The normal local
 
 - Claude may create feature branches, commit, push, and open PRs autonomously.
 - Never commit, merge, or push to `main`. Always work on a feature branch and open a PR. Enforced by `.claude/hooks/block-git-main.py`.
-- Run the `pr-prep` skill and get its proposals approved before `gh pr create`. It is audit-only; the git flow itself happens after approval.
+- Run the `pr-prep` skill before `gh pr create`. It audits repo instruction and doc files for drift and applies the fixes directly; the git flow (commit, push, PR) happens after.
+- Opening a PR triggers CI automation: `claude-pr-prep` re-runs the drift audit and may push a `docs: sync instructions` commit to the branch, and `claude-review` posts an automated Claude code review as a PR comment. Both are advisory and non-blocking.
 
 ## PR Requirements Artifacts
 
@@ -68,7 +69,7 @@ When work starts from an issue-planner requirements file under `.claude/plans/`,
 
 The requirements file is a temporary working artifact. Delete it before the final commit or PR unless Roland explicitly asks to keep it.
 
-The PR body must also include a `Structural Changes` section pasted verbatim from `uv run --python 3.14 python tools/code_map.py --diff origin/main...HEAD --format markdown`, including the `<!-- structural-changes:start -->` / `<!-- structural-changes:end -->` markers. Use the `origin/main...HEAD` range (not `main...HEAD`): the `structural-diff` CI workflow generates the section with `origin/<base>...HEAD` and compares it verbatim — including the `Compared range:` line — so a `main...HEAD` body will never match. The workflow re-generates that section and fails the PR if the body does not match it exactly.
+Do not paste a `Structural Changes` section into the PR body. The `structural-diff` CI workflow generates the layer-grouped Change Map for the PR range (`origin/<base>...HEAD`) and posts it as a single sticky PR comment, refreshing that same comment on every push. It is CI-owned — there is nothing to embed or keep in sync by hand.
 
 ## Structural Code Map
 

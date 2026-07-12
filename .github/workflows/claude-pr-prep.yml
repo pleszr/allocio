@@ -1,0 +1,46 @@
+name: claude-pr-prep
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  pr-prep:
+    runs-on: ubuntu-latest
+    # Skip fork PRs (no access to ANTHROPIC_API_KEY) and skip runs triggered by
+    # the bot's own sync commit, so the auto-commit below can't loop forever.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !endsWith(github.actor, '[bot]')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Check out the branch (not the detached head SHA) so the action can
+          # commit doc updates back to it.
+          ref: ${{ github.head_ref }}
+
+      - uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        with:
+          claude_args: "--permission-mode acceptEdits --model claude-sonnet-5"
+          prompt: |
+            Run the repository's pr-prep audit against the diff of this pull
+            request (origin/${{ github.base_ref }}...HEAD), following
+            .claude/skills/pr-prep/SKILL.md.
+
+            IMPORTANT overrides for this automated run:
+            - APPLY the drift fixes directly instead of only proposing them.
+            - Only edit instruction/doc files: CLAUDE.md, backend/CLAUDE.md,
+              frontend/CLAUDE.md, backend/alembic/CLAUDE.md, .claude/rules/*.md,
+              .claude/memory-structure.md, and docs/*.md. Never edit application
+              source, tests, or generated files (docs/code-map.json,
+              docs/code-map.html).
+            - Be conservative: add or correct guidance that the diff made stale.
+              Do NOT delete existing guidance unless the diff plainly
+              contradicts it.
+            - If any files changed, commit them with the message
+              "docs: sync instructions (automated pr-prep)" and push to this
+              branch. If nothing changed, do nothing.

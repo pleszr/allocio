@@ -168,13 +168,13 @@ Note: hook files are executable code; when policy changes, update both the polic
 
 Targets:
 
-- `tools/` (the code-map generator, TS symbol extractor, and PR structural-section verifier)
+- `tools/` (the code-map generator and TS symbol extractor)
 - `CLAUDE.md` (`Structural Code Map` section) for the workflow policy
 
 Use for:
 
 - changes to how `docs/code-map.json` or the `docs/code-map.html` architecture overview is generated, checked, or diffed
-- structural-diff PR-body and CI enforcement expectations
+- structural-diff CI change-map comment and code-map check expectations
 - symbol-extraction behavior for Python or TypeScript
 
 ## Source-Of-Truth Docs, Not Memory Files
