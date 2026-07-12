@@ -34,6 +34,9 @@ Do not use this skill for direct implementation unless the user explicitly asks 
 
 ## Workflow
 
+0. Sync the repo before planning new work.
+   - When Roland launches a new requirement, run `git fetch`, `git checkout main`, and `git pull` before gathering context, so the plan is written against an up-to-date `main`.
+   - Skip only if there are uncommitted changes that would be disturbed; in that case surface them to Roland instead of switching branches.
 1. Gather issue context.
    - If the user gives a GitHub issue number, inspect it with `gh issue view <number>`.
    - If the issue clearly depends on a parent epic or linked issue, inspect that context too. Use it to shape naming and boundaries, not to silently widen scope.
@@ -127,8 +130,9 @@ Return sections in this exact order:
 - For frontend work, include `cd frontend && npm run build`.
 - For backend work, include `cd backend && uv run pytest`.
 - When DB-backed verification matters, include `docker compose up -d postgres` before backend verification commands.
-- Always end with the git flow: create a feature branch before any commit (never commit on `main`), commit with a descriptive message, push the branch, and open a PR against `main` with `gh pr create`.
+- Begin the git flow with a sync step: `git fetch`, `git checkout main`, `git pull`, then create the feature branch off the freshly pulled `main` (never commit on `main`), commit with a descriptive message (letting the pre-commit hooks run), push the branch, and open a PR against `main` with `gh pr create`.
 - Require running the `pr-prep` skill and getting its proposals approved before `gh pr create`.
+- End with a CI watch-and-iterate loop: after `gh pr create` confirms the PR, watch its checks with `gh pr checks <pr> --watch`. If a check fails, read the failing job logs, fix the cause, commit, push, and re-watch until all checks are green. Fix straightforward failures (lint, type, test, build, structural-map drift) autonomously; stop and surface to Roland after ~3 unsuccessful fix cycles, or immediately if the fix is ambiguous, widens scope, or is a gitleaks/secret or infra failure the agent cannot resolve. Treat `claude-pr-prep` and `claude-review` as advisory — they never gate green.
 - Note that a gitleaks pre-commit hook runs on every commit. If it blocks a commit, the executing agent must surface the finding to Roland instead of bypassing it (`--no-verify` is hook-blocked).
 - Do not require commands or tools that the repo does not support today.
 - If the change spans frontend and backend, include verification for both sides.
