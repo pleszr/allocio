@@ -5,31 +5,6 @@
     "backend": {
       "files": [
         {
-          "path": "backend/alembic/versions/0001_create_greetings.py",
-          "language": "python",
-          "imports": [
-            "alembic",
-            "sqlalchemy",
-            "typing"
-          ],
-          "functions": [
-            {
-              "name": "downgrade",
-              "line_start": 36,
-              "line_end": 37,
-              "hash": "e6ca31fa9b11fa2d"
-            },
-            {
-              "name": "upgrade",
-              "line_start": 20,
-              "line_end": 33,
-              "hash": "ba1dd426493fb232"
-            }
-          ],
-          "classes": [],
-          "routes": []
-        },
-        {
           "path": "backend/alembic/versions/0002_create_vehicle_schema.py",
           "language": "python",
           "imports": [
@@ -70,38 +45,6 @@
           "functions": [],
           "classes": [],
           "routes": []
-        },
-        {
-          "path": "backend/app/api/greetings.py",
-          "language": "python",
-          "imports": [
-            "app.api.schemas.responses",
-            "app.common",
-            "app.db",
-            "app.services.dependencies",
-            "app.services.greetings_service",
-            "fastapi",
-            "sqlalchemy.orm"
-          ],
-          "functions": [
-            {
-              "name": "get_greeting",
-              "line_start": 26,
-              "line_end": 32,
-              "hash": "e1bac15840d8b373"
-            }
-          ],
-          "classes": [],
-          "routes": [
-            {
-              "method": "get",
-              "path": "/greeting",
-              "handler": "get_greeting",
-              "line_start": 26,
-              "line_end": 32,
-              "hash": "e1bac15840d8b373"
-            }
-          ]
         },
         {
           "path": "backend/app/api/health.py",
@@ -147,16 +90,9 @@
           "functions": [],
           "classes": [
             {
-              "name": "GreetingResponse",
-              "line_start": 5,
-              "line_end": 11,
-              "hash": "4d9ad4ee923f49cb",
-              "methods": []
-            },
-            {
               "name": "HealthResponse",
-              "line_start": 14,
-              "line_end": 17,
+              "line_start": 5,
+              "line_end": 8,
               "hash": "e814a3bf78429c15",
               "methods": []
             }
@@ -424,25 +360,6 @@
           "routes": []
         },
         {
-          "path": "backend/app/domain/greeting.py",
-          "language": "python",
-          "imports": [
-            "app.db",
-            "sqlalchemy.orm"
-          ],
-          "functions": [],
-          "classes": [
-            {
-              "name": "Greeting",
-              "line_start": 7,
-              "line_end": 13,
-              "hash": "1f9b2b042976b8b4",
-              "methods": []
-            }
-          ],
-          "routes": []
-        },
-        {
           "path": "backend/app/domain/vehicle_defaults.py",
           "language": "python",
           "imports": [
@@ -496,8 +413,8 @@
           "functions": [
             {
               "name": "_not_found_handler",
-              "line_start": 15,
-              "line_end": 16,
+              "line_start": 14,
+              "line_end": 15,
               "hash": "9a953235772419d0"
             }
           ],
@@ -513,76 +430,11 @@
           "routes": []
         },
         {
-          "path": "backend/app/repository/greetings_repository.py",
-          "language": "python",
-          "imports": [
-            "app.common.exceptions",
-            "app.common.message_bundle",
-            "app.domain.greeting",
-            "sqlalchemy",
-            "sqlalchemy.orm"
-          ],
-          "functions": [
-            {
-              "name": "get_first_greeting",
-              "line_start": 10,
-              "line_end": 15,
-              "hash": "4d8dd6ef7ee1d75c"
-            }
-          ],
-          "classes": [],
-          "routes": []
-        },
-        {
           "path": "backend/app/services/__init__.py",
           "language": "python",
           "imports": [],
           "functions": [],
           "classes": [],
-          "routes": []
-        },
-        {
-          "path": "backend/app/services/dependencies.py",
-          "language": "python",
-          "imports": [
-            "app.services.greetings_service"
-          ],
-          "functions": [
-            {
-              "name": "get_greetings_service",
-              "line_start": 5,
-              "line_end": 7,
-              "hash": "cb0a2e201aea6785"
-            }
-          ],
-          "classes": [],
-          "routes": []
-        },
-        {
-          "path": "backend/app/services/greetings_service.py",
-          "language": "python",
-          "imports": [
-            "app.domain.greeting",
-            "app.repository",
-            "sqlalchemy.orm"
-          ],
-          "functions": [],
-          "classes": [
-            {
-              "name": "GreetingsService",
-              "line_start": 8,
-              "line_end": 13,
-              "hash": "e42e8870badf9dd6",
-              "methods": [
-                {
-                  "name": "get_first",
-                  "line_start": 11,
-                  "line_end": 13,
-                  "hash": "c4538f6127708834"
-                }
-              ]
-            }
-          ],
           "routes": []
         }
       ]
@@ -592,9 +444,7 @@
         {
           "path": "frontend/src/App.tsx",
           "language": "typescript",
-          "imports": [
-            "react"
-          ],
+          "imports": [],
           "exports": [
             "App",
             "default"
@@ -602,18 +452,18 @@
           "functions": [
             {
               "name": "App",
-              "line_start": 9,
-              "line_end": 42,
-              "hash": "65d9ab1712ef1708"
+              "line_start": 1,
+              "line_end": 7,
+              "hash": "17318b4fc159a3ba"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "App",
-              "line_start": 9,
-              "line_end": 42,
-              "hash": "65d9ab1712ef1708",
+              "line_start": 1,
+              "line_end": 7,
+              "hash": "17318b4fc159a3ba",
               "kind": "function"
             }
           ]
