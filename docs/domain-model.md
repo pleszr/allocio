@@ -384,8 +384,7 @@ Proposed English labels:
 - Seasonal tire change
 - Vehicle inspection
 - Mandatory liability insurance
-- Theft CASCO
-- Parking CASCO
+- Comprehensive insurance
 - Vehicle tax
 - Motorway vignette
 
@@ -394,7 +393,7 @@ Notes:
 - `Seasonal tire change` should default to a recurring cadence that represents two changes per year
 - `Vehicle inspection` should default to a recurring cadence of every two years
 - `Vehicle tax` should default to two payments per year, matching the workbook model
-- CASCO should be modeled as two separate time-based costs in MVP because that is how the workbook currently tracks it
+- `Comprehensive insurance` is a single merged row (`technical_key` `comprehensive_insurance`) covering own-damage cover that pays even when the driver is at fault. It replaces the earlier two-row `Theft CASCO` + `Parking CASCO` model; its default `amount` is the sum of those two workbook lines. The non-English "CASCO"/"Kasko" term is intentionally dropped in favor of the English label.
 
 ## Default Usage-Based Cost Templates For Vehicles
 

@@ -443,6 +443,48 @@
           "routes": []
         },
         {
+          "path": "backend/app/domain/vehicle_defaults.py",
+          "language": "python",
+          "imports": [
+            "app.domain.cost",
+            "dataclasses",
+            "decimal",
+            "uuid"
+          ],
+          "functions": [
+            {
+              "name": "build_default_rows",
+              "line_start": 81,
+              "line_end": 124,
+              "hash": "ac3d65c7789b2334"
+            }
+          ],
+          "classes": [
+            {
+              "name": "MaintenanceItemTemplate",
+              "line_start": 37,
+              "line_end": 45,
+              "hash": "472100b3564891f4",
+              "methods": []
+            },
+            {
+              "name": "TimeBasedCostTemplate",
+              "line_start": 16,
+              "line_end": 23,
+              "hash": "d3f93b18fdbe67d8",
+              "methods": []
+            },
+            {
+              "name": "UsageBasedCostTemplate",
+              "line_start": 27,
+              "line_end": 33,
+              "hash": "4bb354b96290e9fd",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
           "path": "backend/app/main.py",
           "language": "python",
           "imports": [
