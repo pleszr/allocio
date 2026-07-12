@@ -11,18 +11,18 @@ Commands:
     python tools/code_map.py --check docs/code-map.json
     python tools/code_map.py --check-staged docs/code-map.json
     python tools/code_map.py --staged --format markdown
-    python tools/code_map.py --diff main...HEAD --format markdown
-    python tools/code_map.py --write-overview docs/code-map.md
-    python tools/code_map.py --check-overview docs/code-map.md
-    python tools/code_map.py --overview-section
+    python tools/code_map.py --diff origin/main...HEAD --format markdown
+    python tools/code_map.py --write-overview-html docs/code-map.html
+    python tools/code_map.py --check-overview-html docs/code-map.html
+    python tools/code_map.py --overview-html-diff origin/main...HEAD
 """
 from __future__ import annotations
 
 import argparse
 import ast
+import base64
 import hashlib
 import json
-import re
 import subprocess
 import sys
 import tempfile
@@ -60,6 +60,23 @@ LAYER_ORDER = (
     "App", "Pages", "Components", "Hooks", "State",
     "API", "Services", "Repository", "Domain", "Common", "Migrations", "Tooling", "Other",
 )
+
+# Interactive HTML overview (docs/code-map.html). The page links each node to its
+# source on GitHub and is reachable from a PR via the githack proxy over the head
+# branch. Repo confirmed public as pleszr/allocio.
+GITHUB_BLOB_BASE = "https://github.com/pleszr/allocio/blob/main/"
+GITHUB_RAW_PROXY_BASE = "https://raw.githack.com/pleszr/allocio/"
+OVERVIEW_HTML_PATH = "docs/code-map.html"
+# Default to product code only: the tooling area (the code map's own churny
+# helpers) is collapsed out of the graph. Flip to include it.
+OVERVIEW_INCLUDE_TOOLING = False
+
+# Status badges for the PR-body Change Map (render_markdown).
+STATUS_BADGES = {
+    "Added": "🟢 **Added**",
+    "Removed": "🔴 **Removed**",
+    "Modified": "🟡 **Modified**",
+}
 
 
 class CodeMapError(Exception):
@@ -108,27 +125,27 @@ def _dispatch(args: argparse.Namespace) -> int:
         return _command_markdown_staged()
     if args.diff:
         return _command_markdown_diff(args.diff)
-    if args.write_overview:
-        return _command_write_overview(Path(args.write_overview))
-    if args.check_overview:
-        return _command_check_overview(Path(args.check_overview))
-    if args.overview_section:
-        return _command_overview_section()
+    if args.write_overview_html:
+        return _command_write_overview_html(Path(args.write_overview_html))
+    if args.check_overview_html:
+        return _command_check_overview_html(Path(args.check_overview_html))
+    if args.overview_html_diff:
+        return _command_overview_html_diff(args.overview_html_diff)
     print("No command given. See --help.", file=sys.stderr)
     return 1
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Allocio deterministic code map.")
+    parser = argparse.ArgumentParser(description="Allocio deterministic code map.", allow_abbrev=False)
     parser.add_argument("--write", metavar="PATH", help="Write the code map to PATH.")
     parser.add_argument("--check", metavar="PATH", help="Fail if PATH is stale versus the working tree.")
     parser.add_argument("--check-staged", dest="check_staged", metavar="PATH", help="Fail if staged PATH is stale versus staged source.")
     parser.add_argument("--staged", action="store_true", help="Render HEAD-versus-index structural Markdown.")
     parser.add_argument("--diff", metavar="RANGE", help="Render structural Markdown for a base...head range.")
     parser.add_argument("--format", choices=["markdown"], help="Output format for --staged and --diff.")
-    parser.add_argument("--write-overview", dest="write_overview", metavar="PATH", help="Write the human-readable architecture overview to PATH.")
-    parser.add_argument("--check-overview", dest="check_overview", metavar="PATH", help="Fail if the overview PATH is stale versus the working tree.")
-    parser.add_argument("--overview-section", dest="overview_section", action="store_true", help="Print the per-area module graphs as a PR-body Architecture Overview section.")
+    parser.add_argument("--write-overview-html", dest="write_overview_html", metavar="PATH", help="Write the interactive HTML architecture overview to PATH.")
+    parser.add_argument("--check-overview-html", dest="check_overview_html", metavar="PATH", help="Fail if the HTML overview PATH is stale versus the working tree.")
+    parser.add_argument("--overview-html-diff", dest="overview_html_diff", metavar="RANGE", help="Print a githack proxy URL that opens the HTML overview in changed-only mode for a base...head range.")
     return parser.parse_args(argv)
 
 
@@ -181,23 +198,29 @@ def _command_markdown_staged() -> int:
     return 0
 
 
-def _command_write_overview(path: Path) -> int:
-    path.write_text(render_overview(build_map(REPO_ROOT)), encoding="utf-8")
+def _command_write_overview_html(path: Path) -> int:
+    path.write_text(render_overview_html(build_map(REPO_ROOT)), encoding="utf-8")
     print(f"Wrote {path}")
     return 0
 
 
-def _command_check_overview(path: Path) -> int:
-    expected = render_overview(build_map(REPO_ROOT))
+def _command_check_overview_html(path: Path) -> int:
+    expected = render_overview_html(build_map(REPO_ROOT))
     if _read_text_or_empty(path) == expected:
         return 0
     print(f"{path} is stale versus the working tree.", file=sys.stderr)
-    print(f"Run: python tools/code_map.py --write-overview {path}", file=sys.stderr)
+    print(f"Run: uv run --python 3.14 python tools/code_map.py --write-overview-html {path}", file=sys.stderr)
     return 1
 
 
-def _command_overview_section() -> int:
-    print(render_overview_section(build_map(REPO_ROOT)))
+def _command_overview_html_diff(range_expr: str) -> int:
+    left, right = _split_range(range_expr)
+    base_ref = _merge_base(left, right)
+    base_map = _map_at_ref(base_ref)
+    head_map = _map_at_ref(right)
+    changed = _changed_files(["diff", "--name-only", base_ref, right])
+    diff = diff_maps(base_map, head_map, changed)
+    print(_overview_html_diff_url(diff))
     return 0
 
 
@@ -519,7 +542,7 @@ def _put(symbols: dict, area: str, path: str, kind: str, name: str, source: dict
 
 
 def render_markdown(diff: DiffResult, context: MarkdownContext) -> str:
-    """Render the marker-wrapped structural Markdown for a diff result."""
+    """Render the marker-wrapped structural Change Map for a diff result."""
     lines = [MARKER_START, "## Structural Changes", ""]
     lines += [
         f"- **Compared range:** {context.compared_range}",
@@ -527,14 +550,12 @@ def render_markdown(diff: DiffResult, context: MarkdownContext) -> str:
         f"- **Head commit:** `{context.head_commit}`",
         "",
     ]
+    lines += _focus_section(diff)
     lines += _files_section(diff)
-    lines += _symbols_section("Backend symbols changed", diff, area="backend", exclude_kind="route")
-    lines += _symbols_section("Frontend symbols changed", diff, area="frontend", exclude_kind=None)
-    lines += _symbols_section("Tooling symbols changed", diff, area="tooling", exclude_kind="route")
+    lines += _layer_symbol_sections(diff)
     lines += _routes_section(diff)
     lines += _imports_section(diff)
     lines += _tests_section(diff)
-    lines += _focus_section(diff)
     lines.append(MARKER_END)
     return "\n".join(lines)
 
@@ -551,20 +572,27 @@ def _files_section(diff: DiffResult) -> list[str]:
     return lines
 
 
-def _symbols_section(title: str, diff: DiffResult, area: str, exclude_kind: str | None) -> list[str]:
-    lines = [f"### {title}", ""]
-    rows = []
+def _layer_symbol_sections(diff: DiffResult) -> list[str]:
+    grouped: dict[str, list[str]] = {}
     for status, change in _iter_changes(diff):
-        if change.area != area or change.kind == exclude_kind:
+        if change.kind == "route":
             continue
-        rows.append(_symbol_line(status, change))
-    return lines + (sorted(rows) if rows else ["- None"]) + [""]
+        grouped.setdefault(_layer_of(change.path), []).append(_badge_line(status, change))
+    lines: list[str] = []
+    for layer in LAYER_ORDER:
+        rows = grouped.get(layer)
+        if not rows:
+            continue
+        lines += [f"### {layer} changes", ""] + sorted(rows) + [""]
+    if not lines:
+        lines = ["### Symbol changes", "", "- None", ""]
+    return lines
 
 
 def _routes_section(diff: DiffResult) -> list[str]:
     lines = ["### Routes changed", ""]
     rows = [
-        _symbol_line(status, change)
+        _badge_line(status, change)
         for status, change in _iter_changes(diff)
         if change.kind == "route"
     ]
@@ -600,7 +628,17 @@ def _tests_section(diff: DiffResult) -> list[str]:
 def _focus_section(diff: DiffResult) -> list[str]:
     lines = ["### Suggested human review focus", ""]
     focus = _review_focus(diff)
-    return lines + (focus if focus else ["- No structural changes detected."]) + [""]
+    if focus:
+        body = focus
+    elif _has_any_change(diff):
+        body = ["- No specific focus flagged; review the changes below."]
+    else:
+        body = ["- No structural changes detected."]
+    return lines + body + [""]
+
+
+def _has_any_change(diff: DiffResult) -> bool:
+    return bool(diff.added or diff.removed or diff.modified or diff.import_changes)
 
 
 def _review_focus(diff: DiffResult) -> list[str]:
@@ -617,9 +655,9 @@ def _review_focus(diff: DiffResult) -> list[str]:
     return focus
 
 
-def _symbol_line(status: str, change: SymbolChange) -> str:
+def _badge_line(status: str, change: SymbolChange) -> str:
     location = f"{change.path}:{change.line}" if change.line else change.path
-    return f"- `{status}` {change.kind} `{change.name}` — {location}"
+    return f"- {STATUS_BADGES[status]} {change.kind} `{change.name}` — {location}"
 
 
 def _iter_changes(diff: DiffResult) -> list[tuple[str, SymbolChange]]:
@@ -639,122 +677,118 @@ def _is_test_file(path: str) -> bool:
 
 
 # --------------------------------------------------------------------------- #
-# Human-readable architecture overview (docs/code-map.md)
+# Interactive HTML architecture overview (docs/code-map.html)
 # --------------------------------------------------------------------------- #
 
 
-def render_overview(code_map: dict) -> str:
-    """Render the deterministic architecture overview: per-area graph + outline."""
-    python = f"{CANONICAL_PYTHON[0]}.{CANONICAL_PYTHON[1]}"
-    lines = [
-        "# Allocio Code Map",
-        "",
-        "<!-- Generated by `tools/code_map.py --write-overview` from parsed source. Do not edit by hand. -->",
-        "",
-        "Deterministic architecture overview — a module graph and a symbol outline per area, "
-        "derived from Python `ast` and the TypeScript compiler. Regenerate with "
-        f"`uv run --python {python} python tools/code_map.py --write-overview docs/code-map.md`.",
-        "",
+def render_overview_html(code_map: dict) -> str:
+    """Render the deterministic, self-contained interactive HTML overview.
+
+    The document is byte-stable: the template is static and the embedded map is
+    serialized with sorted keys. All layout is computed client-side from the
+    embedded data, so nothing here depends on run order or environment.
+    """
+    payload = _overview_html_payload(code_map)
+    return _OVERVIEW_HTML_TEMPLATE.replace("__CODE_MAP_JSON__", _embed_json(payload))
+
+
+def _overview_html_payload(code_map: dict) -> dict:
+    areas = [
+        _overview_area_payload("Backend", code_map["areas"]["backend"]["files"], "backend/"),
+        _overview_area_payload("Frontend", code_map["areas"]["frontend"]["files"], "frontend/"),
     ]
-    lines += _overview_area("Backend", code_map["areas"]["backend"]["files"], "backend/")
-    lines += _overview_area("Frontend", code_map["areas"]["frontend"]["files"], "frontend/")
-    lines += _overview_area("Tooling", code_map["areas"]["tooling"]["files"], "")
-    return "\n".join(lines).rstrip("\n") + "\n"
+    if OVERVIEW_INCLUDE_TOOLING:
+        areas.append(_overview_area_payload("Tooling", code_map["areas"]["tooling"]["files"], ""))
+    return {"blobBase": GITHUB_BLOB_BASE, "areas": [area for area in areas if area["nodes"]]}
 
 
-def render_overview_section(code_map: dict) -> str:
-    """Render the PR-body Architecture Overview: the per-area module graphs only."""
-    lines = [
-        "## Architecture Overview",
-        "",
-        "_Deterministic module graph per area, generated from parsed source (no LLM). "
-        "Full detail with symbol outlines is in `docs/code-map.md`._",
-        "",
-    ]
-    for title, area, prefix in (("Backend", "backend", "backend/"), ("Frontend", "frontend", "frontend/")):
-        graph = _overview_graph(code_map["areas"][area]["files"], prefix)
-        if graph:
-            lines += [f"### {title} module graph", ""] + graph
-    return "\n".join(lines).rstrip("\n") + "\n"
+def _overview_area_payload(title: str, files: list[dict], prefix: str) -> dict:
+    included = [entry for entry in files if _overview_include(entry["path"])]
+    nodes = sorted((_overview_node(entry, prefix) for entry in included), key=lambda node: node["path"])
+    paths = {entry["path"] for entry in included}
+    layers = [layer for layer in LAYER_ORDER if any(node["layer"] == layer for node in nodes)]
+    return {"title": title, "layers": layers, "nodes": nodes, "edges": _overview_edges(included, paths)}
 
 
-def _overview_area(title: str, files: list[dict], prefix: str) -> list[str]:
-    if not files:
-        return []
-    lines = [f"## {title}", ""]
-    lines += _overview_graph(files, prefix)
-    for entry in files:
-        lines += _overview_file(entry)
-    return lines
+def _overview_include(path: str) -> bool:
+    """Keep product-facing modules; drop package markers and test files as graph noise."""
+    if PurePosixPath(path).name == "__init__.py":
+        return False
+    return not _is_test_file(path)
 
 
-def _overview_file(entry: dict) -> list[str]:
-    routes = entry.get("routes", [])
-    classes = entry.get("classes", [])
+def _overview_node(entry: dict, prefix: str) -> dict:
+    symbols = _overview_symbols(entry)
+    return {
+        "path": entry["path"],
+        "label": _strip_prefix(entry["path"], prefix),
+        "layer": _layer_of(entry["path"]),
+        "line": symbols[0]["line"] if symbols else None,
+        "symbols": symbols,
+    }
+
+
+def _overview_symbols(entry: dict) -> list[dict]:
+    handlers = {route["handler"] for route in entry.get("routes", [])}
     component_names = {component["name"] for component in entry.get("components", [])}
-    functions = [fn for fn in entry.get("functions", []) if fn["name"] not in component_names]
-    components = entry.get("components", [])
-    if not (routes or classes or functions or components):
-        return []
-    lines = [f"### {entry['path']}", ""]
-    for route in routes:
-        lines.append(f"- **route** `{route['method'].upper()} {route['path']}` → {route['handler']}{_loc(route)}")
-    for cls in classes:
-        lines.append(f"- **class** `{cls['name']}`{_loc(cls)}")
-        for method in cls.get("methods", []):
-            lines.append(f"  - `{method['name']}()`{_loc(method)}")
-    for function in functions:
-        lines.append(f"- **fn** `{function['name']}`{_loc(function)}")
-    for component in components:
-        lines.append(f"- **component** `{component['name']}`{_loc(component)}")
-    lines.append("")
-    return lines
+    symbols = [
+        {"kind": "route", "name": f"{route['method'].upper()} {route['path']}", "line": route.get("line_start")}
+        for route in entry.get("routes", [])
+    ]
+    symbols += [{"kind": "class", "name": cls["name"], "line": cls.get("line_start")} for cls in entry.get("classes", [])]
+    symbols += [
+        {"kind": "component", "name": component["name"], "line": component.get("line_start")}
+        for component in entry.get("components", [])
+    ]
+    symbols += [
+        {"kind": "fn", "name": fn["name"], "line": fn.get("line_start")}
+        for fn in entry.get("functions", [])
+        if fn["name"] not in handlers and fn["name"] not in component_names
+    ]
+    return sorted(symbols, key=lambda symbol: (symbol["line"] or 0, symbol["kind"], symbol["name"]))
 
 
-def _loc(symbol: dict) -> str:
-    start = symbol.get("line_start")
-    end = symbol.get("line_end")
-    if start and end:
-        return f" · L{start}–{end}"
-    return ""
-
-
-def _overview_graph(files: list[dict], prefix: str) -> list[str]:
-    paths = {entry["path"] for entry in files}
+def _overview_edges(files: list[dict], paths: set[str]) -> list[list[str]]:
     python_index = _python_module_index(files)
     edges = set()
     for entry in files:
         source = entry["path"]
         for specifier in entry.get("imports", []):
             target = _resolve_import(specifier, entry, paths, python_index)
-            if target and target != source:
+            if target and target != source and target in paths:
                 edges.add((source, target))
-    if not edges:
-        return []
-    nodes = sorted({node for edge in edges for node in edge})
-    identifier = {node: _mermaid_id(node) for node in nodes}
-    lines = ["```mermaid", "graph LR"]
-    lines += _overview_graph_layers(nodes, identifier, prefix)
-    for source, target in sorted(edges):
-        lines.append(f"  {identifier[source]} --> {identifier[target]}")
-    lines += ["```", ""]
-    return lines
+    return [list(edge) for edge in sorted(edges)]
 
 
-def _overview_graph_layers(nodes: list[str], identifier: dict[str, str], prefix: str) -> list[str]:
-    grouped: dict[str, list[str]] = {}
-    for node in nodes:
-        grouped.setdefault(_layer_of(node), []).append(node)
-    lines = []
-    for layer in LAYER_ORDER:
-        members = grouped.get(layer)
-        if not members:
-            continue
-        lines.append(f"  subgraph {layer}")
-        for node in sorted(members):
-            lines.append(f'    {identifier[node]}["{_strip_prefix(node, prefix)}"]')
-        lines.append("  end")
-    return lines
+def _overview_html_diff_url(diff: DiffResult) -> str:
+    """Build the githack proxy URL that opens the HTML overview in changed-only mode."""
+    payload = json.dumps(_overview_diff_payload(diff), sort_keys=True).encode("utf-8")
+    encoded = base64.urlsafe_b64encode(payload).decode("ascii")
+    branch = _git("rev-parse", "--abbrev-ref", "HEAD").strip()
+    return f"{GITHUB_RAW_PROXY_BASE}{branch}/{OVERVIEW_HTML_PATH}#chg={encoded}"
+
+
+def _overview_diff_payload(diff: DiffResult) -> dict:
+    statuses: dict[str, set[str]] = {}
+    for status, change in _iter_changes(diff):
+        statuses.setdefault(change.path, set()).add(status)
+    for change in diff.import_changes:
+        statuses.setdefault(change.path, set()).add("Modified")
+    added, removed, modified = [], [], []
+    for path in sorted(statuses):
+        marks = statuses[path]
+        if marks == {"Added"}:
+            added.append(path)
+        elif marks == {"Removed"}:
+            removed.append(path)
+        else:
+            modified.append(path)
+    return {"added": added, "modified": modified, "removed": removed}
+
+
+def _embed_json(payload: dict) -> str:
+    text = json.dumps(payload, sort_keys=True)
+    return text.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
 
 def _layer_of(path: str) -> str:
@@ -811,10 +845,6 @@ def _resolve_relative_import(specifier: str, from_path: str, paths: set[str]) ->
 
 def _strip_prefix(path: str, prefix: str) -> str:
     return path[len(prefix):] if prefix and path.startswith(prefix) else path
-
-
-def _mermaid_id(path: str) -> str:
-    return "n_" + re.sub(r"[^0-9A-Za-z]", "_", path)
 
 
 # --------------------------------------------------------------------------- #
@@ -948,6 +978,326 @@ def _read_text_or_empty(path: Path) -> str:
         return path.read_text(encoding="utf-8")
     except FileNotFoundError:
         return ""
+
+
+# --------------------------------------------------------------------------- #
+# Static template for the interactive HTML overview
+# --------------------------------------------------------------------------- #
+# Fully static: the only substitution is `__CODE_MAP_JSON__`. All layout and
+# interactivity are computed client-side, so the committed file stays byte-stable.
+
+_OVERVIEW_HTML_TEMPLATE = '''<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Allocio architecture overview</title>
+<style>
+  :root {
+    --bg: #0f1419; --col-bg: #151b23; --node-bg: #1c242e; --node-fg: #d7dee8;
+    --muted: #7d8aa0; --stroke: #3a4658; --accent: #5b8def;
+    --added: #3fb950; --modified: #d29922; --removed: #f85149;
+  }
+  * { box-sizing: border-box; }
+  .hidden { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--node-fg);
+    font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 14px; }
+  a { color: var(--accent); }
+  .topbar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 14px;
+    align-items: center; padding: 14px 20px; background: rgba(15,20,25,.92);
+    backdrop-filter: blur(6px); border-bottom: 1px solid var(--stroke); }
+  .title { font-weight: 700; letter-spacing: .3px; margin-right: 6px; }
+  .hint { color: var(--muted); font-size: 12px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { border: 1px solid var(--stroke); background: var(--node-bg); color: var(--node-fg);
+    border-radius: 999px; padding: 3px 11px; font-size: 12px; cursor: pointer; }
+  .chip.off { color: var(--muted); text-decoration: line-through; opacity: .6; }
+  .changed-toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; cursor: pointer; }
+  .legend { display: flex; gap: 12px; color: var(--muted); font-size: 12px; }
+  .legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px;
+    margin-right: 5px; vertical-align: middle; }
+  .legend .l-added::before { background: var(--added); }
+  .legend .l-modified::before { background: var(--modified); }
+  .legend .l-removed::before { background: var(--removed); }
+  main { padding: 8px 20px 60px; }
+  .area { margin-top: 26px; }
+  .area h2 { font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted);
+    margin: 0 0 10px; }
+  .graph { position: relative; overflow-x: auto; padding-bottom: 6px; }
+  svg.edges { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; }
+  .columns { display: inline-flex; gap: 60px; align-items: flex-start; min-width: 100%; padding: 4px; }
+  .col { display: flex; flex-direction: column; gap: 16px; background: var(--col-bg); border-radius: 12px;
+    padding: 12px; min-width: 190px; }
+  .col-head { text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+    color: var(--muted); text-transform: uppercase; }
+  .node { position: relative; display: flex; align-items: center; gap: 8px; min-height: 40px;
+    background: var(--node-bg); border: 1px solid var(--stroke); border-left: 4px solid var(--accent);
+    border-radius: 10px; padding: 8px 12px; cursor: pointer; transition: opacity .12s, border-color .12s; }
+  .node .lab { font-weight: 500; word-break: break-word; }
+  .node:hover, .node.active { border-color: var(--accent); }
+  .node.dim { opacity: .22; }
+  .node.linked { border-color: var(--muted); }
+  .node.hidden, .col.hidden { display: none; }
+  .node.chg-added { border-left-color: var(--added); }
+  .node.chg-modified { border-left-color: var(--modified); }
+  .node.chg-removed { border-left-color: var(--removed); }
+  path.edge { stroke: var(--stroke); stroke-width: 1.4; fill: none; opacity: .7; transition: opacity .12s, stroke .12s; }
+  path.edge.edge-on { stroke: var(--accent); opacity: 1; }
+  path.edge.edge-dim { opacity: .12; }
+  .panel { position: fixed; top: 64px; right: 16px; width: 320px; max-height: 76vh; overflow: auto;
+    background: var(--col-bg); border: 1px solid var(--stroke); border-radius: 12px; padding: 16px; z-index: 8;
+    box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+  .panel.hidden { display: none; }
+  .panel-close { position: absolute; top: 8px; right: 10px; background: none; border: none; color: var(--muted);
+    font-size: 20px; cursor: pointer; line-height: 1; }
+  .panel-title { font-weight: 700; margin-bottom: 2px; word-break: break-word; }
+  .panel-sub { color: var(--muted); font-size: 12px; margin-bottom: 12px; word-break: break-word; }
+  ul.symbols { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  ul.symbols li { font-size: 13px; }
+  .kind { display: inline-block; min-width: 62px; font-size: 10px; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--muted); }
+  .kind-route { color: var(--accent); }
+  .kind-class { color: var(--modified); }
+  .kind-component { color: var(--added); }
+  .ln { color: var(--muted); font-size: 11px; }
+  .panel-open { display: inline-block; margin-top: 4px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="title">Allocio architecture</span>
+  <span class="hint">hover a module to trace its dependencies · click to inspect</span>
+  <div class="filters" id="filters"></div>
+  <label class="changed-toggle hidden" id="changedWrap"><input type="checkbox" id="changedOnly"> only changed</label>
+  <div class="legend hidden" id="legend"><span class="l-added">added</span><span class="l-modified">modified</span><span class="l-removed">removed</span></div>
+</div>
+<main id="areas"></main>
+<aside class="panel hidden" id="panel">
+  <button class="panel-close" id="panelClose" aria-label="Close">&times;</button>
+  <div class="panel-title" id="panelTitle"></div>
+  <div class="panel-sub" id="panelSub"></div>
+  <ul class="symbols" id="panelSymbols"></ul>
+  <a class="panel-open" id="panelOpen" target="_blank" rel="noopener">Open on GitHub &#8599;</a>
+</aside>
+<script>
+window.__CODE_MAP__ = __CODE_MAP_JSON__;
+(function () {
+  "use strict";
+  var data = window.__CODE_MAP__;
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var enabled = new Set();
+  var areas = [];
+  var chg = parseChg();
+
+  function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+
+  function b64urlDecode(s) {
+    s = s.replace(/-/g, "+").replace(/_/g, "/");
+    while (s.length % 4) { s += "="; }
+    return atob(s);
+  }
+  function parseChg() {
+    var m = location.hash.match(/chg=([^&]+)/);
+    if (!m) { return null; }
+    try {
+      var obj = JSON.parse(b64urlDecode(decodeURIComponent(m[1])));
+      var mk = function (a) { return new Set(Array.isArray(a) ? a : []); };
+      var added = mk(obj.added), modified = mk(obj.modified), removed = mk(obj.removed);
+      var all = new Set();
+      [added, modified, removed].forEach(function (set) { set.forEach(function (p) { all.add(p); }); });
+      return all.size ? { added: added, modified: modified, removed: removed, all: all } : null;
+    } catch (e) { return null; }
+  }
+
+  function buildFilters() {
+    var seen = [];
+    data.areas.forEach(function (area) {
+      area.layers.forEach(function (layer) { if (seen.indexOf(layer) < 0) { seen.push(layer); } });
+    });
+    var host = document.getElementById("filters");
+    seen.forEach(function (layer) {
+      enabled.add(layer);
+      var chip = document.createElement("button");
+      chip.className = "chip";
+      chip.textContent = layer;
+      chip.addEventListener("click", function () {
+        if (enabled.has(layer)) { enabled.delete(layer); chip.classList.add("off"); }
+        else { enabled.add(layer); chip.classList.remove("off"); }
+        applyVisibility();
+      });
+      host.appendChild(chip);
+    });
+  }
+
+  function chgClass(path) {
+    if (!chg) { return ""; }
+    if (chg.added.has(path)) { return "chg-added"; }
+    if (chg.removed.has(path)) { return "chg-removed"; }
+    if (chg.modified.has(path)) { return "chg-modified"; }
+    return "";
+  }
+
+  function buildArea(areaData) {
+    var section = document.createElement("section");
+    section.className = "area";
+    var h2 = document.createElement("h2");
+    h2.textContent = areaData.title;
+    section.appendChild(h2);
+
+    var graph = document.createElement("div");
+    graph.className = "graph";
+    var svg = document.createElementNS(SVGNS, "svg");
+    svg.setAttribute("class", "edges");
+    graph.appendChild(svg);
+    var columns = document.createElement("div");
+    columns.className = "columns";
+    graph.appendChild(columns);
+    section.appendChild(graph);
+
+    var nodeEls = {};
+    var cols = [];
+    areaData.layers.forEach(function (layer) {
+      var col = document.createElement("div");
+      col.className = "col";
+      var head = document.createElement("div");
+      head.className = "col-head";
+      head.textContent = layer;
+      col.appendChild(head);
+      var colNodes = [];
+      areaData.nodes.filter(function (n) { return n.layer === layer; }).forEach(function (node) {
+        var el = document.createElement("div");
+        el.className = "node " + chgClass(node.path);
+        el.innerHTML = '<span class="lab">' + esc(node.label) + "</span>";
+        el.addEventListener("mouseenter", function () { highlight(area, node.path); });
+        el.addEventListener("mouseleave", function () { clearHighlight(area); });
+        el.addEventListener("click", function () { openPanel(node); });
+        col.appendChild(el);
+        nodeEls[node.path] = el;
+        colNodes.push({ el: el, path: node.path, layer: layer });
+      });
+      columns.appendChild(col);
+      cols.push({ el: col, layer: layer, nodes: colNodes });
+    });
+
+    var edgeEls = areaData.edges.map(function (pair) {
+      var path = document.createElementNS(SVGNS, "path");
+      path.setAttribute("class", "edge");
+      svg.appendChild(path);
+      return { src: pair[0], tgt: pair[1], el: path };
+    });
+
+    var area = { data: areaData, graph: graph, svg: svg, nodeEls: nodeEls, cols: cols, edges: edgeEls };
+    areas.push(area);
+    document.getElementById("areas").appendChild(section);
+  }
+
+  function highlight(area, path) {
+    var linked = new Set([path]);
+    area.edges.forEach(function (e) {
+      if (e.src === path) { linked.add(e.tgt); }
+      if (e.tgt === path) { linked.add(e.src); }
+    });
+    Object.keys(area.nodeEls).forEach(function (p) {
+      var el = area.nodeEls[p];
+      el.classList.toggle("dim", !linked.has(p));
+      el.classList.toggle("active", p === path);
+      el.classList.toggle("linked", p !== path && linked.has(p));
+    });
+    area.edges.forEach(function (e) {
+      var on = e.src === path || e.tgt === path;
+      e.el.classList.toggle("edge-on", on);
+      e.el.classList.toggle("edge-dim", !on);
+    });
+  }
+  function clearHighlight(area) {
+    Object.keys(area.nodeEls).forEach(function (p) { area.nodeEls[p].classList.remove("dim", "active", "linked"); });
+    area.edges.forEach(function (e) { e.el.classList.remove("edge-on", "edge-dim"); });
+  }
+
+  function openPanel(node) {
+    document.getElementById("panelTitle").textContent = node.label;
+    document.getElementById("panelSub").textContent = node.layer + " \\u00b7 " + node.path;
+    var list = document.getElementById("panelSymbols");
+    list.innerHTML = "";
+    if (!node.symbols.length) {
+      var empty = document.createElement("li");
+      empty.className = "ln";
+      empty.textContent = "No top-level symbols.";
+      list.appendChild(empty);
+    }
+    node.symbols.forEach(function (s) {
+      var li = document.createElement("li");
+      li.innerHTML = '<span class="kind kind-' + s.kind + '">' + s.kind + "</span> " + esc(s.name) +
+        (s.line ? ' <span class="ln">L' + s.line + "</span>" : "");
+      list.appendChild(li);
+    });
+    var open = document.getElementById("panelOpen");
+    open.href = data.blobBase + node.path + (node.line ? "#L" + node.line : "");
+    document.getElementById("panel").classList.remove("hidden");
+  }
+
+  function visible(path, layer) {
+    if (!enabled.has(layer)) { return false; }
+    if (document.getElementById("changedOnly").checked && chg && !chg.all.has(path)) { return false; }
+    return true;
+  }
+
+  function applyVisibility() {
+    areas.forEach(function (area) {
+      area.cols.forEach(function (col) {
+        var any = false;
+        col.nodes.forEach(function (n) {
+          var show = visible(n.path, n.layer);
+          n.el.classList.toggle("hidden", !show);
+          if (show) { any = true; }
+        });
+        col.el.classList.toggle("hidden", !any);
+      });
+    });
+    drawEdges();
+  }
+
+  function drawEdges() {
+    areas.forEach(function (area) {
+      var box = area.graph.getBoundingClientRect();
+      area.svg.setAttribute("width", area.graph.scrollWidth);
+      area.svg.setAttribute("height", area.graph.scrollHeight);
+      area.edges.forEach(function (e) {
+        var s = area.nodeEls[e.src], t = area.nodeEls[e.tgt];
+        var shown = s && t && !s.classList.contains("hidden") && !t.classList.contains("hidden") &&
+          !s.closest(".col").classList.contains("hidden") && !t.closest(".col").classList.contains("hidden");
+        if (!shown) { e.el.setAttribute("d", ""); return; }
+        var sr = s.getBoundingClientRect(), tr = t.getBoundingClientRect();
+        var x1 = sr.right - box.left, y1 = sr.top + sr.height / 2 - box.top;
+        var x2 = tr.left - box.left, y2 = tr.top + tr.height / 2 - box.top;
+        if (x2 < x1) { x1 = sr.left - box.left; }
+        var dx = Math.max(40, Math.abs(x2 - x1) / 2);
+        e.el.setAttribute("d", "M" + x1 + "," + y1 + " C" + (x1 + dx) + "," + y1 + " " + (x2 - dx) + "," + y2 + " " + x2 + "," + y2);
+      });
+    });
+  }
+
+  function initDiffMode() {
+    if (!chg) { return; }
+    document.getElementById("changedWrap").classList.remove("hidden");
+    document.getElementById("legend").classList.remove("hidden");
+    document.getElementById("changedOnly").addEventListener("change", applyVisibility);
+  }
+
+  data.areas.forEach(buildArea);
+  buildFilters();
+  initDiffMode();
+  document.getElementById("panelClose").addEventListener("click", function () {
+    document.getElementById("panel").classList.add("hidden");
+  });
+  var raf;
+  window.addEventListener("resize", function () { clearTimeout(raf); raf = setTimeout(drawEdges, 120); });
+  requestAnimationFrame(function () { requestAnimationFrame(applyVisibility); });
+})();
+</script>
+</body>
+</html>
+'''
 
 
 if __name__ == "__main__":

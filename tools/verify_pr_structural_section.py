@@ -6,7 +6,7 @@ markdown``) is read from stdin or a file. The PR body is read from a file or the
 between the structural-change markers appears in the PR body.
 
 Usage:
-    python tools/code_map.py --diff main...HEAD --format markdown \
+    python tools/code_map.py --diff origin/main...HEAD --format markdown \
         | python tools/verify_pr_structural_section.py --pr-body pr_body.md
     python tools/verify_pr_structural_section.py --expected expected.md --pr-body pr_body.md
 """

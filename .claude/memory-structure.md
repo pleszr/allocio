@@ -173,7 +173,7 @@ Targets:
 
 Use for:
 
-- changes to how `docs/code-map.json` or the `docs/code-map.md` architecture overview is generated, checked, or diffed
+- changes to how `docs/code-map.json` or the `docs/code-map.html` architecture overview is generated, checked, or diffed
 - structural-diff PR-body and CI enforcement expectations
 - symbol-extraction behavior for Python or TypeScript
 

@@ -41,7 +41,7 @@ Read [references/review-context.md](references/review-context.md) before finaliz
    - For `diff mode`, start by reading the deterministic structural context before the line-level diff:
      - the PR `## Requirements` section when present
      - the PR `## Structural Changes` section when present
-     - `docs/code-map.md` (the human-readable architecture overview) for orientation
+     - `docs/code-map.html` (the interactive architecture overview) for orientation
      - `docs/code-map.json`
      - `uv run --python 3.14 python tools/code_map.py --staged --format markdown` for staged-diff reviews
      - `git diff --stat`
