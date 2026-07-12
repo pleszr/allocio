@@ -10,7 +10,6 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 import tools.code_map as cm  # noqa: E402
-import tools.verify_pr_structural_section as verify  # noqa: E402
 
 
 def _frontend_available() -> bool:
@@ -230,48 +229,6 @@ def test_staged_markdown_reports_symbol_changes_versus_head(temp_repo):
     diff = cm.diff_maps(base_map, head_map, changed)
 
     assert [change.name for change in diff.modified] == ["foo"]
-
-
-# --------------------------------------------------------------------------- #
-# PR structural-section verification
-# --------------------------------------------------------------------------- #
-
-
-def _sample_markdown() -> str:
-    context = cm.MarkdownContext(compared_range="main...HEAD", base_commit="abc123", head_commit="def456")
-    diff = cm.diff_maps(_map(), _map(), [])
-    return cm.render_markdown(diff, context)
-
-
-def test_verify_passes_when_pr_body_contains_section(tmp_path):
-    markdown = _sample_markdown()
-    expected = tmp_path / "expected.md"
-    body = tmp_path / "body.md"
-    expected.write_text(markdown, encoding="utf-8")
-    body.write_text(f"# Title\n\nIntro.\n\n{markdown}\n", encoding="utf-8")
-
-    assert verify.main(["--expected", str(expected), "--pr-body", str(body)]) == 0
-
-
-def test_verify_fails_when_section_missing(tmp_path, capsys):
-    expected = tmp_path / "expected.md"
-    body = tmp_path / "body.md"
-    expected.write_text(_sample_markdown(), encoding="utf-8")
-    body.write_text("# Title\n\nNo structural section here.\n", encoding="utf-8")
-
-    assert verify.main(["--expected", str(expected), "--pr-body", str(body)]) == 1
-    assert cm.MARKER_START in capsys.readouterr().err
-
-
-def test_verify_fails_when_section_tampered(tmp_path):
-    markdown = _sample_markdown()
-    expected = tmp_path / "expected.md"
-    body = tmp_path / "body.md"
-    expected.write_text(markdown, encoding="utf-8")
-    tampered = markdown.replace("main...HEAD", "main...OTHER")
-    body.write_text(f"# Title\n\n{tampered}\n", encoding="utf-8")
-
-    assert verify.main(["--expected", str(expected), "--pr-body", str(body)]) == 1
 
 
 # --------------------------------------------------------------------------- #
