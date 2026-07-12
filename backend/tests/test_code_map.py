@@ -275,67 +275,144 @@ def test_verify_fails_when_section_tampered(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
-# Architecture overview (docs/code-map.md)
+# Change Map (render_markdown)
 # --------------------------------------------------------------------------- #
 
 
-def test_overview_renders_area_outline(tmp_path):
-    entry = _py_entry(
+def _change_map(tmp_path, base_path, base_src, head_path, head_src, changed):
+    base_entry = _py_entry(tmp_path, base_path, base_src)
+    head_entry = _py_entry(tmp_path, head_path, head_src)
+    base_entry["path"] = head_entry["path"] = changed[0]
+    diff = cm.diff_maps(_map(backend=[base_entry]), _map(backend=[head_entry]), changed)
+    context = cm.MarkdownContext(compared_range="main...HEAD", base_commit="a", head_commit="b")
+    return cm.render_markdown(diff, context)
+
+
+def test_change_map_promotes_focus_and_uses_badges(tmp_path):
+    md = _change_map(
+        tmp_path,
+        "a.py", "def foo():\n    return 1\n",
+        "b.py", "def foo():\n    return 1\n\n\ndef bar():\n    return 2\n",
+        ["backend/app/api/x.py"],
+    )
+    assert md.startswith(cm.MARKER_START)
+    assert md.rstrip().endswith(cm.MARKER_END)
+    # Review focus is promoted above the file/symbol detail.
+    assert md.index("Suggested human review focus") < md.index("Files changed")
+    # Symbols are grouped under their architectural layer with a badge.
+    assert "### API changes" in md
+    assert "🟢 **Added** function `bar`" in md
+
+
+def test_change_map_groups_modified_and_removed_by_layer(tmp_path):
+    modified = _change_map(
+        tmp_path,
+        "a.py", "def foo():\n    return 1\n",
+        "b.py", "def foo():\n    return 2\n",
+        ["backend/app/services/s.py"],
+    )
+    assert "### Services changes" in modified
+    assert "🟡 **Modified** function `foo`" in modified
+
+
+def test_change_map_routes_section_lists_route_badges(tmp_path):
+    base_entry = {"path": "backend/app/api/r.py", "language": "python", "imports": [], "functions": [], "classes": [], "routes": []}
+    head_entry = _py_entry(
+        tmp_path,
+        "backend/app/api/r.py",
+        'from fastapi import APIRouter\n\nrouter = APIRouter()\n\n\n@router.get("/things")\ndef list_things():\n    return []\n',
+    )
+    diff = cm.diff_maps(_map(backend=[base_entry]), _map(backend=[head_entry]), ["backend/app/api/r.py"])
+    md = cm.render_markdown(diff, cm.MarkdownContext("main...HEAD", "a", "b"))
+    assert "### Routes changed" in md
+    assert "🟢 **Added** route `GET /things`" in md
+
+
+def test_change_map_lists_import_changes():
+    before = {"path": "backend/app/services/s.py", "language": "python", "imports": ["os"], "functions": [], "classes": [], "routes": []}
+    after = {"path": "backend/app/services/s.py", "language": "python", "imports": ["sys"], "functions": [], "classes": [], "routes": []}
+    diff = cm.diff_maps(_map(backend=[before]), _map(backend=[after]), ["backend/app/services/s.py"])
+    md = cm.render_markdown(diff, cm.MarkdownContext("main...HEAD", "a", "b"))
+    assert "### Imports changed" in md
+    assert "backend/app/services/s.py: +`sys` -`os`" in md
+
+
+def test_change_map_empty_diff_reports_no_changes():
+    diff = cm.diff_maps(_map(), _map(), [])
+    md = cm.render_markdown(diff, cm.MarkdownContext("main...HEAD", "a", "b"))
+    assert "No structural changes detected." in md
+
+
+def test_overview_diff_payload_buckets_added_vs_modified():
+    added = {"path": "backend/app/n.py", "language": "python", "imports": [], "functions": [{"name": "foo", "line_start": 1, "line_end": 2, "hash": "a"}], "classes": [], "routes": []}
+    diff = cm.diff_maps(_map(), _map(backend=[added]), ["backend/app/n.py"])
+    payload = cm._overview_diff_payload(diff)
+    assert payload["added"] == ["backend/app/n.py"]
+    assert payload["modified"] == []
+    assert payload["removed"] == []
+
+
+# --------------------------------------------------------------------------- #
+# Interactive HTML overview (docs/code-map.html)
+# --------------------------------------------------------------------------- #
+
+
+def test_overview_html_is_deterministic(tmp_path):
+    entry = _py_entry(tmp_path, "backend/app/services/s.py", "class S:\n    def m(self):\n        return 1\n")
+    code_map = _map(backend=[entry])
+    assert cm.render_overview_html(code_map) == cm.render_overview_html(code_map)
+
+
+def test_overview_html_is_self_contained(tmp_path):
+    entry = _py_entry(tmp_path, "backend/app/services/s.py", "def go():\n    return 1\n")
+    html = cm.render_overview_html(_map(backend=[entry]))
+    assert "<script src=" not in html
+    assert "<link " not in html
+    assert "@import" not in html
+    # No external resources are fetched (the only http URL is the inert SVG namespace).
+    assert 'src="http' not in html
+    assert 'href="http' not in html
+
+
+def test_overview_html_excludes_init_tests_and_tooling(tmp_path):
+    api = _py_entry(
         tmp_path,
         "backend/app/api/things.py",
         'from fastapi import APIRouter\n\nrouter = APIRouter()\n\n\n@router.get("/things")\ndef list_things():\n    return []\n',
     )
-    md = cm.render_overview(_map(backend=[entry]))
-    assert "## Backend" in md
-    assert "### backend/app/api/things.py" in md
-    assert "`GET /things` → list_things" in md
-    assert "**fn** `list_things`" in md
+    init = _py_entry(tmp_path, "backend/app/api/__init__.py", "")
+    test_file = _py_entry(tmp_path, "backend/tests/test_things.py", "def test_x():\n    assert True\n")
+    tool = _py_entry(tmp_path, "tools/code_map.py", "def helper():\n    return 1\n")
+    html = cm.render_overview_html(_map(backend=[api, init, test_file], tooling=[tool]))
+    assert "app/api/things.py" in html
+    assert "__init__.py" not in html
+    assert "test_things.py" not in html
+    assert "code_map.py" not in html
 
 
-def test_overview_backend_module_graph_edge(tmp_path):
+def test_overview_payload_groups_layers_and_edges(tmp_path):
     service = _py_entry(tmp_path, "backend/app/services/s.py", "from app.domain.x import X\n\n\ndef go():\n    return X()\n")
     domain = _py_entry(tmp_path, "backend/app/domain/x.py", "class X:\n    pass\n")
-    md = cm.render_overview(_map(backend=[domain, service]))
-    assert "```mermaid" in md
-    assert "n_backend_app_services_s_py --> n_backend_app_domain_x_py" in md
+    payload = cm._overview_html_payload(_map(backend=[domain, service]))
+    backend = next(area for area in payload["areas"] if area["title"] == "Backend")
+    # LAYER_ORDER places Services before Domain.
+    assert backend["layers"] == ["Services", "Domain"]
+    assert ["backend/app/services/s.py", "backend/app/domain/x.py"] in backend["edges"]
 
 
-def test_overview_graph_groups_by_layer(tmp_path):
-    service = _py_entry(tmp_path, "backend/app/services/s.py", "from app.domain.x import X\n\n\ndef go():\n    return X()\n")
-    domain = _py_entry(tmp_path, "backend/app/domain/x.py", "class X:\n    pass\n")
-    md = cm.render_overview(_map(backend=[domain, service]))
-    assert "subgraph Services" in md
-    assert "subgraph Domain" in md
-
-
-def test_overview_frontend_component_and_relative_import():
+def test_overview_payload_frontend_component_not_duplicated_as_fn():
     app = {"path": "frontend/src/App.tsx", "language": "typescript", "imports": ["react"], "exports": ["App", "default"],
            "functions": [{"name": "App", "line_start": 9, "line_end": 42, "hash": "h"}], "classes": [],
            "components": [{"name": "App", "line_start": 9, "line_end": 42, "hash": "h"}]}
     main = {"path": "frontend/src/main.tsx", "language": "typescript", "imports": ["./App", "react"], "exports": [],
             "functions": [], "classes": [], "components": []}
-    md = cm.render_overview(_map(frontend=[app, main]))
-    assert "## Frontend" in md
-    assert "**component** `App`" in md
-    assert "n_frontend_src_main_tsx --> n_frontend_src_App_tsx" in md
-    # App is a component, not also listed as a bare function
-    assert "**fn** `App`" not in md
-
-
-def test_overview_section_has_area_graphs(tmp_path):
-    service = _py_entry(tmp_path, "backend/app/services/s.py", "from app.domain.x import X\n\n\ndef go():\n    return X()\n")
-    domain = _py_entry(tmp_path, "backend/app/domain/x.py", "class X:\n    pass\n")
-    section = cm.render_overview_section(_map(backend=[domain, service]))
-    assert "## Architecture Overview" in section
-    assert "### Backend module graph" in section
-    assert "subgraph Services" in section
-    assert "```mermaid" in section
-
-
-def test_overview_is_deterministic(tmp_path):
-    entry = _py_entry(tmp_path, "backend/app/svc.py", "class S:\n    def m(self):\n        return 1\n")
-    code_map = _map(backend=[entry])
-    assert cm.render_overview(code_map) == cm.render_overview(code_map)
+    payload = cm._overview_html_payload(_map(frontend=[app, main]))
+    frontend = next(area for area in payload["areas"] if area["title"] == "Frontend")
+    app_node = next(node for node in frontend["nodes"] if node["path"] == "frontend/src/App.tsx")
+    kinds = {(symbol["kind"], symbol["name"]) for symbol in app_node["symbols"]}
+    assert ("component", "App") in kinds
+    assert ("fn", "App") not in kinds
+    assert ["frontend/src/main.tsx", "frontend/src/App.tsx"] in frontend["edges"]
 
 
 # --------------------------------------------------------------------------- #
