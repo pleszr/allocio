@@ -2,13 +2,12 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from app.api import greetings, health
+from app.api import health
 from app.common.exceptions import NotFoundError
 
 app = FastAPI(title="Allocio API")
 
 app.include_router(health.router)
-app.include_router(greetings.router)
 
 
 @app.exception_handler(NotFoundError)

@@ -35,11 +35,11 @@ docker compose up -d postgres
 ```sh
 cd backend
 uv sync
-uv run alembic upgrade head      # creates the greetings table and seeds 'hello world'
+uv run alembic upgrade head      # applies the vehicle schema migrations
 uv run uvicorn app.main:app --reload
 ```
 
-Sanity-check: `curl http://localhost:8000/api/greeting` should return `{"id":1,"message":"hello world"}`.
+Sanity-check: `curl http://localhost:8000/api/health` should return `{"status":"ok"}`.
 
 ### 3. Frontend (Vite on :5173)
 
@@ -49,7 +49,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173 — the page fetches `/api/greeting` (proxied to the backend) and shows the message from Postgres.
+Open http://localhost:5173 — the Vite dev server proxies `/api/*` requests to the backend on :8000.
 
 ### Tearing down
 
