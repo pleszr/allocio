@@ -231,7 +231,7 @@ Rules:
 
 - `interval_km` is optional
 - `interval_months` is optional
-- at least one of `interval_km` or `interval_months` must be present
+- at least one of `interval_km` or `interval_months` must be present, except for the default `Other` catch-all (`technical_key = 'other'`), which may leave both null
 - `estimated_cost` is optional
 - `tire_type` is nullable
 - `tire_type` is used for tire-specific maintenance rows

@@ -47,12 +47,13 @@ class UsageBasedCost(Base):
 
 
 class MaintenanceItem(Base):
-    """Tracked maintenance/replacement item with at least one of a km or month interval."""
+    """Tracked maintenance/replacement item; needs a km or month interval unless it is the `other` catch-all."""
 
     __tablename__ = "maintenance_items"
     __table_args__ = (
         CheckConstraint(
-            "interval_km IS NOT NULL OR interval_months IS NOT NULL", name="ck_maintenance_items_interval_present"
+            "interval_km IS NOT NULL OR interval_months IS NOT NULL OR technical_key = 'other'",
+            name="ck_maintenance_items_interval_present",
         ),
     )
 
