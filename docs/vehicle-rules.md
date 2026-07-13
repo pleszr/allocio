@@ -60,14 +60,14 @@ Rules:
 For the first posted vehicle check-in:
 
 - `period_start = asset.created_at::date`
-- `odometer_start = vehicle_profile.starting_odometer`
+- `usage_start = vehicle_profile.starting_odometer`
 
 ### Subsequent check-ins
 
 For every later posted vehicle check-in:
 
 - `period_start = previous_posted_check_in.period_end`
-- `odometer_start = previous_posted_check_in.odometer_end`
+- `usage_start = previous_posted_check_in.usage_end`
 
 Rules:
 
@@ -76,14 +76,16 @@ Rules:
 
 ## Odometer And Usage
 
+For a vehicle the usage unit is km, so the usage counter is the odometer and `usage_amount` is the kilometers driven.
+
 For each check-in:
 
-- `usage_km = odometer_end - odometer_start`
+- `usage_amount = usage_end - usage_start`
 
 Rules:
 
-- `odometer_end` must be greater than or equal to `odometer_start`
-- `usage_km` must be greater than or equal to `0`
+- `usage_end` must be greater than or equal to `usage_start`
+- `usage_amount` must be greater than or equal to `0`
 - odometer is always stored in kilometers in MVP
 
 ## Time-Based Accrual
@@ -172,7 +174,7 @@ Example:
 
 Formula:
 
-- `period_usage_accrual = usage_km * amount_per_km`
+- `period_usage_accrual = usage_amount * amount_per_unit`
 
 Rules:
 
@@ -202,7 +204,7 @@ For non-tire-specific maintenance items:
 
 For tire-specific maintenance items:
 
-- `km_since_service = sum(usage_km)` across posted check-ins after `last_serviced_at_date` where `check_in.active_tire_type = maintenance_item.tire_type`
+- `km_since_service = sum(usage_amount)` across posted check-ins after `last_serviced_at_date` where `check_in.active_tire_type = maintenance_item.tire_type`
 
 For all maintenance items:
 
@@ -269,7 +271,7 @@ Formula:
 
 ### Guidance bands
 
-Compare the user-configured `amount_per_km` against `recommended_usage_rate`.
+Compare the user-configured `amount_per_unit` against `recommended_usage_rate`.
 
 Rules:
 
@@ -298,7 +300,7 @@ Each expense may include:
 - `comment`
 - `source_type`
 - `source_id`
-- optional `odometer_at_event`
+- optional `usage_counter_at_event`
 
 ### Relation to check-in
 
@@ -322,7 +324,7 @@ A check-in preview must be able to accept:
 
 - `asset_id`
 - `period_end`
-- `odometer_end`
+- `usage_end`
 - `active_tire_type`
 - optional expense draft items for the period
 
@@ -331,9 +333,9 @@ A check-in preview must be able to accept:
 Preview must derive:
 
 - `period_start`
-- `odometer_start`
+- `usage_start`
 - `elapsed_days`
-- `usage_km`
+- `usage_amount`
 - time-based accrual line items
 - usage-based accrual line item
 - expense line items
@@ -438,14 +440,14 @@ Inputs:
 
 - `period_start = 2026-04-01`
 - `period_end = 2026-05-01`
-- `odometer_start = 344,914`
-- `odometer_end = 345,814`
-- `amount_per_km = 10 HUF/km`
+- `usage_start = 344,914`
+- `usage_end = 345,814`
+- `amount_per_unit = 10 HUF/km`
 
 Derived:
 
 - `elapsed_days = 30`
-- `usage_km = 900`
+- `usage_amount = 900`
 - `period_usage_accrual = 900 * 10 = 9,000 HUF`
 
 ### Example 2: time-based accrual

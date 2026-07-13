@@ -88,12 +88,13 @@ def test_update_usage_based_reserve(client: TestClient) -> None:
     asset_id = created["asset"]["id"]
 
     response = client.patch(
-        f"/api/assets/{asset_id}/usage-based-cost", json={"amount_per_km": "12.5000", "notes": "higher rate"}
+        f"/api/assets/{asset_id}/usage-based-cost", json={"amount_per_unit": "12.5000", "notes": "higher rate"}
     )
 
     assert response.status_code == 200
     row = response.json()
-    assert row["amount_per_km"] == "12.5000"
+    assert row["amount_per_unit"] == "12.5000"
+    assert row["usage_unit"] == "km"
     assert row["notes"] == "higher rate"
     assert row["is_active"] is True
     assert row["asset_id"] == asset_id

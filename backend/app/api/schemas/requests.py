@@ -88,7 +88,7 @@ class UpdateTimeBasedCostRequest(BaseModel):
 class UpdateUsageBasedCostRequest(BaseModel):
     """Partial update for the single usage-based reserve. The reserve is never toggled here."""
 
-    amount_per_km: Decimal | None = Field(default=None, ge=0, description="Reserve amount accrued per kilometer.")
+    amount_per_unit: Decimal | None = Field(default=None, ge=0, description="Reserve amount accrued per usage unit.")
     notes: str | None = Field(default=None, max_length=2000, description="Optional free-text notes for the reserve.")
 
 

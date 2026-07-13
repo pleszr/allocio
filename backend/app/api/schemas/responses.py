@@ -65,7 +65,7 @@ class TimeBasedCostResponse(BaseModel):
 
 
 class UsageBasedCostResponse(BaseModel):
-    """The cloned per-kilometer reserve row."""
+    """The cloned per-usage-unit reserve row."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -75,7 +75,8 @@ class UsageBasedCostResponse(BaseModel):
     technical_key: str | None = Field(
         description="Stable template key for this cost.", examples=["usage_based_reserve"]
     )
-    amount_per_km: Decimal = Field(description="Reserve amount accrued per kilometer.")
+    amount_per_unit: Decimal = Field(description="Reserve amount accrued per usage unit.")
+    usage_unit: str = Field(description="Unit the reserve accrues per (e.g. km).", examples=["km"])
     currency: str = Field(description="ISO currency code for the reserve.", examples=["HUF"])
     notes: str | None = Field(description="Optional free-text notes for the reserve.")
     is_active: bool = Field(description="Whether the reserve row drives future calculations.")
@@ -112,5 +113,5 @@ class CreateAssetResponse(BaseModel):
     profile: VehicleProfileResponse | None = Field(description="The created vehicle profile, if a template supplied one.")
     bucket: BucketResponse = Field(description="The created savings bucket.")
     time_based_costs: list[TimeBasedCostResponse] = Field(description="Cloned recurring time-based cost rows.")
-    usage_based_costs: list[UsageBasedCostResponse] = Field(description="Cloned per-kilometer reserve rows.")
+    usage_based_costs: list[UsageBasedCostResponse] = Field(description="Cloned per-usage-unit reserve rows.")
     maintenance_items: list[MaintenanceItemResponse] = Field(description="Cloned maintenance/replacement item rows.")
