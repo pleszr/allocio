@@ -25,11 +25,12 @@ class TimeBasedCostTemplate:
 
 @dataclass(frozen=True)
 class UsageBasedCostTemplate:
-    """Per-kilometer reserve baseline; one active usage-based row per asset."""
+    """Per-usage-unit reserve baseline; one active usage-based row per asset."""
 
     technical_key: str
     label: str
-    amount_per_km: Decimal
+    amount_per_unit: Decimal
+    usage_unit: str
     currency: str
 
 
@@ -57,7 +58,7 @@ DEFAULT_TIME_BASED_COSTS: tuple[TimeBasedCostTemplate, ...] = (
 )
 
 DEFAULT_USAGE_BASED_COST: UsageBasedCostTemplate = UsageBasedCostTemplate(
-    "usage_based_reserve", "Usage-based reserve", Decimal("10"), "HUF"
+    "usage_based_reserve", "Usage-based reserve", Decimal("10"), "km", "HUF"
 )
 
 DEFAULT_MAINTENANCE_ITEMS: tuple[MaintenanceItemTemplate, ...] = (
@@ -103,7 +104,8 @@ def build_default_rows(
             asset_id=asset_id,
             label=DEFAULT_USAGE_BASED_COST.label,
             technical_key=DEFAULT_USAGE_BASED_COST.technical_key,
-            amount_per_km=DEFAULT_USAGE_BASED_COST.amount_per_km,
+            amount_per_unit=DEFAULT_USAGE_BASED_COST.amount_per_unit,
+            usage_unit=DEFAULT_USAGE_BASED_COST.usage_unit,
             currency=DEFAULT_USAGE_BASED_COST.currency,
             is_active=True,
         )

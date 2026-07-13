@@ -39,7 +39,8 @@ def test_time_based_rows_use_months_unit():
 
 def test_usage_based_reserve_shape():
     assert DEFAULT_USAGE_BASED_COST.currency == "HUF"
-    assert DEFAULT_USAGE_BASED_COST.amount_per_km == Decimal("10")
+    assert DEFAULT_USAGE_BASED_COST.amount_per_unit == Decimal("10")
+    assert DEFAULT_USAGE_BASED_COST.usage_unit == "km"
 
 
 def test_comprehensive_insurance_present_as_single_key():
@@ -95,7 +96,7 @@ def test_build_default_rows_is_deterministic():
         time_based, usage_based, maintenance = groups
         return (
             [(r.technical_key, r.label, r.amount, r.interval_value, r.interval_unit) for r in time_based],
-            [(r.technical_key, r.label, r.amount_per_km, r.currency) for r in usage_based],
+            [(r.technical_key, r.label, r.amount_per_unit, r.usage_unit, r.currency) for r in usage_based],
             [
                 (r.technical_key, r.label, r.interval_km, r.interval_months, r.tire_type, r.estimated_cost)
                 for r in maintenance
@@ -115,7 +116,8 @@ def test_build_default_rows_field_mapping_spot_checks():
 
     reserve = usage_based[0]
     assert reserve.technical_key == "usage_based_reserve"
-    assert reserve.amount_per_km == Decimal("10")
+    assert reserve.amount_per_unit == Decimal("10")
+    assert reserve.usage_unit == "km"
     assert reserve.currency == "HUF"
 
     all_season = next(r for r in maintenance if r.technical_key == "all_season_tires")

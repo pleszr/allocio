@@ -18,7 +18,7 @@ from app.domain.cost import MaintenanceItem, TimeBasedCost, UsageBasedCost
 from app.repository import cost_repository
 
 _TIME_BASED_EDITABLE_KEYS = frozenset({"label", "amount", "interval_value", "interval_unit", "notes", "is_active"})
-_USAGE_BASED_EDITABLE_KEYS = frozenset({"amount_per_km", "notes"})
+_USAGE_BASED_EDITABLE_KEYS = frozenset({"amount_per_unit", "notes"})
 _MAINTENANCE_EDITABLE_KEYS = frozenset(
     {
         "label",

@@ -56,9 +56,9 @@ Examples:
 
 ### Usage-based cost
 
-A single adjustable reserve driven by kilometers used.
+A single adjustable reserve driven by usage of the asset.
 
-This is not fuel tracking. It is the user-defined per-kilometer reserve that smooths wear and maintenance costs over time.
+This is not fuel tracking. It is the user-defined per-usage-unit reserve that smooths wear and maintenance costs over time.
 
 MVP example:
 
@@ -89,7 +89,7 @@ A posted event that moves value out of the bucket.
 - historical truth comes from posted events
 - current editable rows drive future calculations only
 - bucket balance is derived, not primary source data
-- current odometer is derived from the latest posted check-in, not stored as an independent source of truth
+- the current usage counter (the odometer for a vehicle) is derived from the latest posted check-in, not stored as an independent source of truth
 - maintenance status is derived, not stored as canonical truth
 - users can remove or deactivate defaults, but historical references must remain auditable
 
@@ -183,7 +183,7 @@ Rules:
 
 ### `usage_based_cost`
 
-Single adjustable reserve driven by kilometers used.
+Single adjustable reserve driven by usage of the asset.
 
 Fields:
 
@@ -191,7 +191,8 @@ Fields:
 - `asset_id`
 - `label`
 - `technical_key`
-- `amount_per_km`
+- `amount_per_unit`
+- `usage_unit`
 - `currency`
 - `notes`
 - `is_active`
@@ -199,7 +200,7 @@ Fields:
 Rules:
 
 - one active usage-based cost row per asset in MVP
-- kilometers only in MVP
+- `usage_unit` names the unit usage is counted in; the vehicle template sets `usage_unit = km`
 - no `effective_from`
 - no `effective_to`
 - active rows participate in future calculations
@@ -256,16 +257,17 @@ Fields:
 - `period_start`
 - `period_end`
 - `checked_in_at`
-- `odometer_start`
-- `odometer_end`
-- `usage_km`
+- `usage_start`
+- `usage_end`
+- `usage_amount`
 - `active_tire_type`
 - `notes`
 - `status`
 
 Rules:
 
-- `usage_km = odometer_end - odometer_start`
+- `usage_amount = usage_end - usage_start`
+- `usage_start`, `usage_end`, and `usage_amount` are nullable; a non-usage asset posts a check-in with no usage counter
 - `active_tire_type` is one of `summer`, `winter`, or `all_season`
 - tire-specific maintenance progress should reflect the selected tire type for the check-in
 - MVP assumes one tire type per check-in period
@@ -301,7 +303,7 @@ Fields:
 - `bucket_id`
 - `check_in_id`
 - `event_date`
-- `odometer_at_event`
+- `usage_counter_at_event`
 - `kind`
 - `amount`
 - `comment`
@@ -312,7 +314,7 @@ Fields:
 Rules:
 
 - `kind` supports both modeled expenses and manual `Other`
-- `odometer_at_event` is optional but should be supported for vehicle service and replacement history
+- `usage_counter_at_event` is optional but should be supported for vehicle service and replacement history
 - a modeled expense linked to a `time_based_cost` may become the new reference amount for future accrual periods for that source row
 - `source_type` and `source_id` are nullable for manual `Other`
 - posted expenses must remain sufficient to reconstruct balance history
@@ -345,7 +347,7 @@ Stored:
 Derived:
 
 - current bucket balance
-- current odometer
+- current usage counter
 - monthly allocation suggestion
 - recommendation for usage-based reserve rate
 - maintenance health and urgency status

@@ -30,7 +30,7 @@ class TimeBasedCost(Base):
 
 
 class UsageBasedCost(Base):
-    """Single adjustable per-kilometer reserve; the one-active rule is enforced in the service layer."""
+    """Single adjustable per-usage-unit reserve; the one-active rule is enforced in the service layer."""
 
     __tablename__ = "usage_based_costs"
 
@@ -40,7 +40,8 @@ class UsageBasedCost(Base):
     asset_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("assets.id"), nullable=False, index=True)
     label: Mapped[str] = mapped_column(String, nullable=False)
     technical_key: Mapped[str | None] = mapped_column(String, nullable=True)
-    amount_per_km: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False)
+    amount_per_unit: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False)
+    usage_unit: Mapped[str] = mapped_column(String, nullable=False, server_default=text("'km'"))
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
