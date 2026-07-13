@@ -9,13 +9,13 @@ from app.domain.asset import Asset
 from app.domain.cost import MaintenanceItem, TimeBasedCost, UsageBasedCost
 
 
-def get_owned_vehicle_asset(session: Session, user_id: uuid.UUID, asset_id: uuid.UUID) -> Asset | None:
-    """Return the asset only when it is a vehicle owned by `user_id`; otherwise `None`.
+def get_owned_asset(session: Session, user_id: uuid.UUID, asset_id: uuid.UUID) -> Asset | None:
+    """Return the asset only when it is owned by `user_id`, regardless of type; otherwise `None`.
 
-    One query is the ownership gate for every cost-management call, so an unowned or non-vehicle
-    asset is indistinguishable from a missing one and never leaks another user's rows.
+    One query is the ownership gate for every cost-management call, so an unowned asset is
+    indistinguishable from a missing one and never leaks another user's rows.
     """
-    stmt = select(Asset).where(Asset.id == asset_id, Asset.user_id == user_id, Asset.type == "vehicle")
+    stmt = select(Asset).where(Asset.id == asset_id, Asset.user_id == user_id)
     return session.scalars(stmt).one_or_none()
 
 

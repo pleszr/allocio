@@ -22,7 +22,7 @@ About me: Roland Plesz / Role: Software Engineer / Background in: Software Engin
 
 # Allocio
 
-Predictive cost-allocation app for smoothing irregular future vehicle costs into regular savings allocations. MVP scope, solo maintainer, low-ops architecture.
+Predictive cost-allocation app for smoothing irregular future asset costs (e.g. vehicles, houses) into regular savings allocations. MVP scope, solo maintainer, low-ops architecture.
 
 ## Modules
 
@@ -34,7 +34,7 @@ Predictive cost-allocation app for smoothing irregular future vehicle costs into
 
 ## Source Of Truth
 
-- `docs/domain-model.md` — canonical vehicle-first entity model, defaults, and auditability rules
+- `docs/domain-model.md` — canonical type-agnostic asset entity model, built-in templates, defaults, and auditability rules
 - `docs/vehicle-rules.md` — accrual formulas, maintenance thresholds, and check-in behavior
 - `docs/technical-stack.md` — stack and infrastructure decisions
 - `docs/product-backlog.md` — backlog structure and issue decomposition
@@ -43,7 +43,7 @@ Predictive cost-allocation app for smoothing irregular future vehicle costs into
 
 - Single Lightsail VM by default. Do not suggest App Runner, ECS, Lambda, RDS, or Cognito unless a documented revisit trigger has fired.
 - Python-first backend, React/Vite product app, PostgreSQL for relational and auditable money logic.
-- Vehicle is the only first-class `asset.type` in MVP.
+- `asset.type` is type-agnostic (any tracked thing). `vehicle` is a built-in creation template that prefills a vehicle profile and default cost rows — not a hardcoded first-class type.
 - Use `asset` for the tracked thing and `bucket` for the virtual savings container.
 
 ## Build And Run

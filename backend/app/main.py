@@ -2,13 +2,13 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from app.api import costs, health, vehicles
+from app.api import assets, costs, health
 from app.common.exceptions import NotFoundError, ValidationError
 
 app = FastAPI(title="Allocio API")
 
 app.include_router(health.router)
-app.include_router(vehicles.router)
+app.include_router(assets.router)
 app.include_router(costs.router)
 
 

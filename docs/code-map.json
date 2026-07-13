@@ -71,6 +71,38 @@
           "routes": []
         },
         {
+          "path": "backend/app/api/assets.py",
+          "language": "python",
+          "imports": [
+            "app.api.schemas.requests",
+            "app.api.schemas.responses",
+            "app.common.message_bundle",
+            "app.services.asset_service",
+            "app.services.dependencies",
+            "fastapi",
+            "uuid"
+          ],
+          "functions": [
+            {
+              "name": "create_asset",
+              "line_start": 30,
+              "line_end": 46,
+              "hash": "408ef23693821c97"
+            }
+          ],
+          "classes": [],
+          "routes": [
+            {
+              "method": "post",
+              "path": "/assets",
+              "handler": "create_asset",
+              "line_start": 30,
+              "line_end": 46,
+              "hash": "408ef23693821c97"
+            }
+          ]
+        },
+        {
           "path": "backend/app/api/costs.py",
           "language": "python",
           "imports": [
@@ -87,102 +119,102 @@
               "name": "create_maintenance_item",
               "line_start": 171,
               "line_end": 192,
-              "hash": "e01bd25f2975f422"
+              "hash": "d030ce5094adec2f"
             },
             {
               "name": "create_time_based_cost",
               "line_start": 58,
               "line_end": 76,
-              "hash": "16b81fe7c69a57b0"
+              "hash": "945a2ea35d5dd39f"
             },
             {
               "name": "list_maintenance_items",
               "line_start": 147,
               "line_end": 154,
-              "hash": "c0ed549be25d3191"
+              "hash": "41aa244673aea4fd"
             },
             {
               "name": "list_time_based_costs",
               "line_start": 34,
               "line_end": 41,
-              "hash": "54e7dd89562122d1"
+              "hash": "0ebd0db23ae03aae"
             },
             {
               "name": "update_maintenance_item",
               "line_start": 209,
               "line_end": 220,
-              "hash": "765ec3143a00e742"
+              "hash": "9194ff2add02e9df"
             },
             {
               "name": "update_time_based_cost",
               "line_start": 93,
               "line_end": 104,
-              "hash": "75b6cc0589a0e1b4"
+              "hash": "f54af464b7f37c3b"
             },
             {
               "name": "update_usage_based_cost",
               "line_start": 121,
               "line_end": 131,
-              "hash": "4e94d931ddb17a4f"
+              "hash": "fae2957fc8876430"
             }
           ],
           "classes": [],
           "routes": [
             {
               "method": "get",
-              "path": "/vehicles/{asset_id}/maintenance-items",
+              "path": "/assets/{asset_id}/maintenance-items",
               "handler": "list_maintenance_items",
               "line_start": 147,
               "line_end": 154,
-              "hash": "c0ed549be25d3191"
+              "hash": "41aa244673aea4fd"
             },
             {
               "method": "post",
-              "path": "/vehicles/{asset_id}/maintenance-items",
+              "path": "/assets/{asset_id}/maintenance-items",
               "handler": "create_maintenance_item",
               "line_start": 171,
               "line_end": 192,
-              "hash": "e01bd25f2975f422"
+              "hash": "d030ce5094adec2f"
             },
             {
               "method": "patch",
-              "path": "/vehicles/{asset_id}/maintenance-items/{item_id}",
+              "path": "/assets/{asset_id}/maintenance-items/{item_id}",
               "handler": "update_maintenance_item",
               "line_start": 209,
               "line_end": 220,
-              "hash": "765ec3143a00e742"
+              "hash": "9194ff2add02e9df"
             },
             {
               "method": "get",
-              "path": "/vehicles/{asset_id}/time-based-costs",
+              "path": "/assets/{asset_id}/time-based-costs",
               "handler": "list_time_based_costs",
               "line_start": 34,
               "line_end": 41,
-              "hash": "54e7dd89562122d1"
+              "hash": "0ebd0db23ae03aae"
             },
             {
               "method": "post",
-              "path": "/vehicles/{asset_id}/time-based-costs",
+              "path": "/assets/{asset_id}/time-based-costs",
               "handler": "create_time_based_cost",
               "line_start": 58,
               "line_end": 76,
-              "hash": "16b81fe7c69a57b0"
+              "hash": "945a2ea35d5dd39f"
             },
             {
               "method": "patch",
-              "path": "/vehicles/{asset_id}/time-based-costs/{cost_id}",
+              "path": "/assets/{asset_id}/time-based-costs/{cost_id}",
               "handler": "update_time_based_cost",
               "line_start": 93,
               "line_end": 104,
-              "hash": "75b6cc0589a0e1b4"
+              "hash": "f54af464b7f37c3b"
             },
             {
               "method": "patch",
-              "path": "/vehicles/{asset_id}/usage-based-cost",
+              "path": "/assets/{asset_id}/usage-based-cost",
               "handler": "update_usage_based_cost",
               "line_start": 121,
               "line_end": 131,
-              "hash": "4e94d931ddb17a4f"
+              "hash": "fae2957fc8876430"
             }
           ]
         },
@@ -233,52 +265,66 @@
           "functions": [],
           "classes": [
             {
+              "name": "CreateAssetRequest",
+              "line_start": 28,
+              "line_end": 64,
+              "hash": "125c7d265864f03e",
+              "methods": [
+                {
+                  "name": "_check_template_and_type",
+                  "line_start": 54,
+                  "line_end": 64,
+                  "hash": "057bd9ae835189fe"
+                }
+              ]
+            },
+            {
               "name": "CreateMaintenanceItemRequest",
-              "line_start": 58,
-              "line_end": 77,
+              "line_start": 95,
+              "line_end": 114,
               "hash": "3f309ff06cbd9b8b",
               "methods": [
                 {
                   "name": "_require_an_interval",
-                  "line_start": 73,
-                  "line_end": 77,
+                  "line_start": 110,
+                  "line_end": 114,
                   "hash": "d3e06be21b4130e1"
                 }
               ]
             },
             {
               "name": "CreateTimeBasedCostRequest",
-              "line_start": 30,
-              "line_end": 37,
+              "line_start": 67,
+              "line_end": 74,
               "hash": "e37785d397203f77",
               "methods": []
             },
             {
-              "name": "CreateVehicleRequest",
-              "line_start": 12,
-              "line_end": 27,
-              "hash": "50acc57d812205fe",
-              "methods": []
-            },
-            {
               "name": "UpdateMaintenanceItemRequest",
-              "line_start": 80,
-              "line_end": 93,
+              "line_start": 117,
+              "line_end": 130,
               "hash": "197bb31033bc827f",
               "methods": []
             },
             {
               "name": "UpdateTimeBasedCostRequest",
-              "line_start": 40,
-              "line_end": 48,
+              "line_start": 77,
+              "line_end": 85,
               "hash": "dc8cd16d23fec130",
               "methods": []
             },
             {
               "name": "UpdateUsageBasedCostRequest",
-              "line_start": 51,
-              "line_end": 55,
+              "line_start": 88,
+              "line_end": 92,
               "hash": "fde642f8dfb9d7d1",
+              "methods": []
+            },
+            {
+              "name": "VehicleDetailsInput",
+              "line_start": 13,
+              "line_end": 25,
+              "hash": "bc3a603bc4c1606e",
               "methods": []
             }
           ],
@@ -299,7 +345,7 @@
               "name": "AssetResponse",
               "line_start": 15,
               "line_end": 25,
-              "hash": "150916c4a03f3606",
+              "hash": "af900a76bc4b360e",
               "methods": []
             },
             {
@@ -310,10 +356,10 @@
               "methods": []
             },
             {
-              "name": "CreateVehicleResponse",
+              "name": "CreateAssetResponse",
               "line_start": 103,
-              "line_end": 113,
-              "hash": "49dc5efd23a0abbe",
+              "line_end": 116,
+              "hash": "ebaf4857d84d9341",
               "methods": []
             },
             {
@@ -353,38 +399,6 @@
             }
           ],
           "routes": []
-        },
-        {
-          "path": "backend/app/api/vehicles.py",
-          "language": "python",
-          "imports": [
-            "app.api.schemas.requests",
-            "app.api.schemas.responses",
-            "app.common.message_bundle",
-            "app.services.dependencies",
-            "app.services.vehicle_service",
-            "fastapi",
-            "uuid"
-          ],
-          "functions": [
-            {
-              "name": "create_vehicle",
-              "line_start": 29,
-              "line_end": 45,
-              "hash": "ed82de6de7cc2c55"
-            }
-          ],
-          "classes": [],
-          "routes": [
-            {
-              "method": "post",
-              "path": "/vehicles",
-              "handler": "create_vehicle",
-              "line_start": 29,
-              "line_end": 45,
-              "hash": "ed82de6de7cc2c55"
-            }
-          ]
         },
         {
           "path": "backend/app/common/__init__.py",
@@ -571,6 +585,24 @@
           "routes": []
         },
         {
+          "path": "backend/app/domain/asset_templates.py",
+          "language": "python",
+          "imports": [
+            "dataclasses"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "AssetTemplate",
+              "line_start": 13,
+              "line_end": 18,
+              "hash": "b1d26816b1ea2691",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
           "path": "backend/app/domain/check_in.py",
           "language": "python",
           "imports": [
@@ -723,6 +755,31 @@
           "routes": []
         },
         {
+          "path": "backend/app/repository/asset_repository.py",
+          "language": "python",
+          "imports": [
+            "app.domain.asset",
+            "app.domain.cost",
+            "sqlalchemy.orm"
+          ],
+          "functions": [
+            {
+              "name": "insert_asset_dependents",
+              "line_start": 19,
+              "line_end": 40,
+              "hash": "eedf086077d8e586"
+            },
+            {
+              "name": "persist_asset",
+              "line_start": 9,
+              "line_end": 16,
+              "hash": "48c334d017e0b7a4"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        },
+        {
           "path": "backend/app/repository/cost_repository.py",
           "language": "python",
           "imports": [
@@ -752,10 +809,10 @@
               "hash": "80166be8188813d9"
             },
             {
-              "name": "get_owned_vehicle_asset",
+              "name": "get_owned_asset",
               "line_start": 12,
               "line_end": 19,
-              "hash": "c7a2bd798c573145"
+              "hash": "9ad6d0e5dcb8b5eb"
             },
             {
               "name": "get_time_based_cost",
@@ -780,36 +837,88 @@
           "routes": []
         },
         {
-          "path": "backend/app/repository/vehicle_repository.py",
-          "language": "python",
-          "imports": [
-            "app.domain.asset",
-            "app.domain.cost",
-            "sqlalchemy.orm"
-          ],
-          "functions": [
-            {
-              "name": "insert_vehicle_dependents",
-              "line_start": 19,
-              "line_end": 37,
-              "hash": "6840c1811d593e75"
-            },
-            {
-              "name": "persist_asset",
-              "line_start": 9,
-              "line_end": 16,
-              "hash": "5f9f06f3cee7a188"
-            }
-          ],
-          "classes": [],
-          "routes": []
-        },
-        {
           "path": "backend/app/services/__init__.py",
           "language": "python",
           "imports": [],
           "functions": [],
           "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/services/asset_service.py",
+          "language": "python",
+          "imports": [
+            "app.common.exceptions",
+            "app.domain.asset",
+            "app.domain.asset_templates",
+            "app.domain.cost",
+            "app.domain.vehicle_defaults",
+            "app.repository.asset_repository",
+            "dataclasses",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "AssetService",
+              "line_start": 43,
+              "line_end": 124,
+              "hash": "2650197894c247e6",
+              "methods": [
+                {
+                  "name": "__init__",
+                  "line_start": 46,
+                  "line_end": 47,
+                  "hash": "2c8f2810305a160d"
+                },
+                {
+                  "name": "_build_template_dependents",
+                  "line_start": 105,
+                  "line_end": 113,
+                  "hash": "2d9b30de313d392a"
+                },
+                {
+                  "name": "_build_vehicle_profile",
+                  "line_start": 115,
+                  "line_end": 124,
+                  "hash": "141d67ccfa3d446d"
+                },
+                {
+                  "name": "_require_type",
+                  "line_start": 99,
+                  "line_end": 103,
+                  "hash": "47245ff66db21ba3"
+                },
+                {
+                  "name": "_resolve_template",
+                  "line_start": 90,
+                  "line_end": 97,
+                  "hash": "35a2e345b5727d70"
+                },
+                {
+                  "name": "create_asset",
+                  "line_start": 49,
+                  "line_end": 88,
+                  "hash": "1b4f5e9aa5a2a985"
+                }
+              ]
+            },
+            {
+              "name": "CreatedAsset",
+              "line_start": 29,
+              "line_end": 40,
+              "hash": "ee694be77e58c70f",
+              "methods": []
+            },
+            {
+              "name": "VehicleDetails",
+              "line_start": 19,
+              "line_end": 25,
+              "hash": "cf530b5da577cb3c",
+              "methods": []
+            }
+          ],
           "routes": []
         },
         {
@@ -869,31 +978,31 @@
                   "name": "_require_owned_asset",
                   "line_start": 142,
                   "line_end": 147,
-                  "hash": "03fc3afcd932d55b"
+                  "hash": "a60e1d83da511025"
                 },
                 {
                   "name": "create_maintenance_item",
                   "line_start": 99,
                   "line_end": 130,
-                  "hash": "527db2b96791ad77"
+                  "hash": "63a44b053eaa44c5"
                 },
                 {
                   "name": "create_time_based_cost",
                   "line_start": 50,
                   "line_end": 72,
-                  "hash": "910122974026d216"
+                  "hash": "5ed916b59fdfc6da"
                 },
                 {
                   "name": "list_maintenance_items",
                   "line_start": 94,
                   "line_end": 97,
-                  "hash": "ca6d2459db569eab"
+                  "hash": "1385b30e33cec3b8"
                 },
                 {
                   "name": "list_time_based_costs",
                   "line_start": 45,
                   "line_end": 48,
-                  "hash": "1309ea96cded9e6c"
+                  "hash": "c9cf093e40c364bc"
                 },
                 {
                   "name": "update_maintenance_item",
@@ -905,7 +1014,7 @@
                   "name": "update_time_based_cost",
                   "line_start": 74,
                   "line_end": 82,
-                  "hash": "fa780a795ca595a2"
+                  "hash": "f3fc1cb7be142ecb"
                 },
                 {
                   "name": "update_usage_based_cost",
@@ -923,13 +1032,19 @@
           "language": "python",
           "imports": [
             "app.db",
+            "app.services.asset_service",
             "app.services.cost_service",
-            "app.services.vehicle_service",
             "fastapi",
             "sqlalchemy.orm",
             "uuid"
           ],
           "functions": [
+            {
+              "name": "get_asset_service",
+              "line_start": 19,
+              "line_end": 21,
+              "hash": "5e04ae31d9c873c4"
+            },
             {
               "name": "get_cost_service",
               "line_start": 24,
@@ -941,59 +1056,9 @@
               "line_start": 14,
               "line_end": 16,
               "hash": "e2d5767e2d9f43e8"
-            },
-            {
-              "name": "get_vehicle_service",
-              "line_start": 19,
-              "line_end": 21,
-              "hash": "589b2f3cc07fc76c"
             }
           ],
           "classes": [],
-          "routes": []
-        },
-        {
-          "path": "backend/app/services/vehicle_service.py",
-          "language": "python",
-          "imports": [
-            "app.domain.asset",
-            "app.domain.cost",
-            "app.domain.vehicle_defaults",
-            "app.repository.vehicle_repository",
-            "dataclasses",
-            "sqlalchemy.orm",
-            "uuid"
-          ],
-          "functions": [],
-          "classes": [
-            {
-              "name": "CreatedVehicle",
-              "line_start": 17,
-              "line_end": 25,
-              "hash": "837c0efbbbc5e73f",
-              "methods": []
-            },
-            {
-              "name": "VehicleService",
-              "line_start": 28,
-              "line_end": 72,
-              "hash": "90137885631966dd",
-              "methods": [
-                {
-                  "name": "__init__",
-                  "line_start": 31,
-                  "line_end": 32,
-                  "hash": "2c8f2810305a160d"
-                },
-                {
-                  "name": "create_vehicle",
-                  "line_start": 34,
-                  "line_end": 72,
-                  "hash": "28bfc3efb1207048"
-                }
-              ]
-            }
-          ],
           "routes": []
         }
       ]
