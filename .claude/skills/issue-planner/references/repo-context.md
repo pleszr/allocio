@@ -112,15 +112,15 @@ Executing agents finish work with this flow (never commit, merge, or push on `ma
 
 ## Current Testing Reality
 
-As of 2026-07-04:
+As of 2026-07-13:
 
-- There are no project-specific backend test files checked into the repo yet.
-- There is no frontend test runner configured yet.
+- A backend pytest suite exists under `backend/tests/` (run with `cd backend && uv run pytest`). It runs against real Postgres through a transactional `db_session` fixture (see `backend/tests/conftest.py`) and exercises routes via FastAPI `TestClient` with `app.dependency_overrides`. `tach` runs as a pytest plugin to enforce layering.
+- There is still no frontend test runner configured.
 
 Implications for planning:
 
 - Do not invent frontend test commands.
-- If a plan requires new tests, specify where they should be added and still keep the runnable acceptance commands grounded in the current toolchain.
+- Backend plans should add tests under `backend/tests/` and keep `cd backend && uv run pytest` (with Postgres up) as the runnable acceptance command.
 - When no new tests are required, say why explicitly.
 
 ## GitHub Issue Guidance

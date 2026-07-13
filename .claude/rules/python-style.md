@@ -9,10 +9,12 @@ Derived 2026-05-12 from a full review of `pleszr/skyeGPT/skyegpt-backend` (58 so
 
 ## Tooling
 
+**Wired today:** `tach` (layer boundaries, run as a pytest plugin), the `gitleaks` secret-scan pre-commit hook, and the code-map pre-commit hooks. `ruff` and `Pyright` are **not installed or configured yet** — `uv run ruff` / `pyright` do not work today, and none of the `[tool.ruff.*]` / `[tool.pytest.ini_options]` config named below exists in `backend/pyproject.toml`. Treat the rest of this section as the agreed target standard to write code to (and to wire up later), not as commands that run now.
+
 - Formatter: `ruff format` (NOT Black — fewer tools, same output)
 - Linter: `ruff check` with selects: `E, F, W, I, B, C4, UP, D101, D102, D103, D107, TCH, RUF`
 - Type checker: Pyright in `strict` mode on `app/`
-- Import linter: `import-linter` or `tach` to enforce layering (see `python-patterns.md`)
+- Import linter: `tach` enforces the layering in `python-patterns.md` (active, via the pytest plugin); `import-linter` is an alternative
 - Line length: 120
 - Target: py314
 - Docstring convention: Google (`[tool.ruff.lint.pydocstyle] convention = "google"`)
