@@ -71,6 +71,122 @@
           "routes": []
         },
         {
+          "path": "backend/app/api/costs.py",
+          "language": "python",
+          "imports": [
+            "app.api.schemas.requests",
+            "app.api.schemas.responses",
+            "app.common.message_bundle",
+            "app.services.cost_service",
+            "app.services.dependencies",
+            "fastapi",
+            "uuid"
+          ],
+          "functions": [
+            {
+              "name": "create_maintenance_item",
+              "line_start": 171,
+              "line_end": 192,
+              "hash": "e01bd25f2975f422"
+            },
+            {
+              "name": "create_time_based_cost",
+              "line_start": 58,
+              "line_end": 76,
+              "hash": "16b81fe7c69a57b0"
+            },
+            {
+              "name": "list_maintenance_items",
+              "line_start": 147,
+              "line_end": 154,
+              "hash": "c0ed549be25d3191"
+            },
+            {
+              "name": "list_time_based_costs",
+              "line_start": 34,
+              "line_end": 41,
+              "hash": "54e7dd89562122d1"
+            },
+            {
+              "name": "update_maintenance_item",
+              "line_start": 209,
+              "line_end": 220,
+              "hash": "765ec3143a00e742"
+            },
+            {
+              "name": "update_time_based_cost",
+              "line_start": 93,
+              "line_end": 104,
+              "hash": "75b6cc0589a0e1b4"
+            },
+            {
+              "name": "update_usage_based_cost",
+              "line_start": 121,
+              "line_end": 131,
+              "hash": "4e94d931ddb17a4f"
+            }
+          ],
+          "classes": [],
+          "routes": [
+            {
+              "method": "get",
+              "path": "/vehicles/{asset_id}/maintenance-items",
+              "handler": "list_maintenance_items",
+              "line_start": 147,
+              "line_end": 154,
+              "hash": "c0ed549be25d3191"
+            },
+            {
+              "method": "post",
+              "path": "/vehicles/{asset_id}/maintenance-items",
+              "handler": "create_maintenance_item",
+              "line_start": 171,
+              "line_end": 192,
+              "hash": "e01bd25f2975f422"
+            },
+            {
+              "method": "patch",
+              "path": "/vehicles/{asset_id}/maintenance-items/{item_id}",
+              "handler": "update_maintenance_item",
+              "line_start": 209,
+              "line_end": 220,
+              "hash": "765ec3143a00e742"
+            },
+            {
+              "method": "get",
+              "path": "/vehicles/{asset_id}/time-based-costs",
+              "handler": "list_time_based_costs",
+              "line_start": 34,
+              "line_end": 41,
+              "hash": "54e7dd89562122d1"
+            },
+            {
+              "method": "post",
+              "path": "/vehicles/{asset_id}/time-based-costs",
+              "handler": "create_time_based_cost",
+              "line_start": 58,
+              "line_end": 76,
+              "hash": "16b81fe7c69a57b0"
+            },
+            {
+              "method": "patch",
+              "path": "/vehicles/{asset_id}/time-based-costs/{cost_id}",
+              "handler": "update_time_based_cost",
+              "line_start": 93,
+              "line_end": 104,
+              "hash": "75b6cc0589a0e1b4"
+            },
+            {
+              "method": "patch",
+              "path": "/vehicles/{asset_id}/usage-based-cost",
+              "handler": "update_usage_based_cost",
+              "line_start": 121,
+              "line_end": 131,
+              "hash": "4e94d931ddb17a4f"
+            }
+          ]
+        },
+        {
           "path": "backend/app/api/health.py",
           "language": "python",
           "imports": [
@@ -109,15 +225,60 @@
           "path": "backend/app/api/schemas/requests.py",
           "language": "python",
           "imports": [
-            "pydantic"
+            "datetime",
+            "decimal",
+            "pydantic",
+            "typing"
           ],
           "functions": [],
           "classes": [
             {
+              "name": "CreateMaintenanceItemRequest",
+              "line_start": 58,
+              "line_end": 77,
+              "hash": "3f309ff06cbd9b8b",
+              "methods": [
+                {
+                  "name": "_require_an_interval",
+                  "line_start": 73,
+                  "line_end": 77,
+                  "hash": "d3e06be21b4130e1"
+                }
+              ]
+            },
+            {
+              "name": "CreateTimeBasedCostRequest",
+              "line_start": 30,
+              "line_end": 37,
+              "hash": "e37785d397203f77",
+              "methods": []
+            },
+            {
               "name": "CreateVehicleRequest",
-              "line_start": 5,
-              "line_end": 20,
+              "line_start": 12,
+              "line_end": 27,
               "hash": "50acc57d812205fe",
+              "methods": []
+            },
+            {
+              "name": "UpdateMaintenanceItemRequest",
+              "line_start": 80,
+              "line_end": 93,
+              "hash": "197bb31033bc827f",
+              "methods": []
+            },
+            {
+              "name": "UpdateTimeBasedCostRequest",
+              "line_start": 40,
+              "line_end": 48,
+              "hash": "dc8cd16d23fec130",
+              "methods": []
+            },
+            {
+              "name": "UpdateUsageBasedCostRequest",
+              "line_start": 51,
+              "line_end": 55,
+              "hash": "fde642f8dfb9d7d1",
               "methods": []
             }
           ],
@@ -150,8 +311,8 @@
             },
             {
               "name": "CreateVehicleResponse",
-              "line_start": 95,
-              "line_end": 105,
+              "line_start": 103,
+              "line_end": 113,
               "hash": "49dc5efd23a0abbe",
               "methods": []
             },
@@ -164,23 +325,23 @@
             },
             {
               "name": "MaintenanceItemResponse",
-              "line_start": 80,
-              "line_end": 92,
-              "hash": "af865d9c25f28782",
+              "line_start": 84,
+              "line_end": 100,
+              "hash": "163b2dedda446165",
               "methods": []
             },
             {
               "name": "TimeBasedCostResponse",
               "line_start": 51,
-              "line_end": 62,
-              "hash": "5336631767f0e3ff",
+              "line_end": 64,
+              "hash": "196447f4d9f31f56",
               "methods": []
             },
             {
               "name": "UsageBasedCostResponse",
-              "line_start": 65,
-              "line_end": 77,
-              "hash": "e30af42e95f79425",
+              "line_start": 67,
+              "line_end": 81,
+              "hash": "db839019f421a99c",
               "methods": []
             },
             {
@@ -539,9 +700,15 @@
           "functions": [
             {
               "name": "_not_found_handler",
-              "line_start": 15,
-              "line_end": 16,
+              "line_start": 16,
+              "line_end": 17,
               "hash": "9a953235772419d0"
+            },
+            {
+              "name": "_validation_handler",
+              "line_start": 21,
+              "line_end": 22,
+              "hash": "4b147d0475452a59"
             }
           ],
           "classes": [],
@@ -552,6 +719,63 @@
           "language": "python",
           "imports": [],
           "functions": [],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/repository/cost_repository.py",
+          "language": "python",
+          "imports": [
+            "app.domain.asset",
+            "app.domain.cost",
+            "sqlalchemy",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [
+            {
+              "name": "add_and_flush",
+              "line_start": 54,
+              "line_end": 60,
+              "hash": "c698220d70156767"
+            },
+            {
+              "name": "get_active_usage_based_cost",
+              "line_start": 34,
+              "line_end": 39,
+              "hash": "966dfbb4319ffd98"
+            },
+            {
+              "name": "get_maintenance_item",
+              "line_start": 48,
+              "line_end": 51,
+              "hash": "80166be8188813d9"
+            },
+            {
+              "name": "get_owned_vehicle_asset",
+              "line_start": 12,
+              "line_end": 19,
+              "hash": "c7a2bd798c573145"
+            },
+            {
+              "name": "get_time_based_cost",
+              "line_start": 28,
+              "line_end": 31,
+              "hash": "aac115bd4c142ef8"
+            },
+            {
+              "name": "list_maintenance_items",
+              "line_start": 42,
+              "line_end": 45,
+              "hash": "e139746280618164"
+            },
+            {
+              "name": "list_time_based_costs",
+              "line_start": 22,
+              "line_end": 25,
+              "hash": "baf6d84f5148110b"
+            }
+          ],
           "classes": [],
           "routes": []
         },
@@ -589,10 +813,117 @@
           "routes": []
         },
         {
+          "path": "backend/app/services/cost_service.py",
+          "language": "python",
+          "imports": [
+            "app.common.exceptions",
+            "app.domain.asset",
+            "app.domain.cost",
+            "app.repository",
+            "collections.abc",
+            "datetime",
+            "decimal",
+            "sqlalchemy.orm",
+            "typing",
+            "uuid"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "CostService",
+              "line_start": 39,
+              "line_end": 192,
+              "hash": "68c76c7e7a557a17",
+              "methods": [
+                {
+                  "name": "__init__",
+                  "line_start": 42,
+                  "line_end": 43,
+                  "hash": "2c8f2810305a160d"
+                },
+                {
+                  "name": "_add_and_commit",
+                  "line_start": 184,
+                  "line_end": 192,
+                  "hash": "b36dc53859bafbf6"
+                },
+                {
+                  "name": "_apply_and_commit",
+                  "line_start": 149,
+                  "line_end": 170,
+                  "hash": "83eca40275a4e471"
+                },
+                {
+                  "name": "_apply_changes",
+                  "line_start": 172,
+                  "line_end": 177,
+                  "hash": "7d1ab76cd441b095"
+                },
+                {
+                  "name": "_require_interval_unless_other",
+                  "line_start": 179,
+                  "line_end": 182,
+                  "hash": "fb8a92b3036a5ff4"
+                },
+                {
+                  "name": "_require_owned_asset",
+                  "line_start": 142,
+                  "line_end": 147,
+                  "hash": "03fc3afcd932d55b"
+                },
+                {
+                  "name": "create_maintenance_item",
+                  "line_start": 99,
+                  "line_end": 130,
+                  "hash": "527db2b96791ad77"
+                },
+                {
+                  "name": "create_time_based_cost",
+                  "line_start": 50,
+                  "line_end": 72,
+                  "hash": "910122974026d216"
+                },
+                {
+                  "name": "list_maintenance_items",
+                  "line_start": 94,
+                  "line_end": 97,
+                  "hash": "ca6d2459db569eab"
+                },
+                {
+                  "name": "list_time_based_costs",
+                  "line_start": 45,
+                  "line_end": 48,
+                  "hash": "1309ea96cded9e6c"
+                },
+                {
+                  "name": "update_maintenance_item",
+                  "line_start": 132,
+                  "line_end": 140,
+                  "hash": "9b0c52ecbe74b090"
+                },
+                {
+                  "name": "update_time_based_cost",
+                  "line_start": 74,
+                  "line_end": 82,
+                  "hash": "fa780a795ca595a2"
+                },
+                {
+                  "name": "update_usage_based_cost",
+                  "line_start": 84,
+                  "line_end": 92,
+                  "hash": "2c897b4575e0c9c2"
+                }
+              ]
+            }
+          ],
+          "routes": []
+        },
+        {
           "path": "backend/app/services/dependencies.py",
           "language": "python",
           "imports": [
             "app.db",
+            "app.services.cost_service",
             "app.services.vehicle_service",
             "fastapi",
             "sqlalchemy.orm",
@@ -600,15 +931,21 @@
           ],
           "functions": [
             {
+              "name": "get_cost_service",
+              "line_start": 24,
+              "line_end": 26,
+              "hash": "752ac61d3ed6ece3"
+            },
+            {
               "name": "get_current_user_id",
-              "line_start": 13,
-              "line_end": 15,
+              "line_start": 14,
+              "line_end": 16,
               "hash": "e2d5767e2d9f43e8"
             },
             {
               "name": "get_vehicle_service",
-              "line_start": 18,
-              "line_end": 20,
+              "line_start": 19,
+              "line_end": 21,
               "hash": "589b2f3cc07fc76c"
             }
           ],

@@ -32,6 +32,7 @@ Anti-patterns observed during the 2026-05-12 review of `pleszr/skyeGPT/skyegpt-b
 - `raise Exception(f"...")` — always raise a typed domain exception.
 - `raise e` to re-raise — use bare `raise` (preserves traceback semantics, idiomatic).
 - `raise HTTPException(...) from None` to suppress chain — only when truly intentional.
+- Mutating a loaded ORM row, then raising a validation error *before* the commit without rolling back. The dirty instance stays in the session; the next request that commits on that session flushes the bad state and fails there instead (a request-scoped session hides this, a shared/test session exposes it as a misattributed 500). Keep the mutate → validate → flush → commit steps under one `try/except: rollback; raise` so a validation failure discards the mutation.
 
 ## Bugs / smells
 
