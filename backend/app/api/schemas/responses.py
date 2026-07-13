@@ -13,14 +13,14 @@ class HealthResponse(BaseModel):
 
 
 class AssetResponse(BaseModel):
-    """The tracked asset record created for the vehicle."""
+    """The tracked asset record created for the request."""
 
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID = Field(description="Server-generated asset id.")
     user_id: uuid.UUID = Field(description="Owner of the asset.")
-    type: str = Field(description="Asset type. Always 'vehicle' in MVP.", examples=["vehicle"])
-    name: str = Field(description="Human-readable vehicle name.", examples=["My Car"])
+    type: str = Field(description="Asset type, e.g. 'vehicle' or 'house'.", examples=["vehicle"])
+    name: str = Field(description="Human-readable asset name.", examples=["My Car"])
     status: str = Field(description="Lifecycle status of the asset.", examples=["active"])
     created_at: datetime = Field(description="Server timestamp when the asset was created.")
 
@@ -100,13 +100,16 @@ class MaintenanceItemResponse(BaseModel):
     is_active: bool = Field(description="Whether the item drives future calculations.")
 
 
-class CreateVehicleResponse(BaseModel):
-    """Full record set returned after creating a vehicle, so a client can render it without a refetch."""
+class CreateAssetResponse(BaseModel):
+    """Full record set returned after creating an asset, so a client can render it without a refetch.
+
+    `profile` is null and the cost lists are empty for a bare (template-less) asset.
+    """
 
     model_config = ConfigDict(from_attributes=True)
 
     asset: AssetResponse = Field(description="The created asset record.")
-    profile: VehicleProfileResponse = Field(description="The created vehicle profile.")
+    profile: VehicleProfileResponse | None = Field(description="The created vehicle profile, if a template supplied one.")
     bucket: BucketResponse = Field(description="The created savings bucket.")
     time_based_costs: list[TimeBasedCostResponse] = Field(description="Cloned recurring time-based cost rows.")
     usage_based_costs: list[UsageBasedCostResponse] = Field(description="Cloned per-kilometer reserve rows.")

@@ -2,7 +2,7 @@
 
 The templates are pure data (no SQLAlchemy import) so the authoritative source stays
 portable and versioned in git. `build_default_rows` bridges them to unsaved ORM rows for
-one asset; persistence belongs to the future vehicle-creation endpoint.
+one asset; the asset-creation service owns persistence when the vehicle template is applied.
 """
 
 import uuid

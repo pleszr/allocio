@@ -1,4 +1,4 @@
-"""Cost-management router: list, create, edit, and deactivate a vehicle's cost rows."""
+"""Cost-management router: list, create, edit, and deactivate an asset's cost rows."""
 import uuid
 
 from fastapi import APIRouter, Depends, Response, status
@@ -19,15 +19,15 @@ router = APIRouter(prefix="/api", tags=["costs"])
 
 
 @router.get(
-    "/vehicles/{asset_id}/time-based-costs",
-    summary="List a vehicle's time-based costs",
-    description="Returns every time-based cost row for the vehicle, active and inactive, so a client "
-    "can render the full set. Scoped to the owning user; unknown or unowned vehicles return 404.",
+    "/assets/{asset_id}/time-based-costs",
+    summary="List an asset's time-based costs",
+    description="Returns every time-based cost row for the asset, active and inactive, so a client "
+    "can render the full set. Scoped to the owning user; unknown or unowned assets return 404.",
     response_model=list[TimeBasedCostResponse],
     status_code=status.HTTP_200_OK,
     responses={
-        200: {"description": "All time-based cost rows for the vehicle."},
-        404: {"description": "Vehicle not found."},
+        200: {"description": "All time-based cost rows for the asset."},
+        404: {"description": "Asset not found."},
         500: {"description": INTERNAL_ERROR},
     },
 )
@@ -42,15 +42,15 @@ def list_time_based_costs(
 
 
 @router.post(
-    "/vehicles/{asset_id}/time-based-costs",
+    "/assets/{asset_id}/time-based-costs",
     summary="Add a custom time-based cost",
-    description="Creates a user-defined time-based cost row on the vehicle. `technical_key` stays null "
+    description="Creates a user-defined time-based cost row on the asset. `technical_key` stays null "
     "for custom rows. Returns the created row and its canonical `Location`.",
     response_model=TimeBasedCostResponse,
     status_code=status.HTTP_201_CREATED,
     responses={
         201: {"description": "Time-based cost row created."},
-        404: {"description": "Vehicle not found."},
+        404: {"description": "Asset not found."},
         422: {"description": "Validation error in request body."},
         500: {"description": INTERNAL_ERROR},
     },
@@ -72,12 +72,12 @@ def create_time_based_cost(
         interval_unit=body.interval_unit,
         notes=body.notes,
     )
-    response.headers["Location"] = f"/api/vehicles/{asset_id}/time-based-costs/{row.id}"
+    response.headers["Location"] = f"/api/assets/{asset_id}/time-based-costs/{row.id}"
     return TimeBasedCostResponse.model_validate(row)
 
 
 @router.patch(
-    "/vehicles/{asset_id}/time-based-costs/{cost_id}",
+    "/assets/{asset_id}/time-based-costs/{cost_id}",
     summary="Edit or deactivate a time-based cost",
     description="Partially updates a time-based cost row. Only the fields sent are applied; toggling "
     "`is_active` deactivates or reactivates the row. `technical_key` is never editable.",
@@ -85,7 +85,7 @@ def create_time_based_cost(
     status_code=status.HTTP_200_OK,
     responses={
         200: {"description": "Time-based cost row updated."},
-        404: {"description": "Vehicle or cost row not found."},
+        404: {"description": "Asset or cost row not found."},
         422: {"description": "Validation error in request body."},
         500: {"description": INTERNAL_ERROR},
     },
@@ -105,15 +105,15 @@ def update_time_based_cost(
 
 
 @router.patch(
-    "/vehicles/{asset_id}/usage-based-cost",
+    "/assets/{asset_id}/usage-based-cost",
     summary="Edit the usage-based reserve",
-    description="Partially updates the single per-kilometer reserve for the vehicle. The reserve is a "
+    description="Partially updates the single per-kilometer reserve for the asset. The reserve is a "
     "singleton sub-resource addressed without a row id and is never toggled active/inactive here.",
     response_model=UsageBasedCostResponse,
     status_code=status.HTTP_200_OK,
     responses={
         200: {"description": "Usage-based reserve updated."},
-        404: {"description": "Vehicle or active reserve not found."},
+        404: {"description": "Asset or active reserve not found."},
         422: {"description": "Validation error in request body."},
         500: {"description": INTERNAL_ERROR},
     },
@@ -132,15 +132,15 @@ def update_usage_based_cost(
 
 
 @router.get(
-    "/vehicles/{asset_id}/maintenance-items",
-    summary="List a vehicle's maintenance items",
-    description="Returns every maintenance item row for the vehicle, active and inactive. Scoped to the "
-    "owning user; unknown or unowned vehicles return 404.",
+    "/assets/{asset_id}/maintenance-items",
+    summary="List an asset's maintenance items",
+    description="Returns every maintenance item row for the asset, active and inactive. Scoped to the "
+    "owning user; unknown or unowned assets return 404.",
     response_model=list[MaintenanceItemResponse],
     status_code=status.HTTP_200_OK,
     responses={
-        200: {"description": "All maintenance item rows for the vehicle."},
-        404: {"description": "Vehicle not found."},
+        200: {"description": "All maintenance item rows for the asset."},
+        404: {"description": "Asset not found."},
         500: {"description": INTERNAL_ERROR},
     },
 )
@@ -155,15 +155,15 @@ def list_maintenance_items(
 
 
 @router.post(
-    "/vehicles/{asset_id}/maintenance-items",
+    "/assets/{asset_id}/maintenance-items",
     summary="Add a custom maintenance item",
-    description="Creates a user-defined maintenance item on the vehicle. At least one of `interval_km` "
+    description="Creates a user-defined maintenance item on the asset. At least one of `interval_km` "
     "or `interval_months` is required. Returns the created row and its canonical `Location`.",
     response_model=MaintenanceItemResponse,
     status_code=status.HTTP_201_CREATED,
     responses={
         201: {"description": "Maintenance item created."},
-        404: {"description": "Vehicle not found."},
+        404: {"description": "Asset not found."},
         422: {"description": "Validation error in request body."},
         500: {"description": INTERNAL_ERROR},
     },
@@ -188,12 +188,12 @@ def create_maintenance_item(
         tire_type=body.tire_type,
         notes=body.notes,
     )
-    response.headers["Location"] = f"/api/vehicles/{asset_id}/maintenance-items/{row.id}"
+    response.headers["Location"] = f"/api/assets/{asset_id}/maintenance-items/{row.id}"
     return MaintenanceItemResponse.model_validate(row)
 
 
 @router.patch(
-    "/vehicles/{asset_id}/maintenance-items/{item_id}",
+    "/assets/{asset_id}/maintenance-items/{item_id}",
     summary="Edit or deactivate a maintenance item",
     description="Partially updates a maintenance item row. Only the fields sent are applied; toggling "
     "`is_active` deactivates or reactivates the row. A non-`other` row must keep at least one interval.",
@@ -201,7 +201,7 @@ def create_maintenance_item(
     status_code=status.HTTP_200_OK,
     responses={
         200: {"description": "Maintenance item updated."},
-        404: {"description": "Vehicle or maintenance item not found."},
+        404: {"description": "Asset or maintenance item not found."},
         422: {"description": "Validation error in request body or merged interval rule."},
         500: {"description": INTERNAL_ERROR},
     },

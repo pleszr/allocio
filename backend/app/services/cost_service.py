@@ -43,7 +43,7 @@ class CostService:
         self._session = session
 
     def list_time_based_costs(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> list[TimeBasedCost]:
-        """Return all time-based cost rows for an owned vehicle. Read-only."""
+        """Return all time-based cost rows for an owned asset. Read-only."""
         self._require_owned_asset(user_id, asset_id)
         return cost_repository.list_time_based_costs(self._session, asset_id)
 
@@ -57,7 +57,7 @@ class CostService:
         interval_unit: str,
         notes: str | None,
     ) -> TimeBasedCost:
-        """Add a custom time-based cost row to an owned vehicle and commit."""
+        """Add a custom time-based cost row to an owned asset and commit."""
         self._require_owned_asset(user_id, asset_id)
         row = TimeBasedCost(
             asset_id=asset_id,
@@ -74,7 +74,7 @@ class CostService:
     def update_time_based_cost(
         self, user_id: uuid.UUID, asset_id: uuid.UUID, cost_id: uuid.UUID, changes: dict[str, object]
     ) -> TimeBasedCost:
-        """Apply the sent fields to a time-based cost row on an owned vehicle and commit."""
+        """Apply the sent fields to a time-based cost row on an owned asset and commit."""
         self._require_owned_asset(user_id, asset_id)
         row = cost_repository.get_time_based_cost(self._session, asset_id, cost_id)
         if row is None:
@@ -92,7 +92,7 @@ class CostService:
         return self._apply_and_commit(row, changes, _USAGE_BASED_EDITABLE_KEYS)
 
     def list_maintenance_items(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> list[MaintenanceItem]:
-        """Return all maintenance item rows for an owned vehicle. Read-only."""
+        """Return all maintenance item rows for an owned asset. Read-only."""
         self._require_owned_asset(user_id, asset_id)
         return cost_repository.list_maintenance_items(self._session, asset_id)
 
@@ -109,7 +109,7 @@ class CostService:
         tire_type: str | None,
         notes: str | None,
     ) -> MaintenanceItem:
-        """Add a custom maintenance item to an owned vehicle and commit.
+        """Add a custom maintenance item to an owned asset and commit.
 
         The request schema already guarantees at least one interval, so no catch-all row is created here.
         """
@@ -140,10 +140,10 @@ class CostService:
         return self._apply_and_commit(row, changes, _MAINTENANCE_EDITABLE_KEYS, self._require_interval_unless_other)
 
     def _require_owned_asset(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> Asset:
-        """Return the owned vehicle asset or raise `NotFoundError` so unowned rows never leak."""
-        asset = cost_repository.get_owned_vehicle_asset(self._session, user_id, asset_id)
+        """Return the owned asset or raise `NotFoundError` so unowned rows never leak."""
+        asset = cost_repository.get_owned_asset(self._session, user_id, asset_id)
         if asset is None:
-            raise NotFoundError("Vehicle not found.")
+            raise NotFoundError("Asset not found.")
         return asset
 
     def _apply_and_commit(

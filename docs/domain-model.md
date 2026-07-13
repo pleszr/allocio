@@ -19,8 +19,10 @@ This document is intentionally product-oriented. It is not yet the SQL schema.
 
 ## MVP Scope
 
-- `vehicle` is the only first-class `asset.type` in MVP
-- the model should stay extensible for future asset types
+- `asset.type` is type-agnostic: any asset (e.g. a house, an appliance) can be tracked
+- `vehicle` is not a first-class type; it is a built-in creation template that prefills a vehicle profile and default cost rows
+- a bare asset gets only a bucket; it has no profile and no default rows until the user adds them
+- the model should stay extensible for future built-in templates
 - the bucket is virtual
 - the app does not move real money
 - the app is not a fuel-tracking or general expense-tracking app
@@ -110,7 +112,7 @@ Fields:
 Rules:
 
 - `type` is the product term, not `kind`
-- MVP supported value: `vehicle`
+- `type` is free-form; `vehicle` is the type set by the built-in vehicle template, not the only allowed value
 - one asset has one bucket in MVP
 
 ### `vehicle_profile`
@@ -358,9 +360,9 @@ Derived:
 - if a row has already contributed to posted history, it should not be hard-deleted from canonical storage
 - implementation may hard-delete an unused draft or template-cloned row only if it has never been referenced by posted data
 
-## Default Vehicle Templates
+## Built-In Templates
 
-Vehicle creation should prefill default rows for:
+Vehicle is the first built-in template; more may be added later, each as its own registry entry with its own default rows. Selecting the vehicle template at creation prefills default rows for:
 
 - time-based costs
 - usage-based reserve settings
@@ -368,14 +370,14 @@ Vehicle creation should prefill default rows for:
 
 Creation rule:
 
-- creating a vehicle clones the current default vehicle templates into asset-owned rows
+- selecting the vehicle template clones its current default rows into asset-owned rows
 - after creation, the asset owns those rows
 - the user may deactivate or remove them
 - the user may add custom rows
-- later template changes do not retroactively change existing vehicles
+- later template changes do not retroactively change existing assets
 - system-defined template rows should carry both a user-facing `label` and an internal `technical_key`
 
-The defaults can be stored in database seed data or code-backed seed definitions. That implementation choice is separate from the domain model.
+The defaults are code-backed seed definitions today (`app/domain/vehicle_defaults.py`), selected through the template registry (`app/domain/asset_templates.py`). That implementation choice is separate from the domain model.
 
 ## Default Time-Based Cost Templates For Vehicles
 
@@ -453,7 +455,7 @@ This allows check-ins to update the correct tire-specific maintenance progress.
 - no fuel purchase tracking
 - no real-money account integration
 - no support for miles in MVP
-- no multi-asset first-class UX outside vehicles in MVP
+- bare non-vehicle assets are creatable via the API, but the asset-creation and template-picker UI is a later increment
 - no retroactive mutation of posted history through normal editing flows
 
 ## Deferred Concepts From The Workbook

@@ -7,14 +7,12 @@ from pydantic import BaseModel, Field, model_validator
 
 IntervalUnit: TypeAlias = Literal["months", "years"]
 TireType: TypeAlias = Literal["summer", "winter", "all_season"]
+AssetTemplateKey: TypeAlias = Literal["vehicle"]
 
 
-class CreateVehicleRequest(BaseModel):
-    """Body for creating a vehicle. `user_id` and bucket currency are server-set, not accepted here."""
+class VehicleDetailsInput(BaseModel):
+    """Vehicle-profile fields, accepted only when the vehicle template is selected."""
 
-    name: str = Field(
-        description="Human-readable vehicle name shown in the UI.", max_length=120, examples=["My Car"]
-    )
     year: int | None = Field(default=None, description="Model year of the vehicle.", examples=[2018])
     make: str | None = Field(
         default=None, description="Manufacturer of the vehicle.", max_length=60, examples=["Toyota"]
@@ -25,6 +23,45 @@ class CreateVehicleRequest(BaseModel):
     starting_odometer: int = Field(
         default=0, ge=0, description="Odometer reading in kilometers at creation time.", examples=[120000]
     )
+
+
+class CreateAssetRequest(BaseModel):
+    """Body for creating an asset. `user_id` and bucket currency are server-set, not accepted here.
+
+    A bare asset needs a free-form `type`. Selecting a `template` prefills the type and default cost
+    rows instead; the vehicle template additionally accepts a `vehicle` detail block.
+    """
+
+    name: str = Field(
+        description="Human-readable asset name shown in the UI.", max_length=120, examples=["My Car"]
+    )
+    type: str | None = Field(
+        default=None,
+        max_length=60,
+        description="Free-form asset type. Required for a bare asset; a template supplies it otherwise.",
+        examples=["house"],
+    )
+    template: AssetTemplateKey | None = Field(
+        default=None,
+        description="Built-in creation template to apply. Omit for a bare asset with no default rows.",
+        examples=["vehicle"],
+    )
+    vehicle: VehicleDetailsInput | None = Field(
+        default=None, description="Vehicle profile details; only valid with the vehicle template."
+    )
+
+    @model_validator(mode="after")
+    def _check_template_and_type(self) -> "CreateAssetRequest":
+        """Enforce the template/type/vehicle-block rules that a single field cannot express."""
+        if self.template is None:
+            if not self.type:
+                raise ValueError("A template-less asset must set a type.")
+            if self.vehicle is not None:
+                raise ValueError("Vehicle details require the vehicle template.")
+            return self
+        if self.template == "vehicle" and self.type not in (None, "vehicle"):
+            raise ValueError("The vehicle template sets type to 'vehicle'; a conflicting type is not allowed.")
+        return self
 
 
 class CreateTimeBasedCostRequest(BaseModel):
