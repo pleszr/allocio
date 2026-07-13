@@ -101,6 +101,24 @@ class MaintenanceItemResponse(BaseModel):
     is_active: bool = Field(description="Whether the item drives future calculations.")
 
 
+class ExpenseEventResponse(BaseModel):
+    """A posted, immutable expense event drawn against an asset's bucket."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID = Field(description="Server-generated expense event id.")
+    bucket_id: uuid.UUID = Field(description="Bucket the expense is drawn against.")
+    check_in_id: uuid.UUID | None = Field(description="Owning check-in, if the event was posted by one.")
+    event_date: date = Field(description="Date the expense occurred.")
+    usage_counter_at_event: int | None = Field(description="Usage reading at the time of the expense, if supplied.")
+    kind: str = Field(description="'modeled' for a cost/maintenance expense or 'other' for a manual entry.")
+    amount: Decimal = Field(description="Outflow amount; stored positive.")
+    comment: str | None = Field(description="Free-text note describing the expense, if any.")
+    source_type: str | None = Field(description="Source table for a modeled expense, else null.")
+    source_id: uuid.UUID | None = Field(description="Id of the linked source row for a modeled expense, else null.")
+    metadata_json: dict | None = Field(description="Reserved auditing metadata; unused in this flow.")
+
+
 class CreateAssetResponse(BaseModel):
     """Full record set returned after creating an asset, so a client can render it without a refetch.
 
