@@ -244,6 +244,52 @@
           ]
         },
         {
+          "path": "backend/app/api/expenses.py",
+          "language": "python",
+          "imports": [
+            "app.api.schemas.requests",
+            "app.api.schemas.responses",
+            "app.common.message_bundle",
+            "app.services.dependencies",
+            "app.services.expense_service",
+            "fastapi",
+            "uuid"
+          ],
+          "functions": [
+            {
+              "name": "list_expenses",
+              "line_start": 66,
+              "line_end": 73,
+              "hash": "c29ae2b820b21689"
+            },
+            {
+              "name": "log_expense",
+              "line_start": 30,
+              "line_end": 50,
+              "hash": "b47d674ba14271f1"
+            }
+          ],
+          "classes": [],
+          "routes": [
+            {
+              "method": "get",
+              "path": "/assets/{asset_id}/expenses",
+              "handler": "list_expenses",
+              "line_start": 66,
+              "line_end": 73,
+              "hash": "c29ae2b820b21689"
+            },
+            {
+              "method": "post",
+              "path": "/assets/{asset_id}/expenses",
+              "handler": "log_expense",
+              "line_start": 30,
+              "line_end": 50,
+              "hash": "b47d674ba14271f1"
+            }
+          ]
+        },
+        {
           "path": "backend/app/api/health.py",
           "language": "python",
           "imports": [
@@ -285,70 +331,85 @@
             "datetime",
             "decimal",
             "pydantic",
-            "typing"
+            "typing",
+            "uuid"
           ],
           "functions": [],
           "classes": [
             {
               "name": "CreateAssetRequest",
-              "line_start": 28,
-              "line_end": 64,
+              "line_start": 31,
+              "line_end": 67,
               "hash": "125c7d265864f03e",
               "methods": [
                 {
                   "name": "_check_template_and_type",
-                  "line_start": 54,
-                  "line_end": 64,
+                  "line_start": 57,
+                  "line_end": 67,
                   "hash": "057bd9ae835189fe"
                 }
               ]
             },
             {
               "name": "CreateMaintenanceItemRequest",
-              "line_start": 95,
-              "line_end": 114,
+              "line_start": 98,
+              "line_end": 117,
               "hash": "3f309ff06cbd9b8b",
               "methods": [
                 {
                   "name": "_require_an_interval",
-                  "line_start": 110,
-                  "line_end": 114,
+                  "line_start": 113,
+                  "line_end": 117,
                   "hash": "d3e06be21b4130e1"
                 }
               ]
             },
             {
               "name": "CreateTimeBasedCostRequest",
-              "line_start": 67,
-              "line_end": 74,
+              "line_start": 70,
+              "line_end": 77,
               "hash": "e37785d397203f77",
               "methods": []
             },
             {
+              "name": "LogExpenseRequest",
+              "line_start": 120,
+              "line_end": 166,
+              "hash": "fec975190329a5e2",
+              "methods": [
+                {
+                  "name": "_check_source_matches_kind",
+                  "line_start": 159,
+                  "line_end": 166,
+                  "hash": "d919c543a28c37a8"
+                }
+              ]
+            },
+            {
               "name": "UpdateMaintenanceItemRequest",
-              "line_start": 117,
-              "line_end": 130,
+              "line_start": 169,
+              "line_end": 182,
               "hash": "197bb31033bc827f",
               "methods": []
             },
             {
               "name": "UpdateTimeBasedCostRequest",
-              "line_start": 77,
-              "line_end": 85,
+              "line_start": 80,
+              "line_end": 88,
               "hash": "dc8cd16d23fec130",
               "methods": []
             },
             {
               "name": "UpdateUsageBasedCostRequest",
-              "line_start": 88,
-              "line_end": 92,
+              "line_start": 91,
+              "line_end": 95,
               "hash": "e65550a060b9e661",
               "methods": []
             },
             {
               "name": "VehicleDetailsInput",
-              "line_start": 13,
-              "line_end": 25,
+              "line_start": 16,
+              "line_end": 28,
               "hash": "bc3a603bc4c1606e",
               "methods": []
             }
@@ -382,9 +443,16 @@
             },
             {
               "name": "CreateAssetResponse",
-              "line_start": 104,
-              "line_end": 117,
+              "line_start": 122,
+              "line_end": 135,
               "hash": "c6a982f195b870cf",
+              "methods": []
+            },
+            {
+              "name": "ExpenseEventResponse",
+              "line_start": 104,
+              "line_end": 119,
+              "hash": "8c171e5fbf9da7d6",
               "methods": []
             },
             {
@@ -837,14 +905,14 @@
           "functions": [
             {
               "name": "_not_found_handler",
-              "line_start": 16,
-              "line_end": 17,
+              "line_start": 17,
+              "line_end": 18,
               "hash": "9a953235772419d0"
             },
             {
               "name": "_validation_handler",
-              "line_start": 21,
-              "line_end": 22,
+              "line_start": 22,
+              "line_end": 23,
               "hash": "4b147d0475452a59"
             }
           ],
@@ -936,6 +1004,52 @@
               "line_start": 22,
               "line_end": 25,
               "hash": "baf6d84f5148110b"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/repository/expense_repository.py",
+          "language": "python",
+          "imports": [
+            "app.domain.asset",
+            "app.domain.check_in",
+            "app.domain.cost",
+            "sqlalchemy",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [
+            {
+              "name": "add_and_flush",
+              "line_start": 44,
+              "line_end": 50,
+              "hash": "25f50e236d246400"
+            },
+            {
+              "name": "get_bucket_for_asset",
+              "line_start": 29,
+              "line_end": 32,
+              "hash": "d85997b1c24be5de"
+            },
+            {
+              "name": "get_owned_asset",
+              "line_start": 19,
+              "line_end": 26,
+              "hash": "6c0afcf34b9a5c6b"
+            },
+            {
+              "name": "list_expenses_for_bucket",
+              "line_start": 53,
+              "line_end": 56,
+              "hash": "6737aba6657bab03"
+            },
+            {
+              "name": "source_row_exists",
+              "line_start": 35,
+              "line_end": 41,
+              "hash": "4f87865bd0d95b93"
             }
           ],
           "classes": [],
@@ -1139,6 +1253,7 @@
             "app.db",
             "app.services.asset_service",
             "app.services.cost_service",
+            "app.services.expense_service",
             "fastapi",
             "sqlalchemy.orm",
             "uuid"
@@ -1146,24 +1261,86 @@
           "functions": [
             {
               "name": "get_asset_service",
-              "line_start": 19,
-              "line_end": 21,
+              "line_start": 20,
+              "line_end": 22,
               "hash": "5e04ae31d9c873c4"
             },
             {
               "name": "get_cost_service",
-              "line_start": 24,
-              "line_end": 26,
+              "line_start": 25,
+              "line_end": 27,
               "hash": "752ac61d3ed6ece3"
             },
             {
               "name": "get_current_user_id",
-              "line_start": 14,
-              "line_end": 16,
+              "line_start": 15,
+              "line_end": 17,
               "hash": "e2d5767e2d9f43e8"
+            },
+            {
+              "name": "get_expense_service",
+              "line_start": 30,
+              "line_end": 32,
+              "hash": "edc92dd1813e846e"
             }
           ],
           "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/services/expense_service.py",
+          "language": "python",
+          "imports": [
+            "app.common.exceptions",
+            "app.domain.asset",
+            "app.domain.check_in",
+            "app.repository",
+            "datetime",
+            "decimal",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "ExpenseService",
+              "line_start": 19,
+              "line_end": 88,
+              "hash": "aac40effad0ed04e",
+              "methods": [
+                {
+                  "name": "__init__",
+                  "line_start": 22,
+                  "line_end": 23,
+                  "hash": "2c8f2810305a160d"
+                },
+                {
+                  "name": "_add_and_commit",
+                  "line_start": 80,
+                  "line_end": 88,
+                  "hash": "fbc26d001fc19683"
+                },
+                {
+                  "name": "_require_owned_asset",
+                  "line_start": 73,
+                  "line_end": 78,
+                  "hash": "4d421a5da80957e2"
+                },
+                {
+                  "name": "list_expenses",
+                  "line_start": 65,
+                  "line_end": 71,
+                  "hash": "38b27347410b93b7"
+                },
+                {
+                  "name": "log_expense",
+                  "line_start": 25,
+                  "line_end": 63,
+                  "hash": "c662b479fdd449b9"
+                }
+              ]
+            }
+          ],
           "routes": []
         }
       ]

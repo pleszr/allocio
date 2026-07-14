@@ -1,4 +1,5 @@
 """Pydantic request models. Validate what the API accepts; never imported by services."""
+import uuid
 from datetime import date
 from decimal import Decimal
 from typing import Literal, TypeAlias
@@ -8,6 +9,8 @@ from pydantic import BaseModel, Field, model_validator
 IntervalUnit: TypeAlias = Literal["months", "years"]
 TireType: TypeAlias = Literal["summer", "winter", "all_season"]
 AssetTemplateKey: TypeAlias = Literal["vehicle"]
+ExpenseKind: TypeAlias = Literal["modeled", "other"]
+ExpenseSourceType: TypeAlias = Literal["time_based_cost", "usage_based_cost", "maintenance_item"]
 
 
 class VehicleDetailsInput(BaseModel):
@@ -111,6 +114,55 @@ class CreateMaintenanceItemRequest(BaseModel):
         """Reject a custom item with no interval: only the seeded `other` row may omit both."""
         if self.interval_km is None and self.interval_months is None:
             raise ValueError("A maintenance item must set interval_km or interval_months.")
+        return self
+
+
+class LogExpenseRequest(BaseModel):
+    """Body for logging an auditable expense against an asset's bucket.
+
+    A `modeled` expense links a cost/maintenance source row; an `other` expense is a manual entry
+    described by its `comment` and must carry no source reference.
+    """
+
+    kind: ExpenseKind = Field(
+        description="Whether this is a modeled cost/maintenance expense or a manual 'other' entry.",
+        examples=["other"],
+    )
+    amount: Decimal = Field(
+        gt=0, description="Outflow amount; stored positive (balance math subtracts it).", examples=[15000]
+    )
+    event_date: date | None = Field(
+        default=None,
+        description="When the expense occurred; defaults to today when omitted, allowing backdated events.",
+        examples=["2026-07-01"],
+    )
+    usage_counter_at_event: int | None = Field(
+        default=None, ge=0, description="Optional usage reading (e.g. odometer km) at the time of the expense.",
+        examples=[123456],
+    )
+    comment: str | None = Field(
+        default=None,
+        max_length=2000,
+        description="Free-text note; primary descriptor for a manual 'other' expense.",
+        examples=["car wash"],
+    )
+    source_type: ExpenseSourceType | None = Field(
+        default=None,
+        description="Which cost/maintenance table the source row lives in; required for 'modeled'.",
+        examples=["time_based_cost"],
+    )
+    source_id: uuid.UUID | None = Field(
+        default=None, description="Id of the source row; required for 'modeled'."
+    )
+
+    @model_validator(mode="after")
+    def _check_source_matches_kind(self) -> "LogExpenseRequest":
+        """Enforce that a source reference is present for 'modeled' and absent for 'other'."""
+        has_source = self.source_type is not None and self.source_id is not None
+        if self.kind == "modeled" and not has_source:
+            raise ValueError("A modeled expense requires both source_type and source_id.")
+        if self.kind == "other" and (self.source_type is not None or self.source_id is not None):
+            raise ValueError("An 'other' expense must not carry a source reference.")
         return self
 
 
