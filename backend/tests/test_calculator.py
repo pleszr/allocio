@@ -125,3 +125,64 @@ def test_bucket_balance_sums_events():
 
 def test_bucket_balance_empty_history_is_zero():
     assert calculator.bucket_balance([], []) == Decimal("0")
+
+
+@pytest.mark.parametrize(
+    ("amount", "interval_value", "interval_unit", "expected"),
+    [
+        (Decimal("120000"), 12, "months", Decimal("10000")),
+        (Decimal("120000"), 1, "years", Decimal("10000")),
+        (Decimal("14000"), 6, "months", Decimal("14000") / Decimal("0.5") / Decimal("12")),
+    ],
+)
+def test_time_based_monthly_accrual(amount, interval_value, interval_unit, expected):
+    assert calculator.time_based_monthly_accrual(amount, interval_value, interval_unit) == expected
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "expected"),
+    [
+        (date(2026, 1, 10), date(2026, 1, 25), 0),  # same month
+        (date(2026, 1, 10), date(2026, 4, 10), 3),  # exact month boundaries
+        (date(2026, 1, 10), date(2026, 4, 9), 2),  # end.day < start.day drops the partial month
+        (date(2026, 4, 10), date(2026, 1, 10), 0),  # reversed dates clamp to 0
+    ],
+)
+def test_whole_months(start, end, expected):
+    assert calculator.whole_months(start, end) == expected
+
+
+def test_expected_monthly_usage_zero_usage_is_zero():
+    assert calculator.expected_monthly_usage(0, 5) == Decimal("0")
+
+
+def test_expected_monthly_usage_normal_case():
+    assert calculator.expected_monthly_usage(1200, 6) == Decimal("200")
+
+
+def test_expected_monthly_usage_zero_span_divides_by_one():
+    assert calculator.expected_monthly_usage(300, 0) == Decimal("300")
+
+
+def test_expected_monthly_usage_rejects_negative_usage():
+    with pytest.raises(ValueError):
+        calculator.expected_monthly_usage(-1, 3)
+
+
+def test_usage_based_monthly_accrual_handles_fractional_usage():
+    assert calculator.usage_based_monthly_accrual(Decimal("10"), Decimal("150.5")) == Decimal("1505.0")
+
+
+@pytest.mark.parametrize(
+    ("balance", "expected_reserve", "expected"),
+    [
+        (Decimal("100"), Decimal("0"), "healthy"),  # nothing to fund
+        (Decimal("89"), Decimal("100"), "underfunded"),  # below 0.9x
+        (Decimal("90"), Decimal("100"), "healthy"),  # exact 0.9x boundary is healthy
+        (Decimal("100"), Decimal("100"), "healthy"),
+        (Decimal("110"), Decimal("100"), "healthy"),  # exact 1.1x boundary is healthy
+        (Decimal("111"), Decimal("100"), "overflowing"),  # above 1.1x
+    ],
+)
+def test_health_status_bands(balance, expected_reserve, expected):
+    assert calculator.health_status(balance, expected_reserve) == expected

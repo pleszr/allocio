@@ -1,9 +1,26 @@
 """Persistence for the asset aggregate. Owns inserts and flushes, never the transaction."""
 
+import uuid
+
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain.asset import Asset, Bucket, VehicleProfile
 from app.domain.cost import MaintenanceItem, TimeBasedCost, UsageBasedCost
+
+
+def list_owned_assets(session: Session, user_id: uuid.UUID) -> list[Asset]:
+    """Return the user's active (non-archived) assets, oldest first.
+
+    This is the ownership gate for the workspace overview: it never returns another user's rows
+    and never widens beyond active assets.
+    """
+    stmt = (
+        select(Asset)
+        .where(Asset.user_id == user_id, Asset.archived_at.is_(None))
+        .order_by(Asset.created_at)
+    )
+    return list(session.scalars(stmt).all())
 
 
 def persist_asset(session: Session, asset: Asset) -> None:

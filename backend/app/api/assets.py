@@ -4,10 +4,16 @@ import uuid
 from fastapi import APIRouter, Depends, Response, status
 
 from app.api.schemas.requests import CreateAssetRequest
-from app.api.schemas.responses import CreateAssetResponse
+from app.api.schemas.responses import (
+    AssetSummaryResponse,
+    CreateAssetResponse,
+    WorkspaceOverviewResponse,
+    WorkspaceTotalsResponse,
+)
 from app.common.message_bundle import INTERNAL_ERROR
 from app.services.asset_service import AssetService, VehicleDetails
-from app.services.dependencies import get_asset_service, get_current_user_id
+from app.services.dependencies import get_asset_service, get_current_user_id, get_workspace_service
+from app.services.workspace_service import WorkspaceOverview, WorkspaceService
 
 router = APIRouter(prefix="/api", tags=["assets"])
 
@@ -44,3 +50,50 @@ def create_asset(
     )
     response.headers["Location"] = f"/api/assets/{created.asset.id}"
     return CreateAssetResponse.model_validate(created)
+
+
+@router.get(
+    "/assets",
+    summary="List assets with balances and health",
+    description="""Returns every asset the authenticated user owns with its calculator-derived bucket
+    balance, recommended monthly allocation, and deterministic health status, plus the workspace
+    totals the Home screen needs — all in one call, with no per-asset follow-up request. An empty
+    workspace returns a 200 with an empty list and zeroed totals.""",
+    response_model=WorkspaceOverviewResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "Owned assets with derived figures and workspace totals."},
+        500: {"description": INTERNAL_ERROR},
+    },
+)
+def list_assets(
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    service: WorkspaceService = Depends(get_workspace_service),
+) -> WorkspaceOverviewResponse:
+    """Delegate to the workspace service and map its overview DTO to the response model."""
+    overview = service.list_workspace(user_id)
+    return _to_overview_response(overview)
+
+
+def _to_overview_response(overview: WorkspaceOverview) -> WorkspaceOverviewResponse:
+    """Map the service `WorkspaceOverview` DTO to its Pydantic response, keeping the api layer off service DTOs."""
+    return WorkspaceOverviewResponse(
+        assets=[
+            AssetSummaryResponse(
+                id=summary.asset_id,
+                type=summary.type,
+                name=summary.name,
+                status=summary.status,
+                currency=summary.currency,
+                balance=summary.balance,
+                recommended_monthly_allocation=summary.recommended_monthly_allocation,
+                health=summary.health,
+            )
+            for summary in overview.assets
+        ],
+        totals=WorkspaceTotalsResponse(
+            total_balance=overview.totals.total_balance,
+            total_recommended_monthly_allocation=overview.totals.total_recommended_monthly_allocation,
+            alert_count=overview.totals.alert_count,
+        ),
+    )

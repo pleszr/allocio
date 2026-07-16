@@ -1,0 +1,144 @@
+"""Workspace overview use case: derive every owned asset's balance, monthly allocation, and health in one read.
+
+Read-only. The service reuses the pure `app.domain.calculator` helpers for all money math and the
+existing single-asset repository functions per asset (N+1 by design at MVP scale — see the issue
+spec). It never commits or flushes; an empty workspace is a valid, zeroed result, not a 404.
+"""
+
+import uuid
+from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal
+
+from sqlalchemy.orm import Session
+
+from app.domain import calculator
+from app.domain.asset import Asset, Bucket
+from app.domain.calculator import HealthStatus
+from app.repository import asset_repository, check_in_repository, cost_repository, expense_repository
+
+
+@dataclass(frozen=True)
+class AssetSummary:
+    """One asset's derived figures for the workspace overview."""
+
+    asset_id: uuid.UUID
+    type: str
+    name: str
+    status: str
+    currency: str
+    balance: Decimal
+    recommended_monthly_allocation: Decimal
+    health: HealthStatus
+
+
+@dataclass(frozen=True)
+class WorkspaceTotals:
+    """Workspace-wide aggregates the Home header renders."""
+
+    total_balance: Decimal
+    total_recommended_monthly_allocation: Decimal
+    alert_count: int
+
+
+@dataclass(frozen=True)
+class WorkspaceOverview:
+    """Every owned asset summary plus the workspace totals for one `GET /api/assets` call."""
+
+    assets: list[AssetSummary]
+    totals: WorkspaceTotals
+
+
+class WorkspaceService:
+    """Assembles the read-only workspace overview over a request-scoped session; never mutates."""
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def list_workspace(self, user_id: uuid.UUID) -> WorkspaceOverview:
+        """Summarize every owned asset and aggregate the workspace totals. Writes nothing."""
+        assets = asset_repository.list_owned_assets(self._session, user_id)
+        summaries = [self._summarize(asset) for asset in assets]
+        return WorkspaceOverview(assets=summaries, totals=self._totals(summaries))
+
+    def _summarize(self, asset: Asset) -> AssetSummary:
+        """Compose one asset's balance, recommended monthly allocation, and health status."""
+        bucket = expense_repository.get_bucket_for_asset(self._session, asset.id)
+        if bucket is None:
+            return self._summary_without_bucket(asset)
+        balance = self._balance(bucket)
+        monthly = self._recommended_monthly_allocation(asset, bucket)
+        return AssetSummary(
+            asset_id=asset.id,
+            type=asset.type,
+            name=asset.name,
+            status=asset.status,
+            currency=bucket.currency,
+            balance=balance,
+            recommended_monthly_allocation=monthly,
+            health=calculator.health_status(balance, monthly),
+        )
+
+    def _summary_without_bucket(self, asset: Asset) -> AssetSummary:
+        """Fall back to zeroed figures for an asset that somehow has no bucket (should not happen)."""
+        return AssetSummary(
+            asset_id=asset.id,
+            type=asset.type,
+            name=asset.name,
+            status=asset.status,
+            currency="",
+            balance=Decimal(0),
+            recommended_monthly_allocation=Decimal(0),
+            health=calculator.health_status(Decimal(0), Decimal(0)),
+        )
+
+    def _balance(self, bucket: Bucket) -> Decimal:
+        """Reconstruct the bucket balance from its posted allocation and expense events."""
+        allocations = check_in_repository.list_posted_allocation_amounts(self._session, bucket.id)
+        expenses = expense_repository.list_expenses_for_bucket(self._session, bucket.id)
+        return calculator.bucket_balance(allocations, [expense.amount for expense in expenses])
+
+    def _recommended_monthly_allocation(self, asset: Asset, bucket: Bucket) -> Decimal:
+        """Sum the active time-based and usage-based monthly accruals, quantized to currency."""
+        time_based = self._time_based_monthly(asset, bucket)
+        usage_based = self._usage_based_monthly(asset)
+        return calculator.quantize_currency(time_based + usage_based)
+
+    def _time_based_monthly(self, asset: Asset, bucket: Bucket) -> Decimal:
+        """Accrue the monthly total across active time-based costs, applying latest-cost rollover."""
+        posted_expenses = expense_repository.list_expenses_for_bucket(self._session, bucket.id)
+        total = Decimal(0)
+        for cost in cost_repository.list_time_based_costs(self._session, asset.id):
+            if not cost.is_active:
+                continue
+            linked = [
+                (expense.event_date, expense.amount)
+                for expense in posted_expenses
+                if expense.source_type == "time_based_cost" and expense.source_id == cost.id
+            ]
+            reference = calculator.reference_amount(cost.amount, linked, date.today())
+            total += calculator.time_based_monthly_accrual(reference, cost.interval_value, cost.interval_unit)
+        return total
+
+    def _usage_based_monthly(self, asset: Asset) -> Decimal:
+        """Accrue the usage-based reserve for a trailing-average month, or zero without an active reserve."""
+        cost = cost_repository.get_active_usage_based_cost(self._session, asset.id)
+        if cost is None or not cost.is_active:
+            return Decimal(0)
+        total_usage, first_start, last_end = check_in_repository.get_posted_usage_totals(self._session, asset.id)
+        months = 0 if first_start is None else calculator.whole_months(first_start, last_end)
+        monthly_usage = calculator.expected_monthly_usage(total_usage, months)
+        return calculator.usage_based_monthly_accrual(cost.amount_per_unit, monthly_usage)
+
+    def _totals(self, summaries: list[AssetSummary]) -> WorkspaceTotals:
+        """Sum balances and monthly allocations and count underfunded assets across all summaries.
+
+        MVP assumes all buckets share one currency (HUF today), so totals are a plain sum.
+        """
+        return WorkspaceTotals(
+            total_balance=sum((summary.balance for summary in summaries), Decimal(0)),
+            total_recommended_monthly_allocation=sum(
+                (summary.recommended_monthly_allocation for summary in summaries), Decimal(0)
+            ),
+            alert_count=sum(1 for summary in summaries if summary.health == "underfunded"),
+        )

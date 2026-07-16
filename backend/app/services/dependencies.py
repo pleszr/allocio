@@ -8,6 +8,7 @@ from app.services.asset_service import AssetService
 from app.services.check_in_service import CheckInService
 from app.services.cost_service import CostService
 from app.services.expense_service import ExpenseService
+from app.services.workspace_service import WorkspaceService
 
 # Placeholder identity until real auth lands; every write is attributed to this dev user.
 DEV_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
@@ -36,3 +37,8 @@ def get_expense_service(session: Session = Depends(get_session)) -> ExpenseServi
 def get_check_in_service(session: Session = Depends(get_session)) -> CheckInService:
     """Provide a `CheckInService` for the check-in preview and posting routes over the request-scoped session."""
     return CheckInService(session)
+
+
+def get_workspace_service(session: Session = Depends(get_session)) -> WorkspaceService:
+    """Provide a `WorkspaceService` for the read-only workspace overview route over the request-scoped session."""
+    return WorkspaceService(session)

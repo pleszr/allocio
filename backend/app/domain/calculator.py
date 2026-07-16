@@ -19,6 +19,7 @@ from typing import Literal, TypeAlias
 IntervalUnit: TypeAlias = Literal["months", "years"]
 MaintenanceStatus: TypeAlias = Literal["ok", "soon", "due", "overdue"]
 ReserveGuidance: TypeAlias = Literal["low", "reasonable", "high"]
+HealthStatus: TypeAlias = Literal["underfunded", "healthy", "overflowing"]
 
 DAYS_PER_YEAR: Decimal = Decimal(365)
 INTERVAL_UNITS: frozenset[str] = frozenset({"months", "years"})
@@ -235,6 +236,105 @@ def reserve_guidance(configured_rate: Decimal, recommended_rate: Decimal | None)
     if configured_rate > _GUIDANCE_HIGH * recommended_rate:
         return "high"
     return "reasonable"
+
+
+def time_based_monthly_accrual(
+    reference_amount: Decimal, interval_value: int, interval_unit: IntervalUnit
+) -> Decimal:
+    """Spread a time-based cost's reference amount into an even monthly accrual.
+
+    The monthly form of the same annualize-then-spread math the check-in path uses via
+    `time_based_period_accrual`: annualize over the interval, then divide by twelve. The result
+    is unrounded so the service applies `quantize_currency` only at the boundary.
+
+    Args:
+        reference_amount: Amount to annualize (see `reference_amount`).
+        interval_value: Positive number of units in one interval.
+        interval_unit: Either ``"months"`` or ``"years"``.
+
+    Returns:
+        The unrounded monthly accrual (interval errors propagate from `interval_years`).
+    """
+    return reference_amount / interval_years(interval_value, interval_unit) / _MONTHS_PER_YEAR
+
+
+def whole_months(start: date, end: date) -> int:
+    """Count whole calendar months between two dates, never negative.
+
+    A partial trailing month (when ``end.day`` precedes ``start.day``) does not count. Reversed
+    dates clamp to ``0``. Used to size the trailing window for average usage.
+
+    Args:
+        start: Earlier date of the span.
+        end: Later date of the span.
+
+    Returns:
+        Whole months from ``start`` to ``end``, clamped to ``0``.
+    """
+    months = (end.year - start.year) * 12 + (end.month - start.month)
+    if end.day < start.day:
+        months -= 1
+    return max(months, 0)
+
+
+def expected_monthly_usage(total_usage: int, months_span: int) -> Decimal:
+    """Average usage per month over a trailing window.
+
+    Args:
+        total_usage: Total usage counted across the window; must not be negative.
+        months_span: Whole months in the window; a span of ``0`` divides by one month.
+
+    Returns:
+        ``total_usage`` spread evenly per month, or ``Decimal(0)`` when there is no usage.
+
+    Raises:
+        ValueError: If ``total_usage`` is negative.
+    """
+    if total_usage < 0:
+        raise ValueError("total_usage must not be negative.")
+    if total_usage == 0:
+        return Decimal(0)
+    return Decimal(total_usage) / Decimal(max(months_span, 1))
+
+
+def usage_based_monthly_accrual(amount_per_unit: Decimal, monthly_usage: Decimal) -> Decimal:
+    """Accrue the usage-based reserve for one month of average usage.
+
+    Separate from the int-based `usage_based_period_accrual` because `monthly_usage` is a
+    fractional trailing average.
+
+    Args:
+        amount_per_unit: Reserve accrued per unit of usage.
+        monthly_usage: Average usage per month (may be fractional).
+
+    Returns:
+        The unrounded monthly reserve accrual.
+    """
+    return amount_per_unit * monthly_usage
+
+
+def health_status(balance: Decimal, expected_reserve: Decimal) -> HealthStatus:
+    """Band a bucket balance against its expected reserve using the guidance ratios.
+
+    Reuses the ``0.9``/``1.1`` bands already blessed for `reserve_guidance`, so no new magic
+    numbers enter the engine. See `docs/vehicle-rules.md` for the v1 definition of
+    ``expected_reserve`` (one recommended monthly allocation) and its documented limitation.
+
+    Args:
+        balance: The bucket's event-derived balance.
+        expected_reserve: The target reserve to compare against; ``<= 0`` means nothing to fund.
+
+    Returns:
+        ``"underfunded"`` below ``0.9x``, ``"overflowing"`` above ``1.1x``, else ``"healthy"``;
+        ``"healthy"`` whenever ``expected_reserve`` is non-positive.
+    """
+    if expected_reserve <= 0:
+        return "healthy"
+    if balance < _GUIDANCE_LOW * expected_reserve:
+        return "underfunded"
+    if balance > _GUIDANCE_HIGH * expected_reserve:
+        return "overflowing"
+    return "healthy"
 
 
 def _ratio(numerator: int | None, denominator: int | None) -> Decimal | None:
