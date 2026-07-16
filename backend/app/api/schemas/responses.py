@@ -119,6 +119,88 @@ class ExpenseEventResponse(BaseModel):
     metadata_json: dict | None = Field(description="Reserved auditing metadata; unused in this flow.")
 
 
+class AllocationLineResponse(BaseModel):
+    """One previewed allocation (inflow) line for a check-in period."""
+
+    source_type: str = Field(description="Source table of the accrual: 'time_based_cost' or 'usage_based_cost'.")
+    source_id: uuid.UUID | None = Field(description="Id of the cost row that produced this line.")
+    label: str = Field(description="Human-readable label of the source cost row.", examples=["Vehicle inspection"])
+    amount: Decimal = Field(description="Accrual added to the bucket for this line, rounded to currency.")
+
+
+class ExpenseLineResponse(BaseModel):
+    """One previewed expense (outflow) line echoing a submitted draft, with `event_date` resolved."""
+
+    kind: str = Field(description="'modeled' for a cost/maintenance expense or 'other' for a manual entry.")
+    amount: Decimal = Field(description="Outflow amount; stored positive.")
+    event_date: date = Field(description="Date the expense occurred; resolved to today when the draft omitted it.")
+    comment: str | None = Field(description="Free-text note describing the expense, if any.")
+    source_type: str | None = Field(description="Source table for a modeled expense, else null.")
+    source_id: uuid.UUID | None = Field(description="Id of the linked source row for a modeled expense, else null.")
+    usage_counter_at_event: int | None = Field(description="Usage reading at the time of the expense, if supplied.")
+
+
+class CheckInPreviewResponse(BaseModel):
+    """Deterministic financial result of a check-in period; computed without writing any records."""
+
+    asset_id: uuid.UUID = Field(description="Asset the check-in is for.")
+    period_start: date = Field(description="Derived start of the period (previous period end, or first-check-in start).")
+    period_end: date = Field(description="Requested end of the period.")
+    usage_start: int = Field(description="Derived usage counter at period start.")
+    usage_end: int = Field(description="Requested usage counter at period end.")
+    elapsed_days: int = Field(description="Whole calendar days in the period.")
+    usage_amount: int = Field(description="Usage counted this period (usage_end - usage_start).")
+    active_tire_type: str | None = Field(description="Tire type active during the period, if supplied.")
+    allocation_lines: list[AllocationLineResponse] = Field(description="Per-cost allocation lines for the period.")
+    expense_lines: list[ExpenseLineResponse] = Field(description="Expense lines recognized for the period.")
+    balance_before: Decimal = Field(description="Bucket balance from posted events before this period.")
+    total_allocation: Decimal = Field(description="Sum of allocation line amounts.")
+    total_expense: Decimal = Field(description="Sum of expense line amounts.")
+    net_bucket_change: Decimal = Field(description="total_allocation - total_expense.")
+    balance_after: Decimal = Field(description="balance_before + net_bucket_change.")
+
+
+class AllocationEventResponse(BaseModel):
+    """A posted, immutable allocation event moving value into an asset's bucket."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID = Field(description="Server-generated allocation event id.")
+    bucket_id: uuid.UUID = Field(description="Bucket the allocation is added to.")
+    check_in_id: uuid.UUID = Field(description="Check-in that posted this allocation.")
+    event_date: date = Field(description="Date the allocation is recognized (the period end).")
+    source_type: str = Field(description="Source table of the accrual: 'time_based_cost' or 'usage_based_cost'.")
+    source_id: uuid.UUID | None = Field(description="Id of the cost row that produced this allocation.")
+    amount: Decimal = Field(description="Allocation amount added to the bucket.")
+    metadata_json: dict | None = Field(description="Auditing metadata explaining the source row, e.g. its label.")
+
+
+class CheckInResponse(BaseModel):
+    """A posted check-in record for one asset period."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID = Field(description="Server-generated check-in id.")
+    asset_id: uuid.UUID = Field(description="Asset the check-in is for.")
+    period_start: date = Field(description="Start of the covered period.")
+    period_end: date = Field(description="End of the covered period.")
+    checked_in_at: datetime | None = Field(description="Server timestamp when the check-in was posted.")
+    usage_start: int | None = Field(description="Usage counter at period start.")
+    usage_end: int | None = Field(description="Usage counter at period end.")
+    usage_amount: int | None = Field(description="Usage counted this period.")
+    active_tire_type: str | None = Field(description="Tire type active during the period, if supplied.")
+    notes: str | None = Field(description="Optional free-text note stored on the check-in.")
+    status: str = Field(description="Lifecycle status; 'posted' once persisted.", examples=["posted"])
+
+
+class CheckInPostResponse(BaseModel):
+    """Full record set created by posting a check-in, so a client can render it without a refetch."""
+
+    check_in: CheckInResponse = Field(description="The posted check-in record.")
+    allocation_events: list[AllocationEventResponse] = Field(description="Posted allocation events for the period.")
+    expense_events: list[ExpenseEventResponse] = Field(description="Posted expense events for the period.")
+
+
 class CreateAssetResponse(BaseModel):
     """Full record set returned after creating an asset, so a client can render it without a refetch.
 

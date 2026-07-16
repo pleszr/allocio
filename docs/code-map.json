@@ -128,6 +128,64 @@
           ]
         },
         {
+          "path": "backend/app/api/check_ins.py",
+          "language": "python",
+          "imports": [
+            "app.api.schemas.requests",
+            "app.api.schemas.responses",
+            "app.common.message_bundle",
+            "app.services.check_in_service",
+            "app.services.dependencies",
+            "fastapi",
+            "uuid"
+          ],
+          "functions": [
+            {
+              "name": "_to_drafts",
+              "line_start": 94,
+              "line_end": 107,
+              "hash": "90e7f25a2d3a99b5"
+            },
+            {
+              "name": "_to_preview_response",
+              "line_start": 110,
+              "line_end": 145,
+              "hash": "178cc41b0b57ffbb"
+            },
+            {
+              "name": "post_check_in",
+              "line_start": 69,
+              "line_end": 91,
+              "hash": "e2944f6210ae9962"
+            },
+            {
+              "name": "preview_check_in",
+              "line_start": 37,
+              "line_end": 52,
+              "hash": "622d654e394b1e38"
+            }
+          ],
+          "classes": [],
+          "routes": [
+            {
+              "method": "post",
+              "path": "/assets/{asset_id}/check-ins",
+              "handler": "post_check_in",
+              "line_start": 69,
+              "line_end": 91,
+              "hash": "e2944f6210ae9962"
+            },
+            {
+              "method": "post",
+              "path": "/assets/{asset_id}/check-ins/preview",
+              "handler": "preview_check_in",
+              "line_start": 37,
+              "line_end": 52,
+              "hash": "622d654e394b1e38"
+            }
+          ]
+        },
+        {
           "path": "backend/app/api/costs.py",
           "language": "python",
           "imports": [
@@ -386,9 +444,23 @@
               ]
             },
             {
-              "name": "UpdateMaintenanceItemRequest",
+              "name": "PostCheckInRequest",
+              "line_start": 192,
+              "line_end": 197,
+              "hash": "b03fef63c359077f",
+              "methods": []
+            },
+            {
+              "name": "PreviewCheckInRequest",
               "line_start": 169,
-              "line_end": 182,
+              "line_end": 189,
+              "hash": "c2ef72c01535b8b6",
+              "methods": []
+            },
+            {
+              "name": "UpdateMaintenanceItemRequest",
+              "line_start": 200,
+              "line_end": 213,
               "hash": "197bb31033bc827f",
               "methods": []
             },
@@ -428,6 +500,20 @@
           "functions": [],
           "classes": [
             {
+              "name": "AllocationEventResponse",
+              "line_start": 163,
+              "line_end": 175,
+              "hash": "7f1cc42ccd37defa",
+              "methods": []
+            },
+            {
+              "name": "AllocationLineResponse",
+              "line_start": 122,
+              "line_end": 128,
+              "hash": "b929526362bbc394",
+              "methods": []
+            },
+            {
               "name": "AssetResponse",
               "line_start": 15,
               "line_end": 25,
@@ -442,9 +528,30 @@
               "methods": []
             },
             {
+              "name": "CheckInPostResponse",
+              "line_start": 196,
+              "line_end": 201,
+              "hash": "dedfba65f01c240e",
+              "methods": []
+            },
+            {
+              "name": "CheckInPreviewResponse",
+              "line_start": 143,
+              "line_end": 160,
+              "hash": "f29cec4ddd960f2e",
+              "methods": []
+            },
+            {
+              "name": "CheckInResponse",
+              "line_start": 178,
+              "line_end": 193,
+              "hash": "c6d5cb7782f53cf6",
+              "methods": []
+            },
+            {
               "name": "CreateAssetResponse",
-              "line_start": 122,
-              "line_end": 135,
+              "line_start": 204,
+              "line_end": 217,
               "hash": "c6a982f195b870cf",
               "methods": []
             },
@@ -453,6 +560,13 @@
               "line_start": 104,
               "line_end": 119,
               "hash": "8c171e5fbf9da7d6",
+              "methods": []
+            },
+            {
+              "name": "ExpenseLineResponse",
+              "line_start": 131,
+              "line_end": 140,
+              "hash": "28d118d5c8927af5",
               "methods": []
             },
             {
@@ -814,6 +928,89 @@
           "routes": []
         },
         {
+          "path": "backend/app/domain/check_in_calc.py",
+          "language": "python",
+          "imports": [
+            "app.domain.calculator",
+            "collections.abc",
+            "dataclasses",
+            "datetime",
+            "decimal",
+            "uuid"
+          ],
+          "functions": [
+            {
+              "name": "_expense_line",
+              "line_start": 190,
+              "line_end": 200,
+              "hash": "db435aa6d98ac1a8"
+            },
+            {
+              "name": "_time_based_lines",
+              "line_start": 158,
+              "line_end": 174,
+              "hash": "83407f05c76c7163"
+            },
+            {
+              "name": "_usage_based_line",
+              "line_start": 177,
+              "line_end": 187,
+              "hash": "156c3ee6c5c0c59e"
+            },
+            {
+              "name": "compute_check_in",
+              "line_start": 98,
+              "line_end": 155,
+              "hash": "a724e15a63011f44"
+            }
+          ],
+          "classes": [
+            {
+              "name": "AllocationLine",
+              "line_start": 61,
+              "line_end": 67,
+              "hash": "4471f0543eea6913",
+              "methods": []
+            },
+            {
+              "name": "CheckInComputation",
+              "line_start": 84,
+              "line_end": 95,
+              "hash": "6fea6a1eec9cbf83",
+              "methods": []
+            },
+            {
+              "name": "ExpenseDraftInput",
+              "line_start": 48,
+              "line_end": 57,
+              "hash": "6f63718f2093e0ab",
+              "methods": []
+            },
+            {
+              "name": "ExpenseLine",
+              "line_start": 71,
+              "line_end": 80,
+              "hash": "9c08888013cd80b8",
+              "methods": []
+            },
+            {
+              "name": "TimeBasedCostInput",
+              "line_start": 27,
+              "line_end": 35,
+              "hash": "687b44c38e8745f6",
+              "methods": []
+            },
+            {
+              "name": "UsageBasedCostInput",
+              "line_start": 39,
+              "line_end": 44,
+              "hash": "f0200cca81dac82d",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
           "path": "backend/app/domain/cost.py",
           "language": "python",
           "imports": [
@@ -905,14 +1102,14 @@
           "functions": [
             {
               "name": "_not_found_handler",
-              "line_start": 17,
-              "line_end": 18,
+              "line_start": 18,
+              "line_end": 19,
               "hash": "9a953235772419d0"
             },
             {
               "name": "_validation_handler",
-              "line_start": 22,
-              "line_end": 23,
+              "line_start": 23,
+              "line_end": 24,
               "hash": "4b147d0475452a59"
             }
           ],
@@ -947,6 +1144,52 @@
               "line_start": 9,
               "line_end": 16,
               "hash": "48c334d017e0b7a4"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/repository/check_in_repository.py",
+          "language": "python",
+          "imports": [
+            "app.domain.asset",
+            "app.domain.check_in",
+            "decimal",
+            "sqlalchemy",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [
+            {
+              "name": "add_and_flush",
+              "line_start": 49,
+              "line_end": 55,
+              "hash": "31d642e6a0e71cfd"
+            },
+            {
+              "name": "get_latest_posted_check_in",
+              "line_start": 29,
+              "line_end": 40,
+              "hash": "5e065920f68981e7"
+            },
+            {
+              "name": "get_owned_asset",
+              "line_start": 13,
+              "line_end": 20,
+              "hash": "290afa67bac1e04a"
+            },
+            {
+              "name": "get_vehicle_profile",
+              "line_start": 23,
+              "line_end": 26,
+              "hash": "c7bad4beeb9509ff"
+            },
+            {
+              "name": "list_posted_allocation_amounts",
+              "line_start": 43,
+              "line_end": 46,
+              "hash": "2412a1962536768c"
             }
           ],
           "classes": [],
@@ -1141,6 +1384,151 @@
           "routes": []
         },
         {
+          "path": "backend/app/services/check_in_service.py",
+          "language": "python",
+          "imports": [
+            "app.common.exceptions",
+            "app.domain.asset",
+            "app.domain.check_in",
+            "app.domain.check_in_calc",
+            "app.repository",
+            "dataclasses",
+            "datetime",
+            "decimal",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "CheckInPreview",
+              "line_start": 43,
+              "line_end": 52,
+              "hash": "e6a524f45625ca25",
+              "methods": []
+            },
+            {
+              "name": "CheckInService",
+              "line_start": 63,
+              "line_end": 308,
+              "hash": "94ed875258913601",
+              "methods": [
+                {
+                  "name": "__init__",
+                  "line_start": 66,
+                  "line_end": 67,
+                  "hash": "2c8f2810305a160d"
+                },
+                {
+                  "name": "_build_allocation_events",
+                  "line_start": 267,
+                  "line_end": 285,
+                  "hash": "588ce0010e6a4722"
+                },
+                {
+                  "name": "_build_check_in",
+                  "line_start": 244,
+                  "line_end": 265,
+                  "hash": "78c2eda944c4f52d"
+                },
+                {
+                  "name": "_build_expense_events",
+                  "line_start": 287,
+                  "line_end": 308,
+                  "hash": "adb7b7a644f15329"
+                },
+                {
+                  "name": "_compute",
+                  "line_start": 143,
+                  "line_end": 164,
+                  "hash": "80e83b737417adc2"
+                },
+                {
+                  "name": "_derive_period",
+                  "line_start": 127,
+                  "line_end": 134,
+                  "hash": "bd2a63ad94045197"
+                },
+                {
+                  "name": "_expense_inputs",
+                  "line_start": 198,
+                  "line_end": 211,
+                  "hash": "e6c0bceb082aa41d"
+                },
+                {
+                  "name": "_persist",
+                  "line_start": 221,
+                  "line_end": 242,
+                  "hash": "42054aa2e9bd350d"
+                },
+                {
+                  "name": "_require_bucket",
+                  "line_start": 120,
+                  "line_end": 125,
+                  "hash": "aa5f2acaaef10f7a"
+                },
+                {
+                  "name": "_require_expense_sources_exist",
+                  "line_start": 213,
+                  "line_end": 219,
+                  "hash": "cc0083308320dc1e"
+                },
+                {
+                  "name": "_require_owned_asset",
+                  "line_start": 113,
+                  "line_end": 118,
+                  "hash": "9b1140b9ca6e5ac2"
+                },
+                {
+                  "name": "_time_based_inputs",
+                  "line_start": 166,
+                  "line_end": 189,
+                  "hash": "f4258e69bc76996b"
+                },
+                {
+                  "name": "_usage_based_input",
+                  "line_start": 191,
+                  "line_end": 196,
+                  "hash": "03f0865d5eb60970"
+                },
+                {
+                  "name": "_validate_period",
+                  "line_start": 136,
+                  "line_end": 141,
+                  "hash": "6c58f11d7bb5a57d"
+                },
+                {
+                  "name": "post_check_in",
+                  "line_start": 94,
+                  "line_end": 111,
+                  "hash": "48efc330c26d27fb"
+                },
+                {
+                  "name": "preview_check_in",
+                  "line_start": 69,
+                  "line_end": 92,
+                  "hash": "77fc6c691afc74b0"
+                }
+              ]
+            },
+            {
+              "name": "ExpenseDraft",
+              "line_start": 30,
+              "line_end": 39,
+              "hash": "75bd92ee61027f94",
+              "methods": []
+            },
+            {
+              "name": "_PeriodContext",
+              "line_start": 56,
+              "line_end": 60,
+              "hash": "85aec9d0ee745ed3",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
           "path": "backend/app/services/cost_service.py",
           "language": "python",
           "imports": [
@@ -1252,6 +1640,7 @@
           "imports": [
             "app.db",
             "app.services.asset_service",
+            "app.services.check_in_service",
             "app.services.cost_service",
             "app.services.expense_service",
             "fastapi",
@@ -1261,26 +1650,32 @@
           "functions": [
             {
               "name": "get_asset_service",
-              "line_start": 20,
-              "line_end": 22,
+              "line_start": 21,
+              "line_end": 23,
               "hash": "5e04ae31d9c873c4"
             },
             {
+              "name": "get_check_in_service",
+              "line_start": 36,
+              "line_end": 38,
+              "hash": "c5853f481a764c31"
+            },
+            {
               "name": "get_cost_service",
-              "line_start": 25,
-              "line_end": 27,
+              "line_start": 26,
+              "line_end": 28,
               "hash": "752ac61d3ed6ece3"
             },
             {
               "name": "get_current_user_id",
-              "line_start": 15,
-              "line_end": 17,
+              "line_start": 16,
+              "line_end": 18,
               "hash": "e2d5767e2d9f43e8"
             },
             {
               "name": "get_expense_service",
-              "line_start": 30,
-              "line_end": 32,
+              "line_start": 31,
+              "line_end": 33,
               "hash": "edc92dd1813e846e"
             }
           ],

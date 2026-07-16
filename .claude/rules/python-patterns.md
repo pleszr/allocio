@@ -103,6 +103,7 @@ async def create_budget(...): ...
 
 - **`message_bundle.py`** — centralized error/system string constants (mini-i18n module). Reference: skyeGPT's `common/message_bundle.py`
 - **Service classes + `Depends` providers** — `app/services/dependencies.py` with `get_*_service()` factory functions wired via `Depends`. Enables test overrides via `app.dependency_overrides`
+- **Service-layer DTOs for structured inputs** — pass flat scalar request fields to a service as plain method parameters (see `CostService`, `ExpenseService`). When a request body carries a variable-length list or nested object, the router instead maps it into a small frozen dataclass defined in the *service* module (e.g. `check_in_service.ExpenseDraft`) and passes that. This keeps `app/api/` off `app/domain/` and `app/services/` off `app/api/` while still giving the service typed inputs — never hand a Pydantic request schema or a domain object across that boundary
 - **Logger wrapper** — `app/common/logger.py` wraps stdlib `logging` with `info/debug/warning/error/exception/critical`. Swap to logfire later if needed
 - **Custom exception hierarchy** — single `AllocioException` base, typed children (`NotFoundError`, `ValidationError`, etc.) in `app/common/exceptions.py`
 - **Error-handling decorators** — `@handle_unknown_errors` etc. in `app/common/decorators.py`. Apply ABOVE `@router.*`

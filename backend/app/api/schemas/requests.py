@@ -166,6 +166,37 @@ class LogExpenseRequest(BaseModel):
         return self
 
 
+class PreviewCheckInRequest(BaseModel):
+    """Body for previewing a check-in period. `period_start`, `usage_start`, and `usage_amount` are server-derived.
+
+    Each item in `expenses` reuses the standalone expense contract (`LogExpenseRequest`): a `modeled`
+    entry links a source row, an `other` entry carries no source. Preview writes nothing.
+    """
+
+    period_end: date = Field(
+        description="End of the period being reviewed; must be later than the derived period start.",
+        examples=["2026-05-01"],
+    )
+    usage_end: int = Field(
+        ge=0, description="Usage counter (e.g. odometer km) at period end; must be >= the derived usage start.",
+        examples=[345814],
+    )
+    active_tire_type: TireType | None = Field(
+        default=None, description="Tire type active during the period, for tire-aware maintenance tracking."
+    )
+    expenses: list[LogExpenseRequest] = Field(
+        default_factory=list, description="Expenses to recognize against the bucket for this period."
+    )
+
+
+class PostCheckInRequest(PreviewCheckInRequest):
+    """Body for posting a check-in. Same fields as the preview plus optional `notes`; persists the result."""
+
+    notes: str | None = Field(
+        default=None, max_length=2000, description="Optional free-text note stored on the posted check-in."
+    )
+
+
 class UpdateMaintenanceItemRequest(BaseModel):
     """Partial update for a maintenance item. The interval rule is enforced in the service post-merge."""
 
