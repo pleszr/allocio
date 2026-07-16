@@ -1,9 +1,10 @@
 """Ownership-scoped persistence for check-ins and their posted events. Owns queries and flushes, never the transaction."""
 
 import uuid
+from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.domain.asset import Asset, VehicleProfile
@@ -44,6 +45,26 @@ def list_posted_allocation_amounts(session: Session, bucket_id: uuid.UUID) -> li
     """Return the amounts of every posted allocation event for the bucket, for balance reconstruction."""
     stmt = select(AllocationEvent.amount).where(AllocationEvent.bucket_id == bucket_id)
     return list(session.scalars(stmt).all())
+
+
+def get_posted_usage_totals(
+    session: Session, asset_id: uuid.UUID
+) -> tuple[int, date | None, date | None]:
+    """Aggregate posted check-in usage into a total and its covered date span.
+
+    Sizes the trailing usage window for the workspace overview's usage-based monthly accrual.
+
+    Returns:
+        ``(total_usage, first_period_start, last_period_end)``; ``(0, None, None)`` when the asset
+        has no posted check-ins.
+    """
+    stmt = select(
+        func.coalesce(func.sum(CheckIn.usage_amount), 0),
+        func.min(CheckIn.period_start),
+        func.max(CheckIn.period_end),
+    ).where(CheckIn.asset_id == asset_id, CheckIn.status == "posted")
+    total_usage, first_start, last_end = session.execute(stmt).one()
+    return int(total_usage), first_start, last_end
 
 
 def add_and_flush(session: Session, row: CheckIn | AllocationEvent | ExpenseEvent) -> None:

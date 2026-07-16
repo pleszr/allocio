@@ -201,6 +201,41 @@ class CheckInPostResponse(BaseModel):
     expense_events: list[ExpenseEventResponse] = Field(description="Posted expense events for the period.")
 
 
+class AssetSummaryResponse(BaseModel):
+    """One owned asset with its derived balance, recommended monthly allocation, and health status."""
+
+    id: uuid.UUID = Field(description="Server-generated asset id.")
+    type: str = Field(description="Asset type, e.g. 'vehicle' or 'house'.", examples=["vehicle"])
+    name: str = Field(description="Human-readable asset name.", examples=["My Car"])
+    status: str = Field(description="Lifecycle status of the asset.", examples=["active"])
+    currency: str = Field(description="ISO currency code of the asset's bucket.", examples=["HUF"])
+    balance: Decimal = Field(description="Event-derived bucket balance: sum(allocations) - sum(expenses).")
+    recommended_monthly_allocation: Decimal = Field(
+        description="Suggested monthly saving: active time-based monthly accruals plus usage-based monthly, quantized."
+    )
+    health: str = Field(
+        description="Funding health versus one recommended monthly allocation: 'underfunded', 'healthy', or 'overflowing'.",
+        examples=["healthy"],
+    )
+
+
+class WorkspaceTotalsResponse(BaseModel):
+    """Workspace-wide totals the Home header renders."""
+
+    total_balance: Decimal = Field(description="Sum of every asset's balance (single-currency MVP).")
+    total_recommended_monthly_allocation: Decimal = Field(
+        description="Sum of every asset's recommended monthly allocation (single-currency MVP)."
+    )
+    alert_count: int = Field(description="Number of assets whose health is 'underfunded'.", examples=[1])
+
+
+class WorkspaceOverviewResponse(BaseModel):
+    """Every owned asset summary plus workspace totals, returned in one workspace read."""
+
+    assets: list[AssetSummaryResponse] = Field(description="Every owned, active asset with its derived figures.")
+    totals: WorkspaceTotalsResponse = Field(description="Workspace-wide balance, monthly allocation, and alert totals.")
+
+
 class CreateAssetResponse(BaseModel):
     """Full record set returned after creating an asset, so a client can render it without a refetch.
 

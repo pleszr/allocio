@@ -511,3 +511,43 @@ If the user-configured rate is:
 - preview and posting must share the same calculation functions
 - each posted allocation event should keep enough metadata to explain its source row later
 - each posted expense event should keep enough metadata to explain whether it was modeled or `Other`
+
+## Workspace Overview Derivations
+
+The workspace overview (`GET /api/assets`) derives, per asset and workspace-wide, from the same
+pure calculator used by check-ins. These are canonical rules.
+
+### Recommended monthly allocation
+
+For each asset, the recommended monthly allocation is the amount the user should set aside per
+month to keep the bucket funded:
+
+- **Time-based monthly** = for every **active** time-based cost, its reference amount (after
+  latest-cost rollover) annualized over its interval and spread across twelve months:
+  `reference_amount / interval_years / 12`. Inactive rows are excluded. Sum across active rows.
+- **Usage-based monthly** = `amount_per_unit × trailing-average monthly usage`, where the average
+  is `total_posted_usage / whole_months(first_period_start, last_period_end)` (a span of zero
+  months divides by one, and zero usage yields zero).
+- **Recommended monthly allocation** = `quantize_currency(time_based_monthly + usage_based_monthly)`.
+
+Workspace totals are plain sums of the per-asset balances and recommended monthly allocations
+(single-currency MVP — all buckets are HUF today).
+
+### Health status
+
+Each asset's funding health bands its event-derived bucket balance against an `expected_reserve`,
+reusing the same `0.9` / `1.1` ratios as `reserve_guidance` (no new magic numbers):
+
+- `underfunded` when `balance < 0.9 × expected_reserve`
+- `healthy` when `0.9 × expected_reserve ≤ balance ≤ 1.1 × expected_reserve`
+- `overflowing` when `balance > 1.1 × expected_reserve`
+- `healthy` whenever `expected_reserve ≤ 0` (nothing to fund)
+
+`alert_count` in the workspace totals counts the `underfunded` assets.
+
+**v1 definition and limitation:** `expected_reserve = one recommended monthly allocation`. Because
+this compares a stock (the accumulated balance) against a single month's target, a brand-new asset
+(balance `0`) reads `underfunded`, and a bucket saved up over several months trends toward
+`overflowing`. This is an intentional MVP simplification: there is no next-due model for time-based
+costs to anchor an accrued-to-date target. A future issue should replace `expected_reserve` with an
+accrued-to-date target once time-based costs carry a next-due date.
