@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_session
 from app.services.asset_service import AssetService
+from app.services.check_in_service import CheckInService
 from app.services.cost_service import CostService
 from app.services.expense_service import ExpenseService
 
@@ -30,3 +31,8 @@ def get_cost_service(session: Session = Depends(get_session)) -> CostService:
 def get_expense_service(session: Session = Depends(get_session)) -> ExpenseService:
     """Provide an `ExpenseService` for the expense-logging routes over the request-scoped session."""
     return ExpenseService(session)
+
+
+def get_check_in_service(session: Session = Depends(get_session)) -> CheckInService:
+    """Provide a `CheckInService` for the check-in preview and posting routes over the request-scoped session."""
+    return CheckInService(session)
