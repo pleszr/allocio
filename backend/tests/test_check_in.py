@@ -230,3 +230,128 @@ def test_unknown_asset_is_404(client: TestClient) -> None:
     )
 
     assert result.status_code == 404
+
+
+def _add_usage_row(client: TestClient, asset_id: str, label: str, rate: str) -> str:
+    """Create an extra active usage-based cost row and return its id."""
+    response = client.post(
+        f"/api/assets/{asset_id}/usage-based-costs", json={"label": label, "amount_per_unit": rate}
+    )
+    assert response.status_code == 201
+    return response.json()["id"]
+
+
+def test_preview_multi_row_usage_accrual(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    # Seeded row is 10 HUF/km; add two more active rows so there are three usage components.
+    _add_usage_row(client, asset_id, "Fuel", "45.0000")
+    _add_usage_row(client, asset_id, "Tire wear", "4.0000")
+
+    preview = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(FUTURE_END, STARTING_ODOMETER + 900),
+    ).json()
+
+    usage_lines = [line for line in preview["allocation_lines"] if line["source_type"] == "usage_based_cost"]
+    assert len(usage_lines) == 3
+    # Each active row emits its own line with a distinct source_id.
+    assert len({line["source_id"] for line in usage_lines}) == 3
+    amounts = {_dec(line["amount"]) for line in usage_lines}
+    # usage_amount is 900; each line is quantize(900 * rate).
+    assert amounts == {Decimal("9000.00"), Decimal("40500.00"), Decimal("3600.00")}
+    time_based_total = sum(
+        (_dec(line["amount"]) for line in preview["allocation_lines"] if line["source_type"] == "time_based_cost"),
+        Decimal(0),
+    )
+    assert _dec(preview["total_allocation"]) == time_based_total + Decimal("9000.00") + Decimal("40500.00") + Decimal(
+        "3600.00"
+    )
+
+
+def test_post_creates_one_event_per_usage_row(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    _add_usage_row(client, asset_id, "Fuel", "45.0000")
+    _add_usage_row(client, asset_id, "Tire wear", "4.0000")
+
+    posted = client.post(
+        f"/api/assets/{asset_id}/check-ins",
+        json=_preview_body(FUTURE_END, STARTING_ODOMETER + 900),
+    ).json()
+
+    usage_events = [e for e in posted["allocation_events"] if e["source_type"] == "usage_based_cost"]
+    assert len(usage_events) == 3
+    assert len({e["source_id"] for e in usage_events}) == 3
+    assert {e["metadata_json"]["label"] for e in usage_events} == {"Usage-based reserve", "Fuel", "Tire wear"}
+    assert {_dec(e["amount"]) for e in usage_events} == {
+        Decimal("9000.00"),
+        Decimal("40500.00"),
+        Decimal("3600.00"),
+    }
+
+
+def test_multi_row_preview_equals_post(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    _add_usage_row(client, asset_id, "Fuel", "45.0000")
+    _add_usage_row(client, asset_id, "Tire wear", "4.0000")
+    body = _preview_body(FUTURE_END, STARTING_ODOMETER + 900)
+
+    preview = client.post(f"/api/assets/{asset_id}/check-ins/preview", json=body).json()
+    posted = client.post(f"/api/assets/{asset_id}/check-ins", json=body).json()
+
+    preview_usage = sorted(
+        (line["source_id"], _dec(line["amount"]))
+        for line in preview["allocation_lines"]
+        if line["source_type"] == "usage_based_cost"
+    )
+    posted_usage = sorted(
+        (e["source_id"], _dec(e["amount"]))
+        for e in posted["allocation_events"]
+        if e["source_type"] == "usage_based_cost"
+    )
+    assert preview_usage == posted_usage
+    assert _dec(preview["total_allocation"]) == sum(
+        (_dec(e["amount"]) for e in posted["allocation_events"]), Decimal(0)
+    )
+
+
+def test_deactivated_usage_row_excluded_from_preview(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    _add_usage_row(client, asset_id, "Fuel", "45.0000")
+    tire_id = _add_usage_row(client, asset_id, "Tire wear", "4.0000")
+
+    deactivate = client.patch(
+        f"/api/assets/{asset_id}/usage-based-costs/{tire_id}", json={"is_active": False}
+    )
+    assert deactivate.status_code == 200
+
+    preview = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(FUTURE_END, STARTING_ODOMETER + 900),
+    ).json()
+
+    usage_lines = [line for line in preview["allocation_lines"] if line["source_type"] == "usage_based_cost"]
+    assert len(usage_lines) == 2
+    amounts = {_dec(line["amount"]) for line in usage_lines}
+    # The deactivated 4 HUF/km row (900*4 = 3600) is absent.
+    assert Decimal("3600.00") not in amounts
+    assert amounts == {Decimal("9000.00"), Decimal("40500.00")}
+
+
+def test_single_usage_row_reconciles_byte_for_byte(client: TestClient) -> None:
+    """Regression guard: with the one seeded usage row, per-row quantize equals the old single-line amount."""
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+
+    preview = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(FUTURE_END, STARTING_ODOMETER + 900),
+    ).json()
+
+    usage_lines = [line for line in preview["allocation_lines"] if line["source_type"] == "usage_based_cost"]
+    assert len(usage_lines) == 1
+    # Seeded reserve is 10 HUF/km * 900 km, unchanged from the single-reserve behavior.
+    assert _dec(usage_lines[0]["amount"]) == Decimal("9000.00")

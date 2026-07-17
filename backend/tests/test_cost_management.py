@@ -84,21 +84,114 @@ def test_deactivate_then_reactivate_round_trips(client: TestClient) -> None:
     assert client.patch(url, json={"is_active": True}).json()["is_active"] is True
 
 
-def test_update_usage_based_reserve(client: TestClient) -> None:
+def test_list_usage_based_costs_includes_inactive(client: TestClient) -> None:
     created = _create_vehicle(client)
     asset_id = created["asset"]["id"]
 
-    response = client.patch(
-        f"/api/assets/{asset_id}/usage-based-cost", json={"amount_per_unit": "12.5000", "notes": "higher rate"}
-    )
+    seeded = client.get(f"/api/assets/{asset_id}/usage-based-costs")
+    assert seeded.status_code == 200
+    rows = seeded.json()
+    assert len(rows) == 1  # the vehicle template seeds exactly one usage row
+    seeded_id = rows[0]["id"]
 
-    assert response.status_code == 200
+    deactivate = client.patch(
+        f"/api/assets/{asset_id}/usage-based-costs/{seeded_id}", json={"is_active": False}
+    )
+    assert deactivate.status_code == 200
+    assert deactivate.json()["is_active"] is False
+
+    listed = client.get(f"/api/assets/{asset_id}/usage-based-costs").json()
+    assert len(listed) == 1
+    assert listed[0]["is_active"] is False
+
+
+def test_create_usage_based_cost(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+
+    body = {"label": "Fuel", "amount_per_unit": "45.0000", "usage_unit": "km", "notes": "petrol"}
+    response = client.post(f"/api/assets/{asset_id}/usage-based-costs", json=body)
+
+    assert response.status_code == 201
     row = response.json()
-    assert row["amount_per_unit"] == "12.5000"
-    assert row["usage_unit"] == "km"
-    assert row["notes"] == "higher rate"
+    assert response.headers["Location"] == f"/api/assets/{asset_id}/usage-based-costs/{row['id']}"
+    assert row["technical_key"] is None
     assert row["is_active"] is True
-    assert row["asset_id"] == asset_id
+    assert row["currency"] == "HUF"  # derived from the bucket, not the request
+    assert row["label"] == "Fuel"
+    assert row["amount_per_unit"] == "45.0000"
+    assert row["usage_unit"] == "km"
+
+
+def test_multiple_active_usage_based_costs_coexist(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+
+    for label, rate in (("Fuel", "45.0000"), ("Tire wear", "4.0000")):
+        response = client.post(
+            f"/api/assets/{asset_id}/usage-based-costs", json={"label": label, "amount_per_unit": rate}
+        )
+        assert response.status_code == 201
+
+    listed = client.get(f"/api/assets/{asset_id}/usage-based-costs").json()
+    active = [row for row in listed if row["is_active"]]
+    assert len(active) == 3  # the seeded row plus the two added rows — no .one_or_none() blocker
+
+
+def test_edit_and_deactivate_usage_based_cost(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    seeded_id = client.get(f"/api/assets/{asset_id}/usage-based-costs").json()[0]["id"]
+    other = client.post(
+        f"/api/assets/{asset_id}/usage-based-costs", json={"label": "Fuel", "amount_per_unit": "45.0000"}
+    ).json()
+
+    edited = client.patch(
+        f"/api/assets/{asset_id}/usage-based-costs/{seeded_id}",
+        json={"amount_per_unit": "12.5000", "label": "Reserve", "notes": "higher rate"},
+    )
+    assert edited.status_code == 200
+    row = edited.json()
+    assert row["amount_per_unit"] == "12.5000"
+    assert row["label"] == "Reserve"
+    assert row["notes"] == "higher rate"
+
+    deactivated = client.patch(
+        f"/api/assets/{asset_id}/usage-based-costs/{seeded_id}", json={"is_active": False}
+    )
+    assert deactivated.status_code == 200
+    assert deactivated.json()["is_active"] is False
+
+    # Deactivating one row leaves the sibling active.
+    rows = {r["id"]: r for r in client.get(f"/api/assets/{asset_id}/usage-based-costs").json()}
+    assert rows[other["id"]]["is_active"] is True
+
+
+def test_usage_based_cost_error_paths(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    seeded_id = client.get(f"/api/assets/{asset_id}/usage-based-costs").json()[0]["id"]
+    stranger = uuid.uuid4()
+
+    assert client.get(f"/api/assets/{stranger}/usage-based-costs").status_code == 404
+    assert client.post(
+        f"/api/assets/{stranger}/usage-based-costs", json={"label": "x", "amount_per_unit": "1"}
+    ).status_code == 404
+    assert client.patch(
+        f"/api/assets/{stranger}/usage-based-costs/{seeded_id}", json={"amount_per_unit": "1"}
+    ).status_code == 404
+    assert client.patch(
+        f"/api/assets/{asset_id}/usage-based-costs/{uuid.uuid4()}", json={"amount_per_unit": "1"}
+    ).status_code == 404
+    assert client.post(
+        f"/api/assets/{asset_id}/usage-based-costs", json={"label": "x", "amount_per_unit": "-1"}
+    ).status_code == 422
+    assert client.patch(
+        f"/api/assets/{asset_id}/usage-based-costs/{seeded_id}", json={"currency": "EUR"}
+    ).status_code == 422
+    assert client.patch(
+        f"/api/assets/{asset_id}/usage-based-costs/{seeded_id}", json={"technical_key": "hax"}
+    ).status_code == 422
 
 
 def test_create_maintenance_item_requires_interval(client: TestClient) -> None:

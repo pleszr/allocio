@@ -99,7 +99,12 @@ class WorkspaceService:
         return calculator.bucket_balance(allocations, [expense.amount for expense in expenses])
 
     def _recommended_monthly_allocation(self, asset: Asset, bucket: Bucket) -> Decimal:
-        """Sum the active time-based and usage-based monthly accruals, quantized to currency."""
+        """Sum the active time-based and usage-based monthly accruals, quantized to currency.
+
+        This rounds the combined raw total once (`quantize(Σ)`), which intentionally differs from
+        check-in accrual, where each allocation line is quantized before summing (`Σ quantize` — see
+        `check_in_calc.compute_check_in`). Both are pre-existing, internally-correct patterns.
+        """
         time_based = self._time_based_monthly(asset, bucket)
         usage_based = self._usage_based_monthly(asset)
         return calculator.quantize_currency(time_based + usage_based)
@@ -121,14 +126,17 @@ class WorkspaceService:
         return total
 
     def _usage_based_monthly(self, asset: Asset) -> Decimal:
-        """Accrue the usage-based reserve for a trailing-average month, or zero without an active reserve."""
-        cost = cost_repository.get_active_usage_based_cost(self._session, asset.id)
-        if cost is None or not cost.is_active:
+        """Accrue every active usage-based component for a trailing-average month, or zero without any."""
+        active_rows = cost_repository.list_active_usage_based_costs(self._session, asset.id)
+        if not active_rows:
             return Decimal(0)
         total_usage, first_start, last_end = check_in_repository.get_posted_usage_totals(self._session, asset.id)
         months = 0 if first_start is None else calculator.whole_months(first_start, last_end)
         monthly_usage = calculator.expected_monthly_usage(total_usage, months)
-        return calculator.usage_based_monthly_accrual(cost.amount_per_unit, monthly_usage)
+        return sum(
+            (calculator.usage_based_monthly_accrual(row.amount_per_unit, monthly_usage) for row in active_rows),
+            Decimal(0),
+        )
 
     def _totals(self, summaries: list[AssetSummary]) -> WorkspaceTotals:
         """Sum balances and monthly allocations and count underfunded assets across all summaries.

@@ -157,7 +157,7 @@ class CheckInService:
             usage_start=context.usage_start,
             usage_end=usage_end,
             time_based_costs=self._time_based_inputs(asset_id, posted_expenses),
-            usage_based_cost=self._usage_based_input(asset_id),
+            usage_based_costs=self._usage_based_inputs(asset_id),
             expense_drafts=self._expense_inputs(expenses),
             prior_allocation_amounts=check_in_repository.list_posted_allocation_amounts(self._session, bucket.id),
             prior_expense_amounts=[row.amount for row in posted_expenses],
@@ -188,12 +188,12 @@ class CheckInService:
             )
         return inputs
 
-    def _usage_based_input(self, asset_id: uuid.UUID) -> UsageBasedCostInput | None:
-        """Build the usage-based reserve calc input, or `None` when the asset has no active reserve."""
-        cost = cost_repository.get_active_usage_based_cost(self._session, asset_id)
-        if cost is None:
-            return None
-        return UsageBasedCostInput(source_id=cost.id, label=cost.label, amount_per_unit=cost.amount_per_unit)
+    def _usage_based_inputs(self, asset_id: uuid.UUID) -> list[UsageBasedCostInput]:
+        """Build a calc input per active usage-based cost component, in deterministic repo order."""
+        return [
+            UsageBasedCostInput(source_id=cost.id, label=cost.label, amount_per_unit=cost.amount_per_unit)
+            for cost in cost_repository.list_active_usage_based_costs(self._session, asset_id)
+        ]
 
     def _expense_inputs(self, expenses: list[ExpenseDraft]) -> list[ExpenseDraftInput]:
         """Resolve each draft's `event_date` to today when omitted and map it to a calc input."""
