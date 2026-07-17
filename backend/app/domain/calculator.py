@@ -11,6 +11,7 @@ is simply only meaningful for assets that carry maintenance items, and its calle
 when to invoke it.
 """
 
+import calendar
 from collections.abc import Iterable, Sequence
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
@@ -136,6 +137,57 @@ def bucket_balance(allocation_amounts: Iterable[Decimal], expense_amounts: Itera
     total_in = sum(allocation_amounts, Decimal(0))
     total_out = sum(expense_amounts, Decimal(0))
     return total_in - total_out
+
+
+def month_anchor_dates(anchor: date, months: int, earliest_activity: date | None) -> list[date]:
+    """Build the ordered as-of dates a monthly balance series is evaluated at.
+
+    One as-of date per calendar month, oldest first. For every month except ``anchor``'s the as-of
+    date is that month's last day; for the current month it is ``anchor`` itself, so the newest
+    point is a live, partial-month snapshot. Equivalently ``as_of = min(last_day_of_month, anchor)``.
+
+    The window shrinks for young assets: the number of points is counted with day-INSENSITIVE
+    calendar-month arithmetic, ``(anchor.year - earliest.year) * 12 + (anchor.month - earliest.month)
+    + 1``, capped at ``months``. This deliberately ignores day-of-month (unlike `whole_months`, which
+    subtracts a month when ``end.day < start.day``), so an ``earliest`` late in its month is never
+    dropped from the series.
+
+    Args:
+        anchor: The newest month's as-of date (typically today); also the series' final point.
+        months: Maximum number of monthly points; must be at least one.
+        earliest_activity: Date of the earliest event, or ``None`` when there is no activity.
+
+    Returns:
+        Ordered (oldest → newest) as-of dates. ``[anchor]`` when ``earliest_activity`` is ``None``.
+
+    Raises:
+        ValueError: If ``months`` is less than one.
+    """
+    if months < 1:
+        raise ValueError("months must be at least 1.")
+    if earliest_activity is None:
+        return [anchor]
+    span = (anchor.year - earliest_activity.year) * 12 + (anchor.month - earliest_activity.month) + 1
+    point_count = min(months, span)
+    oldest_index = point_count - 1
+    return [_month_as_of(anchor, months_back) for months_back in range(oldest_index, -1, -1)]
+
+
+def balance_at_dates(events: Sequence[tuple[date, Decimal]], as_of_dates: Sequence[date]) -> list[Decimal]:
+    """Compute the cumulative signed balance at each as-of date.
+
+    Args:
+        events: Signed net ``(event_date, amount)`` pairs (allocations positive, expenses negative).
+            Input order does not matter; the balance is a sum, not an order-dependent running total.
+        as_of_dates: The dates to evaluate the cumulative balance at.
+
+    Returns:
+        One balance per date in ``as_of_dates``: the sum of every event with ``event_date <= d``
+        (inclusive). ``Decimal(0)`` for a date preceding all events, matching `bucket_balance`.
+    """
+    return [
+        sum((amount for event_date, amount in events if event_date <= as_of), Decimal(0)) for as_of in as_of_dates
+    ]
 
 
 def quantize_currency(value: Decimal) -> Decimal:
@@ -335,6 +387,20 @@ def health_status(balance: Decimal, expected_reserve: Decimal) -> HealthStatus:
     if balance > _GUIDANCE_HIGH * expected_reserve:
         return "overflowing"
     return "healthy"
+
+
+def _month_as_of(anchor: date, months_back: int) -> date:
+    """Return the as-of date of the month ``months_back`` before ``anchor``'s month.
+
+    The anchor's own month (``months_back == 0``) resolves to ``anchor``; any earlier month resolves
+    to its last calendar day.
+    """
+    if months_back == 0:
+        return anchor
+    month_index = anchor.year * 12 + (anchor.month - 1) - months_back
+    year, month = divmod(month_index, 12)
+    last_day = calendar.monthrange(year, month + 1)[1]
+    return date(year, month + 1, last_day)
 
 
 def _ratio(numerator: int | None, denominator: int | None) -> Decimal | None:

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_session
 from app.services.asset_service import AssetService
+from app.services.balance_history_service import BalanceHistoryService
 from app.services.check_in_service import CheckInService
 from app.services.cost_service import CostService
 from app.services.expense_service import ExpenseService
@@ -42,3 +43,8 @@ def get_check_in_service(session: Session = Depends(get_session)) -> CheckInServ
 def get_workspace_service(session: Session = Depends(get_session)) -> WorkspaceService:
     """Provide a `WorkspaceService` for the read-only workspace overview route over the request-scoped session."""
     return WorkspaceService(session)
+
+
+def get_balance_history_service(session: Session = Depends(get_session)) -> BalanceHistoryService:
+    """Provide a `BalanceHistoryService` for the read-only balance-history route over the request-scoped session."""
+    return BalanceHistoryService(session)

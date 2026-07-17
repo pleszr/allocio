@@ -186,3 +186,86 @@ def test_usage_based_monthly_accrual_handles_fractional_usage():
 )
 def test_health_status_bands(balance, expected_reserve, expected):
     assert calculator.health_status(balance, expected_reserve) == expected
+
+
+def test_balance_at_dates_is_inclusive_running_sum():
+    events = [
+        (date(2026, 1, 10), Decimal("100")),
+        (date(2026, 2, 10), Decimal("-30")),
+        (date(2026, 3, 10), Decimal("50")),
+    ]
+    as_of_dates = [date(2026, 1, 10), date(2026, 2, 9), date(2026, 3, 10)]
+
+    # A boundary date equal to an event_date includes it (Jan 10, Mar 10); Feb 9 precedes the Feb 10 event.
+    assert calculator.balance_at_dates(events, as_of_dates) == [Decimal("100"), Decimal("100"), Decimal("120")]
+
+
+def test_balance_at_dates_empty_events_returns_zeros():
+    as_of_dates = [date(2026, 1, 31), date(2026, 2, 28), date(2026, 3, 31)]
+
+    assert calculator.balance_at_dates([], as_of_dates) == [Decimal(0), Decimal(0), Decimal(0)]
+
+
+def test_balance_at_dates_is_order_independent():
+    events = [
+        (date(2026, 1, 10), Decimal("100")),
+        (date(2026, 2, 10), Decimal("-30")),
+        (date(2026, 3, 10), Decimal("50")),
+    ]
+    as_of_dates = [date(2026, 1, 31), date(2026, 2, 28), date(2026, 3, 31)]
+
+    assert calculator.balance_at_dates(list(reversed(events)), as_of_dates) == calculator.balance_at_dates(
+        events, as_of_dates
+    )
+
+
+def test_month_anchor_dates_full_window_ascending_last_days():
+    anchor = date(2026, 7, 17)
+    dates = calculator.month_anchor_dates(anchor, 12, date(2024, 1, 1))
+
+    assert len(dates) == 12
+    assert dates == sorted(dates)
+    assert dates[-1] == anchor
+    # Every earlier point is its month's last day.
+    assert dates[-2] == date(2026, 6, 30)
+    assert dates[0] == date(2025, 8, 31)
+
+
+def test_month_anchor_dates_young_asset_returns_short_series():
+    anchor = date(2026, 7, 17)
+    dates = calculator.month_anchor_dates(anchor, 12, date(2026, 4, 5))
+
+    # Apr, May, Jun, Jul -> 4 points, not padded to 12.
+    assert len(dates) == 4
+    assert dates[-1] == anchor
+
+
+def test_month_anchor_dates_caps_at_months():
+    anchor = date(2026, 7, 17)
+    dates = calculator.month_anchor_dates(anchor, 6, date(2025, 4, 1))
+
+    assert len(dates) == 6
+    assert dates[-1] == anchor
+
+
+def test_month_anchor_dates_no_activity_returns_single_anchor():
+    anchor = date(2026, 7, 17)
+
+    assert calculator.month_anchor_dates(anchor, 12, None) == [anchor]
+
+
+def test_month_anchor_dates_rejects_non_positive_months():
+    with pytest.raises(ValueError):
+        calculator.month_anchor_dates(date(2026, 7, 17), 0, date(2026, 1, 1))
+
+
+def test_month_anchor_dates_count_ignores_day_of_month():
+    # Regression: a day-aware count (like whole_months) would drop January here.
+    anchor = date(2026, 4, 10)
+    earliest = date(2026, 1, 20)  # earliest.day > anchor.day
+
+    dates = calculator.month_anchor_dates(anchor, 12, earliest)
+
+    assert len(dates) == 4  # (4 - 1) + 1 = Jan/Feb/Mar/Apr
+    assert [d.strftime("%Y-%m") for d in dates] == ["2026-01", "2026-02", "2026-03", "2026-04"]
+    assert dates[-1] == anchor

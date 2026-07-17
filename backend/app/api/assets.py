@@ -1,18 +1,26 @@
 """Asset collection router."""
 import uuid
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.api.schemas.requests import CreateAssetRequest
 from app.api.schemas.responses import (
     AssetSummaryResponse,
+    BalanceHistoryResponse,
+    BalancePointResponse,
     CreateAssetResponse,
     WorkspaceOverviewResponse,
     WorkspaceTotalsResponse,
 )
 from app.common.message_bundle import INTERNAL_ERROR
 from app.services.asset_service import AssetService, VehicleDetails
-from app.services.dependencies import get_asset_service, get_current_user_id, get_workspace_service
+from app.services.balance_history_service import BalanceHistory, BalanceHistoryService
+from app.services.dependencies import (
+    get_asset_service,
+    get_balance_history_service,
+    get_current_user_id,
+    get_workspace_service,
+)
 from app.services.workspace_service import WorkspaceOverview, WorkspaceService
 
 router = APIRouter(prefix="/api", tags=["assets"])
@@ -73,6 +81,47 @@ def list_assets(
     """Delegate to the workspace service and map its overview DTO to the response model."""
     overview = service.list_workspace(user_id)
     return _to_overview_response(overview)
+
+
+@router.get(
+    "/assets/{asset_id}/balance-history",
+    summary="Reconstruct an asset's monthly bucket-balance history",
+    description="""Returns an ordered (oldest → newest) monthly series of event-derived bucket balances
+    for one owned asset, suitable for a dashboard sparkline. Each point is the cumulative balance
+    (sum of allocations minus expenses) as of that month; the newest point is a live snapshot as of
+    today. The default window is 12 months, overridable with `?months=N` (1-60); assets younger than
+    the window return a shorter valid series, and an asset with no events returns a single
+    current-month zero point.""",
+    response_model=BalanceHistoryResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "Ordered monthly balance points for the asset's bucket."},
+        404: {"description": "Asset or bucket not found for this user."},
+        422: {"description": "months query param out of range (must be 1-60)."},
+        500: {"description": INTERNAL_ERROR},
+    },
+)
+def get_balance_history(
+    asset_id: uuid.UUID,
+    months: int = Query(12, ge=1, le=60),
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    service: BalanceHistoryService = Depends(get_balance_history_service),
+) -> BalanceHistoryResponse:
+    """Delegate to the balance-history service and map its DTO to the response model."""
+    history = service.balance_history(user_id, asset_id, months)
+    return _to_balance_history_response(history)
+
+
+def _to_balance_history_response(history: BalanceHistory) -> BalanceHistoryResponse:
+    """Map the service `BalanceHistory` DTO to its Pydantic response, keeping the api layer off service DTOs."""
+    return BalanceHistoryResponse(
+        asset_id=history.asset_id,
+        currency=history.currency,
+        points=[
+            BalancePointResponse(month=point.month, as_of=point.as_of, balance=point.balance)
+            for point in history.points
+        ],
+    )
 
 
 def _to_overview_response(overview: WorkspaceOverview) -> WorkspaceOverviewResponse:

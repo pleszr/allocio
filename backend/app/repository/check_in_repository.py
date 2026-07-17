@@ -47,6 +47,20 @@ def list_posted_allocation_amounts(session: Session, bucket_id: uuid.UUID) -> li
     return list(session.scalars(stmt).all())
 
 
+def list_posted_allocation_events(session: Session, bucket_id: uuid.UUID) -> list[tuple[date, Decimal]]:
+    """Return every posted allocation event's `(event_date, amount)` for the bucket, ordered by date.
+
+    Dated counterpart of `list_posted_allocation_amounts`, used to reconstruct the balance history
+    series; that amounts-only query stays for the workspace overview's single-figure balance.
+    """
+    stmt = (
+        select(AllocationEvent.event_date, AllocationEvent.amount)
+        .where(AllocationEvent.bucket_id == bucket_id)
+        .order_by(AllocationEvent.event_date)
+    )
+    return [(row.event_date, row.amount) for row in session.execute(stmt).all()]
+
+
 def get_posted_usage_totals(
     session: Session, asset_id: uuid.UUID
 ) -> tuple[int, date | None, date | None]:
