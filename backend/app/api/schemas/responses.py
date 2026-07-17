@@ -236,6 +236,26 @@ class WorkspaceOverviewResponse(BaseModel):
     totals: WorkspaceTotalsResponse = Field(description="Workspace-wide balance, monthly allocation, and alert totals.")
 
 
+class BalancePointResponse(BaseModel):
+    """One monthly point of the reconstructed bucket-balance series."""
+
+    month: str = Field(description="Calendar month of the point, 'YYYY-MM'.", examples=["2026-07"])
+    as_of: date = Field(
+        description="Date the balance was evaluated at; the newest point is today (partial current month)."
+    )
+    balance: Decimal = Field(
+        description="Event-derived bucket balance as of this date: sum(allocations) - sum(expenses)."
+    )
+
+
+class BalanceHistoryResponse(BaseModel):
+    """An asset's monthly bucket-balance series ordered oldest → newest for the dashboard sparkline."""
+
+    asset_id: uuid.UUID = Field(description="Asset whose bucket balance history this is.")
+    currency: str = Field(description="ISO currency code of the asset's bucket.", examples=["HUF"])
+    points: list[BalancePointResponse] = Field(description="Monthly balance points ordered oldest → newest.")
+
+
 class CreateAssetResponse(BaseModel):
     """Full record set returned after creating an asset, so a client can render it without a refetch.
 

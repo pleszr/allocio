@@ -408,6 +408,19 @@ Rules:
 - read models may cache balance for performance later
 - cached balance is not source of truth
 
+### Derived monthly series (dashboard sparkline)
+
+`GET /api/assets/{asset_id}/balance-history` reconstructs a monthly time series of this same
+event-derived balance. Each point is the cumulative balance as of one as-of date — the last day of
+that month, or today for the current (partial) month — so the series is derived entirely from posted
+`allocation_events` and `expense_events`, never stored. This follows the same reconstruction
+principle stated in `docs/domain-model.md:361` (balances are derived, not persisted).
+
+The newest point (as of today) equals the live bucket balance above, **assuming every posted
+`event_date` is on or before today**. Future-dated events are the one exception: the live balance
+sums all events regardless of date, whereas the newest history point counts only events dated on or
+before today, so the two differ when future-dated events exist.
+
 ## Future-Only Effect Of Edits
 
 ### Meaning of future-only

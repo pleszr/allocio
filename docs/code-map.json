@@ -103,6 +103,7 @@
             "app.api.schemas.responses",
             "app.common.message_bundle",
             "app.services.asset_service",
+            "app.services.balance_history_service",
             "app.services.dependencies",
             "app.services.workspace_service",
             "fastapi",
@@ -110,21 +111,33 @@
           ],
           "functions": [
             {
+              "name": "_to_balance_history_response",
+              "line_start": 115,
+              "line_end": 124,
+              "hash": "0eb152e94e7e09a6"
+            },
+            {
               "name": "_to_overview_response",
-              "line_start": 78,
-              "line_end": 99,
+              "line_start": 127,
+              "line_end": 148,
               "hash": "79f969c11cca3bbf"
             },
             {
               "name": "create_asset",
-              "line_start": 36,
-              "line_end": 52,
+              "line_start": 44,
+              "line_end": 60,
               "hash": "408ef23693821c97"
             },
             {
+              "name": "get_balance_history",
+              "line_start": 104,
+              "line_end": 112,
+              "hash": "a1f20da6d002471e"
+            },
+            {
               "name": "list_assets",
-              "line_start": 69,
-              "line_end": 75,
+              "line_start": 77,
+              "line_end": 83,
               "hash": "bb85515e6e4360af"
             }
           ],
@@ -134,17 +147,25 @@
               "method": "get",
               "path": "/assets",
               "handler": "list_assets",
-              "line_start": 69,
-              "line_end": 75,
+              "line_start": 77,
+              "line_end": 83,
               "hash": "bb85515e6e4360af"
             },
             {
               "method": "post",
               "path": "/assets",
               "handler": "create_asset",
-              "line_start": 36,
-              "line_end": 52,
+              "line_start": 44,
+              "line_end": 60,
               "hash": "408ef23693821c97"
+            },
+            {
+              "method": "get",
+              "path": "/assets/{asset_id}/balance-history",
+              "handler": "get_balance_history",
+              "line_start": 104,
+              "line_end": 112,
+              "hash": "a1f20da6d002471e"
             }
           ]
         },
@@ -549,6 +570,20 @@
               "methods": []
             },
             {
+              "name": "BalanceHistoryResponse",
+              "line_start": 251,
+              "line_end": 256,
+              "hash": "48cc6340b7d0aecc",
+              "methods": []
+            },
+            {
+              "name": "BalancePointResponse",
+              "line_start": 239,
+              "line_end": 248,
+              "hash": "21c4562e5b6f4cec",
+              "methods": []
+            },
+            {
               "name": "BucketResponse",
               "line_start": 40,
               "line_end": 48,
@@ -578,8 +613,8 @@
             },
             {
               "name": "CreateAssetResponse",
-              "line_start": 239,
-              "line_end": 252,
+              "line_start": 259,
+              "line_end": 272,
               "hash": "c6a982f195b870cf",
               "methods": []
             },
@@ -855,6 +890,7 @@
           "path": "backend/app/domain/calculator.py",
           "language": "python",
           "imports": [
+            "calendar",
             "collections.abc",
             "datetime",
             "decimal",
@@ -862,99 +898,117 @@
           ],
           "functions": [
             {
+              "name": "_month_as_of",
+              "line_start": 392,
+              "line_end": 403,
+              "hash": "8b78f0e10c245324"
+            },
+            {
               "name": "_ratio",
-              "line_start": 340,
-              "line_end": 344,
+              "line_start": 406,
+              "line_end": 410,
               "hash": "4308470497ed3cb2"
             },
             {
+              "name": "balance_at_dates",
+              "line_start": 176,
+              "line_end": 190,
+              "hash": "45b73998ef83338a"
+            },
+            {
               "name": "bucket_balance",
-              "line_start": 126,
-              "line_end": 138,
+              "line_start": 127,
+              "line_end": 139,
               "hash": "881192114eeeeeee"
             },
             {
               "name": "expected_monthly_usage",
-              "line_start": 280,
-              "line_end": 297,
+              "line_start": 332,
+              "line_end": 349,
               "hash": "ef0cc32638e070d3"
             },
             {
               "name": "health_status",
-              "line_start": 316,
-              "line_end": 337,
+              "line_start": 368,
+              "line_end": 389,
               "hash": "85ccde4ffd7495f3"
             },
             {
               "name": "interval_years",
-              "line_start": 36,
-              "line_end": 55,
+              "line_start": 37,
+              "line_end": 56,
               "hash": "059bcbb6ca6ede5d"
             },
             {
               "name": "maintenance_progress",
-              "line_start": 156,
-              "line_end": 179,
+              "line_start": 208,
+              "line_end": 231,
               "hash": "bad0f691b243f09b"
             },
             {
               "name": "maintenance_status",
-              "line_start": 182,
-              "line_end": 203,
+              "line_start": 234,
+              "line_end": 255,
               "hash": "eb60c0fb7f0e2c12"
             },
             {
+              "name": "month_anchor_dates",
+              "line_start": 142,
+              "line_end": 173,
+              "hash": "3121265776436d3c"
+            },
+            {
               "name": "quantize_currency",
-              "line_start": 141,
-              "line_end": 153,
+              "line_start": 193,
+              "line_end": 205,
               "hash": "e942fba4d0a21afa"
             },
             {
               "name": "reference_amount",
-              "line_start": 58,
-              "line_end": 77,
+              "line_start": 59,
+              "line_end": 78,
               "hash": "ad33a75ed83fb529"
             },
             {
               "name": "reserve_guidance",
-              "line_start": 221,
-              "line_end": 238,
+              "line_start": 273,
+              "line_end": 290,
               "hash": "c7f297ed92c2c61c"
             },
             {
               "name": "reserve_recommendation",
-              "line_start": 206,
-              "line_end": 218,
+              "line_start": 258,
+              "line_end": 270,
               "hash": "c8a2c3cab5b8802e"
             },
             {
               "name": "time_based_monthly_accrual",
-              "line_start": 241,
-              "line_end": 258,
+              "line_start": 293,
+              "line_end": 310,
               "hash": "6674ab38214afc8c"
             },
             {
               "name": "time_based_period_accrual",
-              "line_start": 80,
-              "line_end": 105,
+              "line_start": 81,
+              "line_end": 106,
               "hash": "ca454e53c5a1a3c6"
             },
             {
               "name": "usage_based_monthly_accrual",
-              "line_start": 300,
-              "line_end": 313,
+              "line_start": 352,
+              "line_end": 365,
               "hash": "6ba584a523efe15d"
             },
             {
               "name": "usage_based_period_accrual",
-              "line_start": 108,
-              "line_end": 123,
+              "line_start": 109,
+              "line_end": 124,
               "hash": "61cd8f219d55a499"
             },
             {
               "name": "whole_months",
-              "line_start": 261,
-              "line_end": 277,
+              "line_start": 313,
+              "line_end": 329,
               "hash": "70b7398db9072109"
             }
           ],
@@ -1244,8 +1298,8 @@
           "functions": [
             {
               "name": "add_and_flush",
-              "line_start": 70,
-              "line_end": 76,
+              "line_start": 84,
+              "line_end": 90,
               "hash": "31d642e6a0e71cfd"
             },
             {
@@ -1262,8 +1316,8 @@
             },
             {
               "name": "get_posted_usage_totals",
-              "line_start": 50,
-              "line_end": 67,
+              "line_start": 64,
+              "line_end": 81,
               "hash": "80ab1503e1948475"
             },
             {
@@ -1277,6 +1331,12 @@
               "line_start": 44,
               "line_end": 47,
               "hash": "2412a1962536768c"
+            },
+            {
+              "name": "list_posted_allocation_events",
+              "line_start": 50,
+              "line_end": 61,
+              "hash": "d0537b20ab455bff"
             }
           ],
           "classes": [],
@@ -1465,6 +1525,71 @@
               "line_start": 19,
               "line_end": 25,
               "hash": "cf530b5da577cb3c",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
+          "path": "backend/app/services/balance_history_service.py",
+          "language": "python",
+          "imports": [
+            "app.common.exceptions",
+            "app.domain",
+            "app.domain.asset",
+            "app.repository",
+            "dataclasses",
+            "datetime",
+            "decimal",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "BalanceHistory",
+              "line_start": 37,
+              "line_end": 42,
+              "hash": "7a63129ebe73ebb9",
+              "methods": []
+            },
+            {
+              "name": "BalanceHistoryService",
+              "line_start": 45,
+              "line_end": 80,
+              "hash": "994f55e982648bee",
+              "methods": [
+                {
+                  "name": "__init__",
+                  "line_start": 48,
+                  "line_end": 49,
+                  "hash": "2c8f2810305a160d"
+                },
+                {
+                  "name": "_owned_bucket",
+                  "line_start": 65,
+                  "line_end": 72,
+                  "hash": "f0271e450a62e420"
+                },
+                {
+                  "name": "_signed_events",
+                  "line_start": 74,
+                  "line_end": 80,
+                  "hash": "ec80e804b2cdf35f"
+                },
+                {
+                  "name": "balance_history",
+                  "line_start": 51,
+                  "line_end": 63,
+                  "hash": "fdba38bbcb5ae20d"
+                }
+              ]
+            },
+            {
+              "name": "BalancePoint",
+              "line_start": 28,
+              "line_end": 33,
+              "hash": "60b2ac657f03c2f4",
               "methods": []
             }
           ],
@@ -1727,6 +1852,7 @@
           "imports": [
             "app.db",
             "app.services.asset_service",
+            "app.services.balance_history_service",
             "app.services.check_in_service",
             "app.services.cost_service",
             "app.services.expense_service",
@@ -1738,38 +1864,44 @@
           "functions": [
             {
               "name": "get_asset_service",
-              "line_start": 22,
-              "line_end": 24,
+              "line_start": 23,
+              "line_end": 25,
               "hash": "5e04ae31d9c873c4"
             },
             {
+              "name": "get_balance_history_service",
+              "line_start": 48,
+              "line_end": 50,
+              "hash": "aacb24be78d42c2c"
+            },
+            {
               "name": "get_check_in_service",
-              "line_start": 37,
-              "line_end": 39,
+              "line_start": 38,
+              "line_end": 40,
               "hash": "c5853f481a764c31"
             },
             {
               "name": "get_cost_service",
-              "line_start": 27,
-              "line_end": 29,
+              "line_start": 28,
+              "line_end": 30,
               "hash": "752ac61d3ed6ece3"
             },
             {
               "name": "get_current_user_id",
-              "line_start": 17,
-              "line_end": 19,
+              "line_start": 18,
+              "line_end": 20,
               "hash": "e2d5767e2d9f43e8"
             },
             {
               "name": "get_expense_service",
-              "line_start": 32,
-              "line_end": 34,
+              "line_start": 33,
+              "line_end": 35,
               "hash": "edc92dd1813e846e"
             },
             {
               "name": "get_workspace_service",
-              "line_start": 42,
-              "line_end": 44,
+              "line_start": 43,
+              "line_end": 45,
               "hash": "8a855c63096b0fc5"
             }
           ],
