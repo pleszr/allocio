@@ -174,25 +174,32 @@ Rules:
 
 ### What accrues
 
-Each vehicle has one active `usage_based_cost` row in MVP.
+An asset may have several active `usage_based_cost` rows. A vehicle starts seeded with one
+(`10 HUF/km`), and the user may add further usage-based components (e.g. fuel, tire wear).
 
-Its purpose is to reserve money per kilometer driven.
+Each row reserves money per unit of usage (per kilometer driven for a vehicle).
 
 Example:
 
-- `10 HUF/km`
+- `Usage-based reserve: 10 HUF/km`, `Fuel: 45 HUF/km`, `Tire wear: 4 HUF/km`
 
 ### Period accrual
 
 Formula:
 
-- `period_usage_accrual = usage_amount * amount_per_unit`
+- `period_usage_accrual = Σ over active rows of (usage_amount * amount_per_unit)`
 
 Rules:
 
-- there is one usage-based preview line item per vehicle
-- posting creates one usage-based allocation event for the period
-- the rate is fully user-adjustable
+- there is one usage-based preview line item **and one allocation event per active usage row**
+- each row's line is rounded independently and then summed (`Σ quantize`); with a single active row
+  this collapses to `quantize(usage_amount * amount_per_unit)`, unchanged from the prior single-row behavior
+- posting creates one usage-based allocation event **per active usage row** for the period
+- each rate is fully user-adjustable, and rows can be deactivated
+
+> Rounding divergence (not a bug): check-in accrual rounds **per line** (`Σ quantize`, each allocation
+> line quantized then summed), while the workspace recommended-monthly figure rounds the **combined
+> total once** (`quantize(Σ)`). Both are pre-existing, internally-correct patterns.
 
 ## Maintenance Status
 
@@ -349,7 +356,7 @@ Preview must derive:
 - `elapsed_days`
 - `usage_amount`
 - time-based accrual line items
-- usage-based accrual line item
+- usage-based accrual line items
 - expense line items
 - `balance_before`
 - `total_allocation`
@@ -363,7 +370,7 @@ Preview must derive:
 
 Formula:
 
-- `total_allocation = sum(time_based_line_items) + period_usage_accrual`
+- `total_allocation = sum(time_based_line_items) + sum(usage_based_line_items)`
 - `total_expense = sum(expense_line_items)`
 - `net_bucket_change = total_allocation - total_expense`
 - `balance_before = sum(posted_allocation_events) - sum(posted_expense_events)`
@@ -383,7 +390,7 @@ Posting a confirmed check-in creates:
 
 - one `check_in` row
 - one `allocation_event` per active time-based cost
-- one `allocation_event` for the usage-based reserve
+- one `allocation_event` per active usage-based cost row
 - one `expense_event` per submitted expense
 
 ### Posting formulas

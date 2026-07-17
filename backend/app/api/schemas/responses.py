@@ -70,7 +70,7 @@ class TimeBasedCostResponse(BaseModel):
 
 
 class UsageBasedCostResponse(BaseModel):
-    """The cloned per-usage-unit reserve row."""
+    """One usage-based cost component of an asset, accruing its amount per unit of usage."""
 
     model_config = ConfigDict(from_attributes=True)
 

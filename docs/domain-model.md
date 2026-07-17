@@ -56,9 +56,9 @@ Examples:
 
 ### Usage-based cost
 
-A single adjustable reserve driven by usage of the asset.
+One or more adjustable usage-based components driven by usage of the asset.
 
-This is not fuel tracking. It is the user-defined per-usage-unit reserve that smooths wear and maintenance costs over time.
+These are user-defined per-usage-unit reserves that smooth wear and maintenance costs over time (e.g. a general reserve, fuel, tire wear).
 
 MVP example:
 
@@ -189,7 +189,7 @@ Rules:
 
 ### `usage_based_cost`
 
-Single adjustable reserve driven by usage of the asset.
+A collection of adjustable usage-based components driven by usage of the asset.
 
 Fields:
 
@@ -205,7 +205,8 @@ Fields:
 
 Rules:
 
-- one active usage-based cost row per asset in MVP
+- an asset may have several active usage-based cost rows; each accrues independently and emits its own preview line and allocation event
+- the earlier "one active usage-based reserve" rule was enforced only in the service layer (via `.one_or_none()` plus a single create path), never as a DB constraint; issue #49 intentionally reverses it to a multi-component model with no schema/migration change
 - `usage_unit` names the unit usage is counted in; the vehicle template sets `usage_unit = km`
 - no `effective_from`
 - no `effective_to`
@@ -415,9 +416,10 @@ Proposed label:
 
 Notes:
 
-- this is a single per-kilometer rate for the whole vehicle
+- this is a per-kilometer rate for the whole vehicle
 - example: `10 HUF/km`
 - the rate is user-adjustable
+- users may add further usage-based components (e.g. fuel, tire wear); the seeded row is a starting default, not a hard limit
 - the app should later help the user understand whether the chosen rate is low, reasonable, or high based on captured maintenance assumptions
 
 ## Default Maintenance Templates For Vehicles

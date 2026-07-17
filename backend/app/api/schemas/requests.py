@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Literal, TypeAlias
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 IntervalUnit: TypeAlias = Literal["months", "years"]
 TireType: TypeAlias = Literal["summer", "winter", "all_season"]
@@ -98,11 +98,30 @@ class UpdateTimeBasedCostRequest(BaseModel):
     is_active: bool | None = Field(default=None, description="Whether the cost row drives future calculations.")
 
 
-class UpdateUsageBasedCostRequest(BaseModel):
-    """Partial update for the single usage-based reserve. The reserve is never toggled here."""
+class CreateUsageBasedCostRequest(BaseModel):
+    """Body for adding a usage-based cost component. Currency is derived from the bucket, not accepted here."""
 
-    amount_per_unit: Decimal | None = Field(default=None, ge=0, description="Reserve amount accrued per usage unit.")
-    notes: str | None = Field(default=None, max_length=2000, description="Optional free-text notes for the reserve.")
+    label: str = Field(description="Human-readable component label.", max_length=120, examples=["Fuel"])
+    amount_per_unit: Decimal = Field(ge=0, description="Amount accrued per unit of usage.", examples=[10])
+    usage_unit: str = Field(default="km", max_length=20, description="Unit the component accrues per (e.g. km).")
+    notes: str | None = Field(default=None, max_length=2000, description="Optional free-text notes for the component.")
+
+
+class UpdateUsageBasedCostRequest(BaseModel):
+    """Partial update for a usage-based cost component, addressed by id. Only fields the client sends are applied.
+
+    The row can be toggled active/inactive; `technical_key` and `currency` are never editable. Extra keys
+    are accepted here so the service-layer whitelist (`_apply_changes`) rejects non-editable fields such
+    as `currency`/`technical_key` with a 422, rather than pydantic silently dropping them.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    label: str | None = Field(default=None, max_length=120, description="Human-readable component label.")
+    amount_per_unit: Decimal | None = Field(default=None, ge=0, description="Amount accrued per unit of usage.")
+    usage_unit: str | None = Field(default=None, max_length=20, description="Unit the component accrues per (e.g. km).")
+    notes: str | None = Field(default=None, max_length=2000, description="Optional free-text notes for the component.")
+    is_active: bool | None = Field(default=None, description="Whether the component drives future calculations.")
 
 
 class CreateMaintenanceItemRequest(BaseModel):

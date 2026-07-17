@@ -165,6 +165,21 @@ def test_usage_based_monthly_uses_trailing_average(client: TestClient, db_sessio
     assert _dec(summary["recommended_monthly_allocation"]) == Decimal("3000.00")
 
 
+def test_usage_based_monthly_sums_active_rows(client: TestClient, db_session: Session) -> None:
+    # Bare asset (no seeded usage row) with exactly two active usage components, rates 10 and 6.
+    asset, _bucket = _make_asset(db_session, name="MultiUsage")
+    _add_usage_based(db_session, asset.id, amount_per_unit="10")
+    _add_usage_based(db_session, asset.id, amount_per_unit="6")
+    # 900 km over 3 whole months -> 300 km/month; usage monthly = 300 * (10 + 6) = 4800.
+    _add_posted_check_in(db_session, asset.id, usage_amount=900, period_start=date(2026, 1, 10), period_end=date(2026, 4, 10))
+
+    body = client.get("/api/assets").json()
+    summary = _asset_by_id(body, asset.id)
+
+    # No time-based rows on this bare asset, so recommended monthly is the usage sum across both rows.
+    assert _dec(summary["recommended_monthly_allocation"]) == quantize_currency(Decimal("300") * Decimal("16"))
+
+
 def test_health_bands_reflect_balance(client: TestClient, db_session: Session) -> None:
     # Each asset has a single time-based cost of 12000 / 1 year / 12 = 1000 monthly.
     cases = {"under": ("500.00", "underfunded"), "ok": ("1000.00", "healthy"), "over": ("2000.00", "overflowing")}

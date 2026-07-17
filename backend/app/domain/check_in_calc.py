@@ -37,7 +37,7 @@ class TimeBasedCostInput:
 
 @dataclass(frozen=True)
 class UsageBasedCostInput:
-    """The single active usage-based reserve mapped to its per-unit rate."""
+    """One active usage-based cost component mapped to its per-unit rate."""
 
     source_id: uuid.UUID
     label: str
@@ -59,7 +59,7 @@ class ExpenseDraftInput:
 
 @dataclass(frozen=True)
 class AllocationLine:
-    """One computed allocation (inflow) line: a time-based cost or the usage-based reserve."""
+    """One computed allocation (inflow) line: a time-based cost or a usage-based cost component."""
 
     source_type: str
     source_id: uuid.UUID
@@ -102,7 +102,7 @@ def compute_check_in(
     usage_start: int,
     usage_end: int,
     time_based_costs: Sequence[TimeBasedCostInput],
-    usage_based_cost: UsageBasedCostInput | None,
+    usage_based_costs: Sequence[UsageBasedCostInput],
     expense_drafts: Sequence[ExpenseDraftInput],
     prior_allocation_amounts: Sequence[Decimal],
     prior_expense_amounts: Sequence[Decimal],
@@ -112,13 +112,21 @@ def compute_check_in(
     Uses `app.domain.calculator` for every amount so preview and posting share one basis. All figures
     are deterministic for the same inputs; the function performs no I/O and mutates nothing.
 
+    Each usage-based component emits its own allocation line, quantized independently and then summed
+    (``Σ quantize``), mirroring how each time-based line is rounded before summing. With exactly one
+    active usage component ``Σ quantize`` collapses to the old ``quantize(usage × rate)``, so the
+    single-row path reconciles byte-for-byte with prior behavior. This per-line rounding intentionally
+    differs from the workspace recommended-monthly figure, which rounds the combined total once
+    (``quantize(Σ)`` — see `workspace_service._recommended_monthly_allocation`); both are pre-existing,
+    internally-correct patterns.
+
     Args:
         period_start: Derived start of the period (previous period end, or first-check-in start).
         period_end: Requested end of the period; must be later than ``period_start``.
         usage_start: Derived usage counter at period start.
         usage_end: Requested usage counter at period end; must be ``>= usage_start``.
         time_based_costs: Active time-based cost rows to accrue.
-        usage_based_cost: The active usage-based reserve, or ``None`` when the asset has none.
+        usage_based_costs: Active usage-based cost components to accrue; empty when the asset has none.
         expense_drafts: Expenses submitted for the period, each with a resolved ``event_date``.
         prior_allocation_amounts: Amounts of already-posted allocation events (for the opening balance).
         prior_expense_amounts: Amounts of already-posted expense events (for the opening balance).
@@ -130,9 +138,7 @@ def compute_check_in(
     usage_amount = usage_end - usage_start
 
     allocation_lines = _time_based_lines(time_based_costs, period_start, elapsed_days)
-    usage_line = _usage_based_line(usage_based_cost, usage_amount)
-    if usage_line is not None:
-        allocation_lines.append(usage_line)
+    allocation_lines.extend(_usage_based_lines(usage_based_costs, usage_amount))
 
     expense_lines = [_expense_line(draft) for draft in expense_drafts]
 
@@ -174,17 +180,20 @@ def _time_based_lines(
     return lines
 
 
-def _usage_based_line(cost: UsageBasedCostInput | None, usage_amount: int) -> AllocationLine | None:
-    """Build the single usage-based reserve line, or `None` when no active reserve exists."""
-    if cost is None:
-        return None
-    accrual = usage_based_period_accrual(usage_amount, cost.amount_per_unit)
-    return AllocationLine(
-        source_type="usage_based_cost",
-        source_id=cost.source_id,
-        label=cost.label,
-        amount=quantize_currency(accrual),
-    )
+def _usage_based_lines(costs: Sequence[UsageBasedCostInput], usage_amount: int) -> list[AllocationLine]:
+    """Build one independently-rounded allocation line per active usage-based component (`Σ quantize`)."""
+    lines: list[AllocationLine] = []
+    for cost in costs:
+        accrual = usage_based_period_accrual(usage_amount, cost.amount_per_unit)
+        lines.append(
+            AllocationLine(
+                source_type="usage_based_cost",
+                source_id=cost.source_id,
+                label=cost.label,
+                amount=quantize_currency(accrual),
+            )
+        )
+    return lines
 
 
 def _expense_line(draft: ExpenseDraftInput) -> ExpenseLine:

@@ -16,12 +16,12 @@ from app.common.exceptions import NotFoundError, ValidationError
 from app.domain import calculator
 from app.domain.asset import Asset
 from app.domain.cost import MaintenanceItem, TimeBasedCost, UsageBasedCost
-from app.repository import cost_repository
+from app.repository import cost_repository, expense_repository
 
 _TIME_BASED_EDITABLE_KEYS = frozenset(
     {"label", "amount", "interval_value", "interval_unit", "first_due_date", "notes", "is_active"}
 )
-_USAGE_BASED_EDITABLE_KEYS = frozenset({"amount_per_unit", "notes"})
+_USAGE_BASED_EDITABLE_KEYS = frozenset({"label", "amount_per_unit", "usage_unit", "notes", "is_active"})
 _MAINTENANCE_EDITABLE_KEYS = frozenset(
     {
         "label",
@@ -90,14 +90,45 @@ class CostService:
         """Compute a time-based cost's informational next-due date as of today, or None without an anchor."""
         return calculator.next_due_date(cost.first_due_date, cost.interval_value, cost.interval_unit, date.today())
 
-    def update_usage_based_cost(
-        self, user_id: uuid.UUID, asset_id: uuid.UUID, changes: dict[str, object]
-    ) -> UsageBasedCost:
-        """Apply the sent fields to the single active usage-based reserve and commit."""
+    def list_usage_based_costs(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> list[UsageBasedCost]:
+        """Return all usage-based cost rows for an owned asset. Read-only."""
         self._require_owned_asset(user_id, asset_id)
-        row = cost_repository.get_active_usage_based_cost(self._session, asset_id)
+        return cost_repository.list_usage_based_costs(self._session, asset_id)
+
+    def create_usage_based_cost(
+        self,
+        user_id: uuid.UUID,
+        asset_id: uuid.UUID,
+        label: str,
+        amount_per_unit: Decimal,
+        usage_unit: str,
+        notes: str | None,
+    ) -> UsageBasedCost:
+        """Add a usage-based cost component to an owned asset, deriving currency from its bucket, and commit."""
+        self._require_owned_asset(user_id, asset_id)
+        bucket = expense_repository.get_bucket_for_asset(self._session, asset_id)
+        if bucket is None:
+            raise NotFoundError("Bucket not found for asset.")
+        row = UsageBasedCost(
+            asset_id=asset_id,
+            technical_key=None,
+            label=label,
+            amount_per_unit=amount_per_unit,
+            usage_unit=usage_unit,
+            currency=bucket.currency,
+            notes=notes,
+            is_active=True,
+        )
+        return self._add_and_commit(row)
+
+    def update_usage_based_cost(
+        self, user_id: uuid.UUID, asset_id: uuid.UUID, cost_id: uuid.UUID, changes: dict[str, object]
+    ) -> UsageBasedCost:
+        """Apply the sent fields to a usage-based cost row on an owned asset and commit."""
+        self._require_owned_asset(user_id, asset_id)
+        row = cost_repository.get_usage_based_cost(self._session, asset_id, cost_id)
         if row is None:
-            raise NotFoundError("Usage-based reserve not found.")
+            raise NotFoundError("Usage-based cost not found.")
         return self._apply_and_commit(row, changes, _USAGE_BASED_EDITABLE_KEYS)
 
     def list_maintenance_items(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> list[MaintenanceItem]:

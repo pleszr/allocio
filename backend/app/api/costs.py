@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Response, status
 from app.api.schemas.requests import (
     CreateMaintenanceItemRequest,
     CreateTimeBasedCostRequest,
+    CreateUsageBasedCostRequest,
     UpdateMaintenanceItemRequest,
     UpdateTimeBasedCostRequest,
     UpdateUsageBasedCostRequest,
@@ -111,29 +112,87 @@ def update_time_based_cost(
     return _serialize_time_based(row, service)
 
 
+@router.get(
+    "/assets/{asset_id}/usage-based-costs",
+    summary="List an asset's usage-based costs",
+    description="Returns every usage-based cost component for the asset, active and inactive, so a client "
+    "can render the full set. Scoped to the owning user; unknown or unowned assets return 404.",
+    response_model=list[UsageBasedCostResponse],
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "All usage-based cost components for the asset."},
+        404: {"description": "Asset not found."},
+        500: {"description": INTERNAL_ERROR},
+    },
+)
+def list_usage_based_costs(
+    asset_id: uuid.UUID,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    service: CostService = Depends(get_cost_service),
+) -> list[UsageBasedCostResponse]:
+    """Delegate to the service and serialize each row."""
+    rows = service.list_usage_based_costs(user_id=user_id, asset_id=asset_id)
+    return [UsageBasedCostResponse.model_validate(row) for row in rows]
+
+
+@router.post(
+    "/assets/{asset_id}/usage-based-costs",
+    summary="Add a usage-based cost component",
+    description="Creates a usage-based cost component on the asset. `currency` is derived from the asset's "
+    "bucket and `technical_key` stays null for user rows. Returns the created row and its canonical `Location`.",
+    response_model=UsageBasedCostResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        201: {"description": "Usage-based cost component created."},
+        404: {"description": "Asset or bucket not found."},
+        422: {"description": "Validation error in request body."},
+        500: {"description": INTERNAL_ERROR},
+    },
+)
+def create_usage_based_cost(
+    asset_id: uuid.UUID,
+    body: CreateUsageBasedCostRequest,
+    response: Response,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    service: CostService = Depends(get_cost_service),
+) -> UsageBasedCostResponse:
+    """Delegate creation to the service and set the `Location` header on the created row."""
+    row = service.create_usage_based_cost(
+        user_id=user_id,
+        asset_id=asset_id,
+        label=body.label,
+        amount_per_unit=body.amount_per_unit,
+        usage_unit=body.usage_unit,
+        notes=body.notes,
+    )
+    response.headers["Location"] = f"/api/assets/{asset_id}/usage-based-costs/{row.id}"
+    return UsageBasedCostResponse.model_validate(row)
+
+
 @router.patch(
-    "/assets/{asset_id}/usage-based-cost",
-    summary="Edit the usage-based reserve",
-    description="Partially updates the single per-kilometer reserve for the asset. The reserve is a "
-    "singleton sub-resource addressed without a row id and is never toggled active/inactive here.",
+    "/assets/{asset_id}/usage-based-costs/{cost_id}",
+    summary="Edit or deactivate a usage-based cost",
+    description="Partially updates a usage-based cost component. Only the fields sent are applied; toggling "
+    "`is_active` deactivates or reactivates the row. `technical_key` and `currency` are never editable.",
     response_model=UsageBasedCostResponse,
     status_code=status.HTTP_200_OK,
     responses={
-        200: {"description": "Usage-based reserve updated."},
-        404: {"description": "Asset or active reserve not found."},
+        200: {"description": "Usage-based cost component updated."},
+        404: {"description": "Asset or cost row not found."},
         422: {"description": "Validation error in request body."},
         500: {"description": INTERNAL_ERROR},
     },
 )
 def update_usage_based_cost(
     asset_id: uuid.UUID,
+    cost_id: uuid.UUID,
     body: UpdateUsageBasedCostRequest,
     user_id: uuid.UUID = Depends(get_current_user_id),
     service: CostService = Depends(get_cost_service),
 ) -> UsageBasedCostResponse:
-    """Delegate a partial update of the reserve, passing only the fields the client sent."""
+    """Delegate a partial update, passing only the fields the client actually sent."""
     row = service.update_usage_based_cost(
-        user_id=user_id, asset_id=asset_id, changes=body.model_dump(exclude_unset=True)
+        user_id=user_id, asset_id=asset_id, cost_id=cost_id, changes=body.model_dump(exclude_unset=True)
     )
     return UsageBasedCostResponse.model_validate(row)
 

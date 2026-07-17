@@ -31,7 +31,7 @@ class TimeBasedCost(Base):
 
 
 class UsageBasedCost(Base):
-    """Single adjustable per-usage-unit reserve; the one-active rule is enforced in the service layer."""
+    """One usage-based cost component of an asset; an asset may hold several active rows, each accruing its `amount_per_unit` per unit of usage."""
 
     __tablename__ = "usage_based_costs"
 

@@ -31,11 +31,25 @@ def get_time_based_cost(session: Session, asset_id: uuid.UUID, cost_id: uuid.UUI
     return session.scalars(stmt).one_or_none()
 
 
-def get_active_usage_based_cost(session: Session, asset_id: uuid.UUID) -> UsageBasedCost | None:
-    """Return the single active usage-based reserve row for the asset, or `None` if there is none."""
-    stmt = select(UsageBasedCost).where(
-        UsageBasedCost.asset_id == asset_id, UsageBasedCost.is_active.is_(True)
+def list_usage_based_costs(session: Session, asset_id: uuid.UUID) -> list[UsageBasedCost]:
+    """Return all usage-based cost rows for the asset, active and inactive, ordered by label."""
+    stmt = select(UsageBasedCost).where(UsageBasedCost.asset_id == asset_id).order_by(UsageBasedCost.label)
+    return list(session.scalars(stmt).all())
+
+
+def list_active_usage_based_costs(session: Session, asset_id: uuid.UUID) -> list[UsageBasedCost]:
+    """Return the asset's active usage-based cost rows, ordered by label then id for deterministic allocation lines."""
+    stmt = (
+        select(UsageBasedCost)
+        .where(UsageBasedCost.asset_id == asset_id, UsageBasedCost.is_active.is_(True))
+        .order_by(UsageBasedCost.label, UsageBasedCost.id)
     )
+    return list(session.scalars(stmt).all())
+
+
+def get_usage_based_cost(session: Session, asset_id: uuid.UUID, cost_id: uuid.UUID) -> UsageBasedCost | None:
+    """Return the usage-based cost row under the asset, or `None` if no such row exists there."""
+    stmt = select(UsageBasedCost).where(UsageBasedCost.id == cost_id, UsageBasedCost.asset_id == asset_id)
     return session.scalars(stmt).one_or_none()
 
 
