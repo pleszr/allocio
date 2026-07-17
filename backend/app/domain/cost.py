@@ -25,6 +25,7 @@ class TimeBasedCost(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     interval_value: Mapped[int] = mapped_column(Integer, nullable=False)
     interval_unit: Mapped[str] = mapped_column(String, nullable=False)
+    first_due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
 

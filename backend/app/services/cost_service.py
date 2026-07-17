@@ -13,11 +13,14 @@ from typing import TypeVar
 from sqlalchemy.orm import Session
 
 from app.common.exceptions import NotFoundError, ValidationError
+from app.domain import calculator
 from app.domain.asset import Asset
 from app.domain.cost import MaintenanceItem, TimeBasedCost, UsageBasedCost
 from app.repository import cost_repository
 
-_TIME_BASED_EDITABLE_KEYS = frozenset({"label", "amount", "interval_value", "interval_unit", "notes", "is_active"})
+_TIME_BASED_EDITABLE_KEYS = frozenset(
+    {"label", "amount", "interval_value", "interval_unit", "first_due_date", "notes", "is_active"}
+)
 _USAGE_BASED_EDITABLE_KEYS = frozenset({"amount_per_unit", "notes"})
 _MAINTENANCE_EDITABLE_KEYS = frozenset(
     {
@@ -55,6 +58,7 @@ class CostService:
         amount: Decimal,
         interval_value: int,
         interval_unit: str,
+        first_due_date: date | None,
         notes: str | None,
     ) -> TimeBasedCost:
         """Add a custom time-based cost row to an owned asset and commit."""
@@ -66,6 +70,7 @@ class CostService:
             amount=amount,
             interval_value=interval_value,
             interval_unit=interval_unit,
+            first_due_date=first_due_date,
             notes=notes,
             is_active=True,
         )
@@ -80,6 +85,10 @@ class CostService:
         if row is None:
             raise NotFoundError("Time-based cost not found.")
         return self._apply_and_commit(row, changes, _TIME_BASED_EDITABLE_KEYS)
+
+    def next_due_for(self, cost: TimeBasedCost) -> date | None:
+        """Compute a time-based cost's informational next-due date as of today, or None without an anchor."""
+        return calculator.next_due_date(cost.first_due_date, cost.interval_value, cost.interval_unit, date.today())
 
     def update_usage_based_cost(
         self, user_id: uuid.UUID, asset_id: uuid.UUID, changes: dict[str, object]

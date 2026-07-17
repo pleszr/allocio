@@ -60,6 +60,11 @@ class TimeBasedCostResponse(BaseModel):
     amount: Decimal = Field(description="Cost amount per interval.")
     interval_value: int = Field(description="Number of interval units between occurrences.", examples=[12])
     interval_unit: str = Field(description="Unit of the recurrence interval.", examples=["months"])
+    first_due_date: date | None = Field(description="Stored anchor date of a known occurrence, if set.")
+    next_due_date: date | None = Field(
+        default=None,
+        description="Computed next occurrence on or after today, rolled forward from the anchor; null when no anchor is set.",
+    )
     notes: str | None = Field(description="Optional free-text notes for the cost.")
     is_active: bool = Field(description="Whether the cost row drives future calculations.")
 

@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from fastapi.testclient import TestClient
 
@@ -186,3 +187,105 @@ def test_cost_routes_work_for_non_vehicle_asset(client: TestClient) -> None:
     assert response.json()["asset_id"] == asset_id
     listed = client.get(f"/api/assets/{asset_id}/time-based-costs").json()
     assert [row["label"] for row in listed] == ["Roof fund"]
+
+
+def _months_before_today(months: int) -> str:
+    """Return an ISO date `months` whole months before today, clamped to day 1 for stability."""
+    today = date.today()
+    index = today.year * 12 + (today.month - 1) - months
+    year, month = divmod(index, 12)
+    return date(year, month + 1, 1).isoformat()
+
+
+def test_create_time_based_cost_with_past_anchor_rolls_next_due_forward(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    anchor = _months_before_today(3)
+
+    body = {
+        "label": "Inspection",
+        "amount": "25000.00",
+        "interval_value": 1,
+        "interval_unit": "months",
+        "first_due_date": anchor,
+    }
+    response = client.post(f"/api/assets/{asset_id}/time-based-costs", json=body)
+
+    assert response.status_code == 201
+    row = response.json()
+    assert row["first_due_date"] == anchor
+    assert row["next_due_date"] is not None
+    assert date.fromisoformat(row["next_due_date"]) >= date.today()
+
+
+def test_create_without_anchor_returns_null_next_due_and_template_rows_null(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+
+    body = {"label": "Car wash", "amount": "3000.00", "interval_value": 1, "interval_unit": "months"}
+    response = client.post(f"/api/assets/{asset_id}/time-based-costs", json=body)
+
+    assert response.status_code == 201
+    row = response.json()
+    assert row["first_due_date"] is None
+    assert row["next_due_date"] is None
+
+    # Seeded vehicle template rows carry no anchor: next_due_date is null without any error.
+    listed = client.get(f"/api/assets/{asset_id}/time-based-costs")
+    assert listed.status_code == 200
+    template_rows = [r for r in listed.json() if r["technical_key"] is not None]
+    assert template_rows
+    assert all(r["first_due_date"] is None and r["next_due_date"] is None for r in template_rows)
+
+
+def test_patch_sets_then_clears_anchor(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    cost_id = created["time_based_costs"][0]["id"]
+    anchor = _months_before_today(2)
+
+    set_response = client.patch(
+        f"/api/assets/{asset_id}/time-based-costs/{cost_id}", json={"first_due_date": anchor}
+    )
+    assert set_response.status_code == 200
+    set_row = set_response.json()
+    assert set_row["first_due_date"] == anchor
+    assert set_row["next_due_date"] is not None
+    assert date.fromisoformat(set_row["next_due_date"]) >= date.today()
+
+    clear_response = client.patch(
+        f"/api/assets/{asset_id}/time-based-costs/{cost_id}", json={"first_due_date": None}
+    )
+    assert clear_response.status_code == 200
+    clear_row = clear_response.json()
+    assert clear_row["first_due_date"] is None
+    assert clear_row["next_due_date"] is None
+
+
+def test_next_due_roll_forward_correct_through_api(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    # Anchor two whole 6-month intervals (12 months) before today, on day 1.
+    anchor_iso = _months_before_today(12)
+    anchor = date.fromisoformat(anchor_iso)
+
+    body = {
+        "label": "Semi-annual service",
+        "amount": "40000.00",
+        "interval_value": 6,
+        "interval_unit": "months",
+        "first_due_date": anchor_iso,
+    }
+    response = client.post(f"/api/assets/{asset_id}/time-based-costs", json=body)
+    assert response.status_code == 201
+
+    # Expected: roll forward by 6-month steps to the first occurrence on or after today.
+    step = 0
+    while True:
+        index = anchor.year * 12 + (anchor.month - 1) + step * 6
+        year, month = divmod(index, 12)
+        occurrence = date(year, month + 1, anchor.day)
+        if occurrence >= date.today():
+            break
+        step += 1
+    assert response.json()["next_due_date"] == occurrence.isoformat()
