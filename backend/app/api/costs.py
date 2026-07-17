@@ -18,6 +18,12 @@ from app.services.dependencies import get_cost_service, get_current_user_id
 router = APIRouter(prefix="/api", tags=["costs"])
 
 
+def _serialize_time_based(row, service: CostService) -> TimeBasedCostResponse:
+    """Serialize a time-based cost row and attach its computed next-due date via the service."""
+    base = TimeBasedCostResponse.model_validate(row)
+    return base.model_copy(update={"next_due_date": service.next_due_for(row)})
+
+
 @router.get(
     "/assets/{asset_id}/time-based-costs",
     summary="List an asset's time-based costs",
@@ -38,7 +44,7 @@ def list_time_based_costs(
 ) -> list[TimeBasedCostResponse]:
     """Delegate to the service and serialize each row."""
     rows = service.list_time_based_costs(user_id=user_id, asset_id=asset_id)
-    return [TimeBasedCostResponse.model_validate(row) for row in rows]
+    return [_serialize_time_based(row, service) for row in rows]
 
 
 @router.post(
@@ -70,10 +76,11 @@ def create_time_based_cost(
         amount=body.amount,
         interval_value=body.interval_value,
         interval_unit=body.interval_unit,
+        first_due_date=body.first_due_date,
         notes=body.notes,
     )
     response.headers["Location"] = f"/api/assets/{asset_id}/time-based-costs/{row.id}"
-    return TimeBasedCostResponse.model_validate(row)
+    return _serialize_time_based(row, service)
 
 
 @router.patch(
@@ -101,7 +108,7 @@ def update_time_based_cost(
     row = service.update_time_based_cost(
         user_id=user_id, asset_id=asset_id, cost_id=cost_id, changes=body.model_dump(exclude_unset=True)
     )
-    return TimeBasedCostResponse.model_validate(row)
+    return _serialize_time_based(row, service)
 
 
 @router.patch(

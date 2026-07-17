@@ -269,3 +269,60 @@ def test_month_anchor_dates_count_ignores_day_of_month():
     assert len(dates) == 4  # (4 - 1) + 1 = Jan/Feb/Mar/Apr
     assert [d.strftime("%Y-%m") for d in dates] == ["2026-01", "2026-02", "2026-03", "2026-04"]
     assert dates[-1] == anchor
+
+
+def test_next_due_date_none_anchor_returns_none():
+    assert calculator.next_due_date(None, 1, "months", date(2026, 7, 17)) is None
+
+
+def test_next_due_date_future_anchor_returns_anchor():
+    anchor = date(2026, 12, 1)
+    assert calculator.next_due_date(anchor, 6, "months", date(2026, 7, 17)) == anchor
+
+
+def test_next_due_date_anchor_today_returns_today():
+    today = date(2026, 7, 17)
+    assert calculator.next_due_date(today, 1, "months", today) == today
+
+
+def test_next_due_date_one_step_forward():
+    # Anchor exactly one interval in the past rolls forward one step to an occurrence >= today.
+    today = date(2026, 7, 17)
+    anchor = date(2026, 6, 17)  # one month before today
+    result = calculator.next_due_date(anchor, 1, "months", today)
+    assert result == date(2026, 7, 17)
+    assert result >= today
+
+
+def test_next_due_date_rolls_across_many_periods_without_overshoot():
+    today = date(2026, 7, 17)
+    anchor = date(2020, 1, 15)  # several years in the past
+    result = calculator.next_due_date(anchor, 6, "months", today)
+    assert result >= today
+    # The previous occurrence (one interval earlier) must be strictly before today: no overshoot.
+    assert calculator._add_months(result, -6) < today
+
+
+def test_next_due_date_years_unit_rolls_forward():
+    today = date(2026, 7, 17)
+    anchor = date(2020, 3, 1)
+    one_year = calculator.next_due_date(anchor, 1, "years", today)
+    assert one_year == date(2027, 3, 1)
+    assert one_year >= today
+
+    two_years = calculator.next_due_date(anchor, 2, "years", today)
+    assert two_years >= today
+    assert calculator._add_months(two_years, -24) < today
+
+
+def test_next_due_date_clamps_month_end_anchor():
+    result = calculator.next_due_date(date(2025, 1, 31), 1, "months", date(2025, 2, 15))
+    assert result == date(2025, 2, 28)
+
+
+def test_next_due_date_rejects_non_positive_interval():
+    past_anchor = date(2020, 1, 1)  # past anchor exercises the guard regardless of ordering
+    with pytest.raises(ValueError):
+        calculator.next_due_date(past_anchor, 0, "months", date(2026, 7, 17))
+    with pytest.raises(ValueError):
+        calculator.next_due_date(past_anchor, -3, "months", date(2026, 7, 17))

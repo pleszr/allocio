@@ -56,6 +56,41 @@ def interval_years(interval_value: int, interval_unit: IntervalUnit) -> Decimal:
     raise ValueError(f"Unknown interval_unit: {interval_unit!r}.")
 
 
+def next_due_date(
+    anchor: date | None, interval_value: int, interval_unit: IntervalUnit, today: date
+) -> date | None:
+    """Compute the next occurrence of a time-based cost on or after today.
+
+    Rolls the interval forward from a known anchor occurrence to the first occurrence that is on
+    or after ``today``. This is informational only; it never influences accrual.
+
+    Args:
+        anchor: A known occurrence date, or ``None`` when no anchor is set.
+        interval_value: Positive number of units in one interval.
+        interval_unit: Either ``"months"`` or ``"years"``.
+        today: The reference date the occurrence is rolled forward past.
+
+    Returns:
+        ``None`` when ``anchor`` is ``None``; the anchor itself when it is on or after ``today``;
+        otherwise the first rolled-forward occurrence on or after ``today``.
+
+    Raises:
+        ValueError: If ``interval_value`` is not positive (validated first, before any short-circuit
+            or loop, so a zero interval can never spin the non-advancing roll-forward loop).
+    """
+    if interval_value <= 0:
+        raise ValueError("interval_value must be positive.")
+    if anchor is None:
+        return None
+    if anchor >= today:
+        return anchor
+    interval_months = interval_value if interval_unit == "months" else interval_value * 12
+    step = 0
+    while _add_months(anchor, step * interval_months) < today:
+        step += 1
+    return _add_months(anchor, step * interval_months)
+
+
 def reference_amount(
     baseline: Decimal, linked_expenses: Sequence[tuple[date, Decimal]], period_start: date
 ) -> Decimal:
@@ -401,6 +436,18 @@ def _month_as_of(anchor: date, months_back: int) -> date:
     year, month = divmod(month_index, 12)
     last_day = calendar.monthrange(year, month + 1)[1]
     return date(year, month + 1, last_day)
+
+
+def _add_months(anchor: date, months: int) -> date:
+    """Return ``anchor`` shifted by ``months``, clamping the day to the target month's last day.
+
+    Mirrors `_month_as_of`'s ``calendar.monthrange`` clamp so a month-end anchor such as
+    ``2025-01-31`` plus one month resolves to ``2025-02-28`` rather than overflowing.
+    """
+    month_index = anchor.year * 12 + (anchor.month - 1) + months
+    year, month = divmod(month_index, 12)
+    last_day = calendar.monthrange(year, month + 1)[1]
+    return date(year, month + 1, min(anchor.day, last_day))
 
 
 def _ratio(numerator: int | None, denominator: int | None) -> Decimal | None:

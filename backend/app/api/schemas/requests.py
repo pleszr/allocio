@@ -74,6 +74,11 @@ class CreateTimeBasedCostRequest(BaseModel):
     amount: Decimal = Field(ge=0, description="Cost amount per interval.", examples=[25000])
     interval_value: int = Field(gt=0, description="Number of interval units between occurrences.", examples=[12])
     interval_unit: IntervalUnit = Field(description="Unit of the recurrence interval.", examples=["months"])
+    first_due_date: date | None = Field(
+        default=None,
+        description="Anchor date of a known occurrence; the next-due date is rolled forward from it. Optional.",
+        examples=["2026-09-01"],
+    )
     notes: str | None = Field(default=None, max_length=2000, description="Optional free-text notes for the cost.")
 
 
@@ -84,6 +89,11 @@ class UpdateTimeBasedCostRequest(BaseModel):
     amount: Decimal | None = Field(default=None, ge=0, description="Cost amount per interval.")
     interval_value: int | None = Field(default=None, gt=0, description="Number of interval units between occurrences.")
     interval_unit: IntervalUnit | None = Field(default=None, description="Unit of the recurrence interval.")
+    first_due_date: date | None = Field(
+        default=None,
+        description="Anchor date of a known occurrence. Send null to clear it; omit to leave it unchanged.",
+        examples=["2026-09-01"],
+    )
     notes: str | None = Field(default=None, max_length=2000, description="Optional free-text notes for the cost.")
     is_active: bool | None = Field(default=None, description="Whether the cost row drives future calculations.")
 

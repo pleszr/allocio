@@ -158,6 +158,18 @@ Rules:
 - no within-period proration is applied in MVP when a new modeled expense is logged
 - a newly logged modeled expense for a time-based cost becomes the reference amount starting with the first period whose `period_start` is on or after that expense date
 
+### Next-due date
+
+The next-due date is an informational signal derived from a time-based cost's optional `first_due_date` anchor and its interval.
+
+Rules:
+
+- next-due is the first occurrence on or after today, found by rolling `first_due_date` forward by whole intervals
+- a `first_due_date` on or after today yields itself (the first occurrence has not happened yet)
+- a null `first_due_date` yields no next-due date (null)
+- month-end anchors clamp to the target month's last day (e.g. `2025-01-31` + 1 month → `2025-02-28`)
+- next-due is informational only: it does not change the annualized amount or the period accrual formulas above
+
 ## Usage-Based Reserve Accrual
 
 ### What accrues

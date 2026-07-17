@@ -166,6 +166,7 @@ Fields:
 - `amount`
 - `interval_value`
 - `interval_unit`
+- `first_due_date`
 - `notes`
 - `is_active`
 
@@ -180,6 +181,11 @@ Rules:
 - `technical_key` is an internal stable identifier for system-defined rows
 - user-created custom rows may leave `technical_key` empty
 - `amount` is the baseline amount used when no later modeled expense has superseded it
+- `first_due_date` is a nullable anchor date of a known occurrence
+- when `first_due_date` is set, a next-due date is derived by rolling the interval forward to the first occurrence on or after today
+- when `first_due_date` is null the next-due date is omitted (null)
+- template rows are seeded with a null anchor
+- the anchor and its derived next-due date are informational only and do not affect accrual
 
 ### `usage_based_cost`
 
