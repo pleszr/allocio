@@ -2,6 +2,7 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -104,6 +105,41 @@ class MaintenanceItemResponse(BaseModel):
     estimated_cost: Decimal | None = Field(description="Estimated cost of the item, if known.")
     notes: str | None = Field(description="Optional free-text notes for the item.")
     is_active: bool = Field(description="Whether the item drives future calculations.")
+    # Computed read-model fields; set explicitly by the maintenance read/POST/PATCH serializer. They
+    # default to null on the asset-creation embed (`CreateAssetResponse`), which carries no live status
+    # because a just-created asset has no usage history yet — the client reads status from a list/detail call.
+    status: Literal["ok", "soon", "due", "overdue"] | None = Field(
+        default=None,
+        description="Calculator-derived service status from the greater progress ratio; the earlier "
+        "threshold wins. The design renders 'due' as a 'Due soon'-style pill. Null only on the "
+        "asset-creation embed.",
+        examples=["soon"],
+    )
+    km_since_service: int | None = Field(
+        default=None,
+        description="Distance driven since last service (current usage minus last-serviced odometer); "
+        "null without both an odometer reading and a last-serviced odometer.",
+    )
+    months_since_service: int | None = Field(
+        default=None,
+        description="Whole months since last service; null when the item has no last-serviced date.",
+    )
+    km_progress: Decimal | None = Field(
+        default=None,
+        description="Distance progress ratio (km since service / km interval); null when either is missing.",
+    )
+    month_progress: Decimal | None = Field(
+        default=None,
+        description="Time progress ratio (months since service / month interval); null when either is missing.",
+    )
+    remaining_km: int | None = Field(
+        default=None,
+        description="Kilometers remaining until the next service, floored at 0; null without a km interval and reading.",
+    )
+    remaining_months: int | None = Field(
+        default=None,
+        description="Months remaining until the next service, floored at 0; null without a month interval and date.",
+    )
 
 
 class ExpenseEventResponse(BaseModel):

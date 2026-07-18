@@ -266,6 +266,12 @@
           ],
           "functions": [
             {
+              "name": "_serialize_maintenance",
+              "line_start": 28,
+              "line_end": 41,
+              "hash": "fed5526392fb4c64"
+            },
+            {
               "name": "_serialize_time_based",
               "line_start": 22,
               "line_end": 25,
@@ -273,56 +279,56 @@
             },
             {
               "name": "create_maintenance_item",
-              "line_start": 237,
-              "line_end": 258,
-              "hash": "d030ce5094adec2f"
+              "line_start": 253,
+              "line_end": 274,
+              "hash": "fb74d626ff6a30e6"
             },
             {
               "name": "create_time_based_cost",
-              "line_start": 65,
-              "line_end": 84,
+              "line_start": 81,
+              "line_end": 100,
               "hash": "5848a1b54e0dd023"
             },
             {
               "name": "create_usage_based_cost",
-              "line_start": 152,
-              "line_end": 169,
+              "line_start": 168,
+              "line_end": 185,
               "hash": "6a341d652c6aee30"
             },
             {
               "name": "list_maintenance_items",
-              "line_start": 213,
-              "line_end": 220,
-              "hash": "41aa244673aea4fd"
+              "line_start": 229,
+              "line_end": 236,
+              "hash": "c11831517ccfd2d5"
             },
             {
               "name": "list_time_based_costs",
-              "line_start": 41,
-              "line_end": 48,
+              "line_start": 57,
+              "line_end": 64,
               "hash": "61f464e6508c89ee"
             },
             {
               "name": "list_usage_based_costs",
-              "line_start": 128,
-              "line_end": 135,
+              "line_start": 144,
+              "line_end": 151,
               "hash": "f22329f022558f55"
             },
             {
               "name": "update_maintenance_item",
-              "line_start": 275,
-              "line_end": 286,
-              "hash": "9194ff2add02e9df"
+              "line_start": 291,
+              "line_end": 302,
+              "hash": "8806f64ae684879b"
             },
             {
               "name": "update_time_based_cost",
-              "line_start": 101,
-              "line_end": 112,
+              "line_start": 117,
+              "line_end": 128,
               "hash": "8c4b85e7daae9f00"
             },
             {
               "name": "update_usage_based_cost",
-              "line_start": 186,
-              "line_end": 197,
+              "line_start": 202,
+              "line_end": 213,
               "hash": "b9e9d1672ffc8c17"
             }
           ],
@@ -332,72 +338,72 @@
               "method": "get",
               "path": "/assets/{asset_id}/maintenance-items",
               "handler": "list_maintenance_items",
-              "line_start": 213,
-              "line_end": 220,
-              "hash": "41aa244673aea4fd"
+              "line_start": 229,
+              "line_end": 236,
+              "hash": "c11831517ccfd2d5"
             },
             {
               "method": "post",
               "path": "/assets/{asset_id}/maintenance-items",
               "handler": "create_maintenance_item",
-              "line_start": 237,
-              "line_end": 258,
-              "hash": "d030ce5094adec2f"
+              "line_start": 253,
+              "line_end": 274,
+              "hash": "fb74d626ff6a30e6"
             },
             {
               "method": "patch",
               "path": "/assets/{asset_id}/maintenance-items/{item_id}",
               "handler": "update_maintenance_item",
-              "line_start": 275,
-              "line_end": 286,
-              "hash": "9194ff2add02e9df"
+              "line_start": 291,
+              "line_end": 302,
+              "hash": "8806f64ae684879b"
             },
             {
               "method": "get",
               "path": "/assets/{asset_id}/time-based-costs",
               "handler": "list_time_based_costs",
-              "line_start": 41,
-              "line_end": 48,
+              "line_start": 57,
+              "line_end": 64,
               "hash": "61f464e6508c89ee"
             },
             {
               "method": "post",
               "path": "/assets/{asset_id}/time-based-costs",
               "handler": "create_time_based_cost",
-              "line_start": 65,
-              "line_end": 84,
+              "line_start": 81,
+              "line_end": 100,
               "hash": "5848a1b54e0dd023"
             },
             {
               "method": "patch",
               "path": "/assets/{asset_id}/time-based-costs/{cost_id}",
               "handler": "update_time_based_cost",
-              "line_start": 101,
-              "line_end": 112,
+              "line_start": 117,
+              "line_end": 128,
               "hash": "8c4b85e7daae9f00"
             },
             {
               "method": "get",
               "path": "/assets/{asset_id}/usage-based-costs",
               "handler": "list_usage_based_costs",
-              "line_start": 128,
-              "line_end": 135,
+              "line_start": 144,
+              "line_end": 151,
               "hash": "f22329f022558f55"
             },
             {
               "method": "post",
               "path": "/assets/{asset_id}/usage-based-costs",
               "handler": "create_usage_based_cost",
-              "line_start": 152,
-              "line_end": 169,
+              "line_start": 168,
+              "line_end": 185,
               "hash": "6a341d652c6aee30"
             },
             {
               "method": "patch",
               "path": "/assets/{asset_id}/usage-based-costs/{cost_id}",
               "handler": "update_usage_based_cost",
-              "line_start": 186,
-              "line_end": 197,
+              "line_start": 202,
+              "line_end": 213,
               "hash": "b9e9d1672ffc8c17"
             }
           ]
@@ -603,147 +609,148 @@
             "datetime",
             "decimal",
             "pydantic",
+            "typing",
             "uuid"
           ],
           "functions": [],
           "classes": [
             {
               "name": "AllocationEventResponse",
-              "line_start": 168,
-              "line_end": 180,
+              "line_start": 204,
+              "line_end": 216,
               "hash": "7f1cc42ccd37defa",
               "methods": []
             },
             {
               "name": "AllocationLineResponse",
-              "line_start": 127,
-              "line_end": 133,
+              "line_start": 163,
+              "line_end": 169,
               "hash": "b929526362bbc394",
               "methods": []
             },
             {
               "name": "AssetResponse",
-              "line_start": 15,
-              "line_end": 25,
+              "line_start": 16,
+              "line_end": 26,
               "hash": "af900a76bc4b360e",
               "methods": []
             },
             {
               "name": "AssetSummaryResponse",
-              "line_start": 209,
-              "line_end": 224,
+              "line_start": 245,
+              "line_end": 260,
               "hash": "25d97e3843b8c470",
               "methods": []
             },
             {
               "name": "BalanceHistoryResponse",
-              "line_start": 256,
-              "line_end": 261,
+              "line_start": 292,
+              "line_end": 297,
               "hash": "48cc6340b7d0aecc",
               "methods": []
             },
             {
               "name": "BalancePointResponse",
-              "line_start": 244,
-              "line_end": 253,
+              "line_start": 280,
+              "line_end": 289,
               "hash": "21c4562e5b6f4cec",
               "methods": []
             },
             {
               "name": "BucketResponse",
-              "line_start": 40,
-              "line_end": 48,
+              "line_start": 41,
+              "line_end": 49,
               "hash": "b12b05c9272cb618",
               "methods": []
             },
             {
               "name": "CheckInPostResponse",
-              "line_start": 201,
-              "line_end": 206,
+              "line_start": 237,
+              "line_end": 242,
               "hash": "dedfba65f01c240e",
               "methods": []
             },
             {
               "name": "CheckInPreviewResponse",
-              "line_start": 148,
-              "line_end": 165,
+              "line_start": 184,
+              "line_end": 201,
               "hash": "f29cec4ddd960f2e",
               "methods": []
             },
             {
               "name": "CheckInResponse",
-              "line_start": 183,
-              "line_end": 198,
+              "line_start": 219,
+              "line_end": 234,
               "hash": "c6d5cb7782f53cf6",
               "methods": []
             },
             {
               "name": "CreateAssetResponse",
-              "line_start": 264,
-              "line_end": 277,
+              "line_start": 300,
+              "line_end": 313,
               "hash": "c6a982f195b870cf",
               "methods": []
             },
             {
               "name": "ExpenseEventResponse",
-              "line_start": 109,
-              "line_end": 124,
+              "line_start": 145,
+              "line_end": 160,
               "hash": "8c171e5fbf9da7d6",
               "methods": []
             },
             {
               "name": "ExpenseLineResponse",
-              "line_start": 136,
-              "line_end": 145,
+              "line_start": 172,
+              "line_end": 181,
               "hash": "28d118d5c8927af5",
               "methods": []
             },
             {
               "name": "HealthResponse",
-              "line_start": 9,
-              "line_end": 12,
+              "line_start": 10,
+              "line_end": 13,
               "hash": "e814a3bf78429c15",
               "methods": []
             },
             {
               "name": "MaintenanceItemResponse",
-              "line_start": 90,
-              "line_end": 106,
-              "hash": "163b2dedda446165",
+              "line_start": 91,
+              "line_end": 142,
+              "hash": "dc472b95adc618b9",
               "methods": []
             },
             {
               "name": "TimeBasedCostResponse",
-              "line_start": 51,
-              "line_end": 69,
+              "line_start": 52,
+              "line_end": 70,
               "hash": "641cc35d7e2a6ae3",
               "methods": []
             },
             {
               "name": "UsageBasedCostResponse",
-              "line_start": 72,
-              "line_end": 87,
+              "line_start": 73,
+              "line_end": 88,
               "hash": "c181d338c965ae66",
               "methods": []
             },
             {
               "name": "VehicleProfileResponse",
-              "line_start": 28,
-              "line_end": 37,
+              "line_start": 29,
+              "line_end": 38,
               "hash": "7b2d696b7b2a71f4",
               "methods": []
             },
             {
               "name": "WorkspaceOverviewResponse",
-              "line_start": 237,
-              "line_end": 241,
+              "line_start": 273,
+              "line_end": 277,
               "hash": "756a8ecd270c29ed",
               "methods": []
             },
             {
               "name": "WorkspaceTotalsResponse",
-              "line_start": 227,
-              "line_end": 234,
+              "line_start": 263,
+              "line_end": 270,
               "hash": "de9a6ecf5f221017",
               "methods": []
             }
@@ -1840,6 +1847,7 @@
             "app.domain.cost",
             "app.repository",
             "collections.abc",
+            "dataclasses",
             "datetime",
             "decimal",
             "sqlalchemy.orm",
@@ -1850,107 +1858,144 @@
           "classes": [
             {
               "name": "CostService",
-              "line_start": 42,
-              "line_end": 232,
+              "line_start": 57,
+              "line_end": 316,
               "hash": "68c76c7e7a557a17",
               "methods": [
                 {
                   "name": "__init__",
-                  "line_start": 45,
-                  "line_end": 46,
+                  "line_start": 60,
+                  "line_end": 61,
                   "hash": "2c8f2810305a160d"
                 },
                 {
                   "name": "_add_and_commit",
-                  "line_start": 224,
-                  "line_end": 232,
+                  "line_start": 308,
+                  "line_end": 316,
                   "hash": "b36dc53859bafbf6"
                 },
                 {
                   "name": "_apply_and_commit",
-                  "line_start": 189,
-                  "line_end": 210,
+                  "line_start": 273,
+                  "line_end": 294,
                   "hash": "83eca40275a4e471"
                 },
                 {
                   "name": "_apply_changes",
-                  "line_start": 212,
-                  "line_end": 217,
+                  "line_start": 296,
+                  "line_end": 301,
                   "hash": "7d1ab76cd441b095"
                 },
                 {
+                  "name": "_current_asset_usage",
+                  "line_start": 220,
+                  "line_end": 229,
+                  "hash": "1f5c33328e016924"
+                },
+                {
+                  "name": "_km_since_service",
+                  "line_start": 266,
+                  "line_end": 271,
+                  "hash": "61b00aedc6b5dc73"
+                },
+                {
+                  "name": "_maintenance_view",
+                  "line_start": 231,
+                  "line_end": 264,
+                  "hash": "2d0bb7e0b2307223"
+                },
+                {
                   "name": "_require_interval_unless_other",
-                  "line_start": 219,
-                  "line_end": 222,
+                  "line_start": 303,
+                  "line_end": 306,
                   "hash": "fb8a92b3036a5ff4"
                 },
                 {
                   "name": "_require_owned_asset",
-                  "line_start": 182,
-                  "line_end": 187,
+                  "line_start": 213,
+                  "line_end": 218,
                   "hash": "a60e1d83da511025"
                 },
                 {
                   "name": "create_maintenance_item",
-                  "line_start": 139,
-                  "line_end": 170,
+                  "line_start": 170,
+                  "line_end": 201,
                   "hash": "63a44b053eaa44c5"
                 },
                 {
                   "name": "create_time_based_cost",
-                  "line_start": 53,
-                  "line_end": 77,
+                  "line_start": 68,
+                  "line_end": 92,
                   "hash": "f9a0cf604cb96e88"
                 },
                 {
                   "name": "create_usage_based_cost",
-                  "line_start": 98,
-                  "line_end": 122,
+                  "line_start": 113,
+                  "line_end": 137,
                   "hash": "10c8ae872a6cf53d"
                 },
                 {
+                  "name": "list_maintenance_item_views",
+                  "line_start": 154,
+                  "line_end": 160,
+                  "hash": "e30059cd817aac65"
+                },
+                {
                   "name": "list_maintenance_items",
-                  "line_start": 134,
-                  "line_end": 137,
+                  "line_start": 149,
+                  "line_end": 152,
                   "hash": "1385b30e33cec3b8"
                 },
                 {
                   "name": "list_time_based_costs",
-                  "line_start": 48,
-                  "line_end": 51,
+                  "line_start": 63,
+                  "line_end": 66,
                   "hash": "c9cf093e40c364bc"
                 },
                 {
                   "name": "list_usage_based_costs",
-                  "line_start": 93,
-                  "line_end": 96,
+                  "line_start": 108,
+                  "line_end": 111,
                   "hash": "eb95d00e6db48558"
                 },
                 {
+                  "name": "maintenance_item_view",
+                  "line_start": 162,
+                  "line_end": 168,
+                  "hash": "b269704d0569c31b"
+                },
+                {
                   "name": "next_due_for",
-                  "line_start": 89,
-                  "line_end": 91,
+                  "line_start": 104,
+                  "line_end": 106,
                   "hash": "95080c4cf715f52a"
                 },
                 {
                   "name": "update_maintenance_item",
-                  "line_start": 172,
-                  "line_end": 180,
+                  "line_start": 203,
+                  "line_end": 211,
                   "hash": "9b0c52ecbe74b090"
                 },
                 {
                   "name": "update_time_based_cost",
-                  "line_start": 79,
-                  "line_end": 87,
+                  "line_start": 94,
+                  "line_end": 102,
                   "hash": "f3fc1cb7be142ecb"
                 },
                 {
                   "name": "update_usage_based_cost",
-                  "line_start": 124,
-                  "line_end": 132,
+                  "line_start": 139,
+                  "line_end": 147,
                   "hash": "f0eabdb490cdb6e0"
                 }
               ]
+            },
+            {
+              "name": "MaintenanceItemView",
+              "line_start": 44,
+              "line_end": 54,
+              "hash": "7a43e4970c9259d2",
+              "methods": []
             }
           ],
           "routes": []
