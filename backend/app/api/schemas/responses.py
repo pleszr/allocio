@@ -300,6 +300,57 @@ class BalanceHistoryResponse(BaseModel):
     points: list[BalancePointResponse] = Field(description="Monthly balance points ordered oldest → newest.")
 
 
+class ActivityItemResponse(BaseModel):
+    """One recent bucket movement for the dashboard activity feed."""
+
+    event_date: date = Field(description="Date the movement was recognized.")
+    kind: Literal["allocation", "expense"] = Field(
+        description="'allocation' for an inflow into the bucket, 'expense' for an outflow."
+    )
+    label: str = Field(description="Human-readable label: allocation source or expense comment.")
+    amount: Decimal = Field(description="Signed amount: positive for allocations, negative for expenses.")
+
+
+class AssetDetailResponse(BaseModel):
+    """One asset's composed dashboard payload: derived figures, usage, maintenance, and recent activity."""
+
+    id: uuid.UUID = Field(description="Server-generated asset id.")
+    type: str = Field(description="Asset type, e.g. 'vehicle' or 'house'.", examples=["vehicle"])
+    name: str = Field(description="Human-readable asset name.", examples=["My Car"])
+    subtitle: str | None = Field(description="Opaque display subtitle supplied at creation, if any.")
+    attributes: dict | None = Field(description="Opaque free-form detail object supplied at creation, if any.")
+    status: str = Field(description="Lifecycle status of the asset.", examples=["active"])
+    currency: str = Field(description="ISO currency code of the asset's bucket.", examples=["HUF"])
+    balance: Decimal = Field(description="Event-derived bucket balance: sum(allocations) - sum(expenses).")
+    recommended_monthly_allocation: Decimal = Field(
+        description="Suggested monthly saving; also the 'next allocation' amount the dashboard shows. The "
+        "next-allocation date and pending accrual are intentionally omitted pending a product decision on cadence."
+    )
+    daily_accrual: Decimal = Field(
+        description="Per-day accrual derived as recommended_monthly_allocation * 12 / 365, quantized to currency."
+    )
+    health: str = Field(
+        description="Funding health versus one recommended monthly allocation: 'underfunded', 'healthy', or 'overflowing'.",
+        examples=["healthy"],
+    )
+    current_usage: int | None = Field(
+        description="Current usage counter (latest posted check-in usage_end, else vehicle starting odometer); "
+        "null for a non-vehicle asset with no usage counter."
+    )
+    usage_since_last_check_in: int | None = Field(
+        description="Usage counted in the most recent posted check-in; null when no check-in is posted."
+    )
+    last_check_in_date: date | None = Field(
+        description="Period end of the most recent posted check-in; null when none is posted."
+    )
+    maintenance_items: list[MaintenanceItemResponse] = Field(
+        description="Every maintenance item with its computed status and progress figures."
+    )
+    recent_activity: list[ActivityItemResponse] = Field(
+        description="Merged allocation and expense movements, newest first, capped for the activity feed."
+    )
+
+
 class CreateAssetResponse(BaseModel):
     """Full record set returned after creating an asset, so a client can render it without a refetch.
 

@@ -3,8 +3,11 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query, Response, status
 
+from app.api.costs import _serialize_maintenance
 from app.api.schemas.requests import CreateAssetRequest
 from app.api.schemas.responses import (
+    ActivityItemResponse,
+    AssetDetailResponse,
     AssetSummaryResponse,
     BalanceHistoryResponse,
     BalancePointResponse,
@@ -13,9 +16,11 @@ from app.api.schemas.responses import (
     WorkspaceTotalsResponse,
 )
 from app.common.message_bundle import INTERNAL_ERROR
+from app.services.asset_detail_service import AssetDetail, AssetDetailService
 from app.services.asset_service import AssetService, VehicleDetails
 from app.services.balance_history_service import BalanceHistory, BalanceHistoryService
 from app.services.dependencies import (
+    get_asset_detail_service,
     get_asset_service,
     get_balance_history_service,
     get_current_user_id,
@@ -112,6 +117,56 @@ def get_balance_history(
     """Delegate to the balance-history service and map its DTO to the response model."""
     history = service.balance_history(user_id, asset_id, months)
     return _to_balance_history_response(history)
+
+
+@router.get(
+    "/assets/{asset_id}",
+    summary="Read one asset's detail payload",
+    description="""Returns the composed dashboard payload for one owned asset: derived balance,
+    recommended monthly and daily accrual, funding health, current usage and last check-in, every
+    maintenance item with its computed status, and a merged recent-activity feed. Type-agnostic —
+    usage fields are null for assets without a usage counter. Unknown or unowned assets return 404.""",
+    response_model=AssetDetailResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "The asset's composed detail payload."},
+        404: {"description": "Asset not found for this user."},
+        500: {"description": INTERNAL_ERROR},
+    },
+)
+def get_asset_detail(
+    asset_id: uuid.UUID,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    service: AssetDetailService = Depends(get_asset_detail_service),
+) -> AssetDetailResponse:
+    """Delegate to the asset-detail service and map its DTO to the response model."""
+    detail = service.get_detail(user_id, asset_id)
+    return _to_asset_detail_response(detail)
+
+
+def _to_asset_detail_response(detail: AssetDetail) -> AssetDetailResponse:
+    """Map the service `AssetDetail` DTO to its Pydantic response, keeping the api layer off service DTOs."""
+    return AssetDetailResponse(
+        id=detail.asset_id,
+        type=detail.type,
+        name=detail.name,
+        subtitle=detail.subtitle,
+        attributes=detail.attributes,
+        status=detail.status,
+        currency=detail.currency,
+        balance=detail.balance,
+        recommended_monthly_allocation=detail.recommended_monthly_allocation,
+        daily_accrual=detail.daily_accrual,
+        health=detail.health,
+        current_usage=detail.current_usage,
+        usage_since_last_check_in=detail.usage_since_last_check_in,
+        last_check_in_date=detail.last_check_in_date,
+        maintenance_items=[_serialize_maintenance(view) for view in detail.maintenance_items],
+        recent_activity=[
+            ActivityItemResponse(event_date=item.date, kind=item.kind, label=item.label, amount=item.amount)
+            for item in detail.recent_activity
+        ],
+    )
 
 
 def _to_balance_history_response(history: BalanceHistory) -> BalanceHistoryResponse:

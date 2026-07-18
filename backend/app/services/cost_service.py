@@ -159,6 +159,11 @@ class CostService:
         today = date.today()
         return [self._maintenance_view(row, current_usage, today) for row in rows]
 
+    def current_asset_usage(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> int | None:
+        """Return an owned asset's current usage counter for reuse by the asset-detail read. Read-only."""
+        self._require_owned_asset(user_id, asset_id)
+        return self._current_asset_usage(asset_id)
+
     def maintenance_item_view(self, row: MaintenanceItem) -> MaintenanceItemView:
         """Enrich a single already-owned maintenance row with derived status and progress.
 

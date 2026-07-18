@@ -61,6 +61,19 @@ def list_posted_allocation_events(session: Session, bucket_id: uuid.UUID) -> lis
     return [(row.event_date, row.amount) for row in session.execute(stmt).all()]
 
 
+def list_allocation_events_for_bucket(session: Session, bucket_id: uuid.UUID) -> list[AllocationEvent]:
+    """Return every posted allocation event row for the bucket, newest first, for the activity feed.
+
+    Full rows (not just amounts) so callers can read each event's `metadata_json` label.
+    """
+    stmt = (
+        select(AllocationEvent)
+        .where(AllocationEvent.bucket_id == bucket_id)
+        .order_by(AllocationEvent.event_date.desc())
+    )
+    return list(session.scalars(stmt).all())
+
+
 def get_posted_usage_totals(
     session: Session, asset_id: uuid.UUID
 ) -> tuple[int, date | None, date | None]:
