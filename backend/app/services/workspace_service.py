@@ -25,6 +25,7 @@ class AssetSummary:
     asset_id: uuid.UUID
     type: str
     name: str
+    subtitle: str | None
     status: str
     currency: str
     balance: Decimal
@@ -72,6 +73,7 @@ class WorkspaceService:
             asset_id=asset.id,
             type=asset.type,
             name=asset.name,
+            subtitle=asset.subtitle,
             status=asset.status,
             currency=bucket.currency,
             balance=balance,
@@ -85,6 +87,7 @@ class WorkspaceService:
             asset_id=asset.id,
             type=asset.type,
             name=asset.name,
+            subtitle=asset.subtitle,
             status=asset.status,
             currency="",
             balance=Decimal(0),

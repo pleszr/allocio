@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Literal, TypeAlias
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 IntervalUnit: TypeAlias = Literal["months", "years"]
 TireType: TypeAlias = Literal["summer", "winter", "all_season"]
@@ -52,6 +52,32 @@ class CreateAssetRequest(BaseModel):
     vehicle: VehicleDetailsInput | None = Field(
         default=None, description="Vehicle profile details; only valid with the vehicle template."
     )
+    subtitle: str | None = Field(
+        default=None,
+        max_length=200,
+        description="Opaque display subtitle the client composes (e.g. '2-bed · Built 1978'); stored verbatim.",
+        examples=["2-bed · Built 1978"],
+    )
+    attributes: dict | None = Field(
+        default=None,
+        description="Opaque free-form detail object for non-vehicle assets; the backend never interprets its keys.",
+        examples=[{"built": "1978", "size": "85"}],
+    )
+
+    @field_validator("attributes")
+    @classmethod
+    def _bound_attributes(cls, value: dict | None) -> dict | None:
+        """Reject an oversized opaque blob (DoS guard): cap key count and require scalar values."""
+        if value is None:
+            return value
+        if len(value) > 30:
+            raise ValueError("attributes may hold at most 30 keys.")
+        for key, item in value.items():
+            if not isinstance(item, (str, int, float, bool)) and item is not None:
+                raise ValueError(f"attributes['{key}'] must be a scalar value.")
+            if isinstance(item, str) and len(item) > 500:
+                raise ValueError(f"attributes['{key}'] is too long.")
+        return value
 
     @model_validator(mode="after")
     def _check_template_and_type(self) -> "CreateAssetRequest":

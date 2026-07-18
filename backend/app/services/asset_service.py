@@ -53,18 +53,23 @@ class AssetService:
         asset_type: str | None,
         template_key: str | None,
         vehicle_details: VehicleDetails | None,
+        subtitle: str | None = None,
+        attributes: dict | None = None,
     ) -> CreatedAsset:
         """Create an asset, its bucket, and any template-supplied profile and cost rows atomically.
 
         A template-less asset gets only a bucket. Selecting a template resolves the stored type,
         clones its default cost rows, and attaches a vehicle profile when the template carries one.
+        `subtitle` and `attributes` are opaque, type-agnostic detail the caller supplies for any asset.
         Persists the asset first for its id, inserts every dependent, and commits exactly once; any
         failure rolls back the whole set.
         """
         template = self._resolve_template(template_key)
         resolved_type = template.asset_type if template is not None else self._require_type(asset_type)
         try:
-            asset = Asset(type=resolved_type, user_id=user_id, name=name)
+            asset = Asset(
+                type=resolved_type, user_id=user_id, name=name, subtitle=subtitle, attributes=attributes
+            )
             persist_asset(self._session, asset)
 
             bucket = Bucket(asset_id=asset.id, currency=BUCKET_CURRENCY)
