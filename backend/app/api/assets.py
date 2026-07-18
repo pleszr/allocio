@@ -55,6 +55,8 @@ def create_asset(
         asset_type=body.type,
         template_key=body.template,
         vehicle_details=vehicle_details,
+        subtitle=body.subtitle,
+        attributes=body.attributes,
     )
     response.headers["Location"] = f"/api/assets/{created.asset.id}"
     return CreateAssetResponse.model_validate(created)
@@ -132,6 +134,7 @@ def _to_overview_response(overview: WorkspaceOverview) -> WorkspaceOverviewRespo
                 id=summary.asset_id,
                 type=summary.type,
                 name=summary.name,
+                subtitle=summary.subtitle,
                 status=summary.status,
                 currency=summary.currency,
                 balance=summary.balance,

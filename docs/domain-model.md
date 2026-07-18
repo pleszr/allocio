@@ -105,6 +105,8 @@ Fields:
 - `user_id`
 - `type`
 - `name`
+- `subtitle`
+- `attributes`
 - `status`
 - `created_at`
 - `archived_at`
@@ -113,6 +115,8 @@ Rules:
 
 - `type` is the product term, not `kind`
 - `type` is free-form; `vehicle` is the type set by the built-in vehicle template, not the only allowed value
+- `subtitle` is an opaque display string the client composes; the backend stores and echoes it verbatim and never derives per-type text
+- `attributes` is an opaque free-form object for non-vehicle detail (e.g. house/pet fields); the backend never interprets its keys and it drives no calculation
 - one asset has one bucket in MVP
 
 ### `vehicle_profile`
