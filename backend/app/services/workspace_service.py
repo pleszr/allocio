@@ -12,6 +12,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from app.common.exceptions import NotFoundError
 from app.domain import calculator
 from app.domain.asset import Asset, Bucket
 from app.domain.calculator import HealthStatus
@@ -61,6 +62,16 @@ class WorkspaceService:
         assets = asset_repository.list_owned_assets(self._session, user_id)
         summaries = [self._summarize(asset) for asset in assets]
         return WorkspaceOverview(assets=summaries, totals=self._totals(summaries))
+
+    def summarize_asset(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> AssetSummary:
+        """Summarize one owned asset, reusing the same balance/allocation/health math as the overview.
+
+        Raises `NotFoundError` for an unknown or unowned asset so single-asset reads never leak.
+        """
+        asset = check_in_repository.get_owned_asset(self._session, user_id, asset_id)
+        if asset is None:
+            raise NotFoundError("Asset not found.")
+        return self._summarize(asset)
 
     def _summarize(self, asset: Asset) -> AssetSummary:
         """Compose one asset's balance, recommended monthly allocation, and health status."""
