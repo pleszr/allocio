@@ -6,6 +6,7 @@ accruals. The service owns the transaction boundary; the repository owns queries
 
 import uuid
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 from typing import TypeVar
@@ -16,7 +17,7 @@ from app.common.exceptions import NotFoundError, ValidationError
 from app.domain import calculator
 from app.domain.asset import Asset
 from app.domain.cost import MaintenanceItem, TimeBasedCost, UsageBasedCost
-from app.repository import cost_repository, expense_repository
+from app.repository import check_in_repository, cost_repository, expense_repository
 
 _TIME_BASED_EDITABLE_KEYS = frozenset(
     {"label", "amount", "interval_value", "interval_unit", "first_due_date", "notes", "is_active"}
@@ -37,6 +38,20 @@ _MAINTENANCE_EDITABLE_KEYS = frozenset(
 )
 
 _Row = TypeVar("_Row")
+
+
+@dataclass(frozen=True)
+class MaintenanceItemView:
+    """A maintenance row plus its calculator-derived status and progress figures for a read."""
+
+    row: MaintenanceItem
+    status: str
+    km_since_service: int | None
+    months_since_service: int | None
+    km_progress: Decimal | None
+    month_progress: Decimal | None
+    remaining_km: int | None
+    remaining_months: int | None
 
 
 class CostService:
@@ -136,6 +151,22 @@ class CostService:
         self._require_owned_asset(user_id, asset_id)
         return cost_repository.list_maintenance_items(self._session, asset_id)
 
+    def list_maintenance_item_views(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> list[MaintenanceItemView]:
+        """Return each maintenance row enriched with derived status and progress. Read-only."""
+        self._require_owned_asset(user_id, asset_id)
+        rows = cost_repository.list_maintenance_items(self._session, asset_id)
+        current_usage = self._current_asset_usage(asset_id)
+        today = date.today()
+        return [self._maintenance_view(row, current_usage, today) for row in rows]
+
+    def maintenance_item_view(self, row: MaintenanceItem) -> MaintenanceItemView:
+        """Enrich a single already-owned maintenance row with derived status and progress.
+
+        Used to serialize a just-created or just-updated row without re-checking ownership.
+        """
+        current_usage = self._current_asset_usage(row.asset_id)
+        return self._maintenance_view(row, current_usage, date.today())
+
     def create_maintenance_item(
         self,
         user_id: uuid.UUID,
@@ -185,6 +216,59 @@ class CostService:
         if asset is None:
             raise NotFoundError("Asset not found.")
         return asset
+
+    def _current_asset_usage(self, asset_id: uuid.UUID) -> int | None:
+        """Derive the asset's current usage counter: latest posted `usage_end`, else starting odometer.
+
+        Returns None for a non-vehicle asset with no posted check-in, so distance progress is skipped.
+        """
+        latest = check_in_repository.get_latest_posted_check_in(self._session, asset_id)
+        if latest is not None and latest.usage_end is not None:
+            return latest.usage_end
+        profile = check_in_repository.get_vehicle_profile(self._session, asset_id)
+        return profile.starting_odometer if profile is not None else None
+
+    def _maintenance_view(
+        self, row: MaintenanceItem, current_usage: int | None, today: date
+    ) -> MaintenanceItemView:
+        """Compute one row's since-service distances/months, progress ratios, status, and remaining."""
+        km_since_service = self._km_since_service(row, current_usage)
+        months_since_service = (
+            calculator.whole_months(row.last_serviced_at_date, today)
+            if row.last_serviced_at_date is not None
+            else None
+        )
+        km_progress, month_progress = calculator.maintenance_progress(
+            km_since_service, row.interval_km, months_since_service, row.interval_months
+        )
+        status = calculator.maintenance_status(km_progress, month_progress)
+        remaining_km = (
+            max(0, row.interval_km - km_since_service)
+            if row.interval_km is not None and km_since_service is not None
+            else None
+        )
+        remaining_months = (
+            max(0, row.interval_months - months_since_service)
+            if row.interval_months is not None and months_since_service is not None
+            else None
+        )
+        return MaintenanceItemView(
+            row=row,
+            status=status,
+            km_since_service=km_since_service,
+            months_since_service=months_since_service,
+            km_progress=km_progress,
+            month_progress=month_progress,
+            remaining_km=remaining_km,
+            remaining_months=remaining_months,
+        )
+
+    def _km_since_service(self, row: MaintenanceItem, current_usage: int | None) -> int | None:
+        """Distance since last service, or None when unknown; never negative on odometer anomalies."""
+        if current_usage is None or row.last_serviced_at_odometer is None:
+            return None
+        delta = current_usage - row.last_serviced_at_odometer
+        return delta if delta >= 0 else None
 
     def _apply_and_commit(
         self,

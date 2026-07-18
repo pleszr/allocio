@@ -13,7 +13,7 @@ from app.api.schemas.requests import (
 )
 from app.api.schemas.responses import MaintenanceItemResponse, TimeBasedCostResponse, UsageBasedCostResponse
 from app.common.message_bundle import INTERNAL_ERROR
-from app.services.cost_service import CostService
+from app.services.cost_service import CostService, MaintenanceItemView
 from app.services.dependencies import get_cost_service, get_current_user_id
 
 router = APIRouter(prefix="/api", tags=["costs"])
@@ -23,6 +23,22 @@ def _serialize_time_based(row, service: CostService) -> TimeBasedCostResponse:
     """Serialize a time-based cost row and attach its computed next-due date via the service."""
     base = TimeBasedCostResponse.model_validate(row)
     return base.model_copy(update={"next_due_date": service.next_due_for(row)})
+
+
+def _serialize_maintenance(view: MaintenanceItemView) -> MaintenanceItemResponse:
+    """Serialize a maintenance row and attach its computed status and progress figures."""
+    base = MaintenanceItemResponse.model_validate(view.row)
+    return base.model_copy(
+        update={
+            "status": view.status,
+            "km_since_service": view.km_since_service,
+            "months_since_service": view.months_since_service,
+            "km_progress": view.km_progress,
+            "month_progress": view.month_progress,
+            "remaining_km": view.remaining_km,
+            "remaining_months": view.remaining_months,
+        }
+    )
 
 
 @router.get(
@@ -215,9 +231,9 @@ def list_maintenance_items(
     user_id: uuid.UUID = Depends(get_current_user_id),
     service: CostService = Depends(get_cost_service),
 ) -> list[MaintenanceItemResponse]:
-    """Delegate to the service and serialize each row."""
-    rows = service.list_maintenance_items(user_id=user_id, asset_id=asset_id)
-    return [MaintenanceItemResponse.model_validate(row) for row in rows]
+    """Delegate to the service and serialize each enriched view."""
+    views = service.list_maintenance_item_views(user_id=user_id, asset_id=asset_id)
+    return [_serialize_maintenance(view) for view in views]
 
 
 @router.post(
@@ -255,7 +271,7 @@ def create_maintenance_item(
         notes=body.notes,
     )
     response.headers["Location"] = f"/api/assets/{asset_id}/maintenance-items/{row.id}"
-    return MaintenanceItemResponse.model_validate(row)
+    return _serialize_maintenance(service.maintenance_item_view(row))
 
 
 @router.patch(
@@ -283,4 +299,4 @@ def update_maintenance_item(
     row = service.update_maintenance_item(
         user_id=user_id, asset_id=asset_id, item_id=item_id, changes=body.model_dump(exclude_unset=True)
     )
-    return MaintenanceItemResponse.model_validate(row)
+    return _serialize_maintenance(service.maintenance_item_view(row))
