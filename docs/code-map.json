@@ -2405,7 +2405,22 @@
         {
           "path": "frontend/src/App.tsx",
           "language": "typescript",
-          "imports": [],
+          "imports": [
+            "./api/client",
+            "./api/types",
+            "./components/Sidebar",
+            "./components/StateView",
+            "./components/Tabs",
+            "./components/TopBar",
+            "./routes",
+            "./screens/CheckInScreen",
+            "./screens/CostsScreen",
+            "./screens/DashboardScreen",
+            "./screens/HomeScreen",
+            "./screens/NewBucketScreen",
+            "./utils/useAsync",
+            "react"
+          ],
           "exports": [
             "App",
             "default"
@@ -2413,18 +2428,388 @@
           "functions": [
             {
               "name": "App",
-              "line_start": 1,
-              "line_end": 7,
-              "hash": "17318b4fc159a3ba"
+              "line_start": 18,
+              "line_end": 53,
+              "hash": "3cdf643bf82f6a64"
+            },
+            {
+              "name": "Content",
+              "line_start": 55,
+              "line_end": 105,
+              "hash": "d918b469f8c71932"
+            },
+            {
+              "name": "buildCrumbs",
+              "line_start": 107,
+              "line_end": 112,
+              "hash": "23663b0877b8dadb"
+            },
+            {
+              "name": "useOsTheme",
+              "line_start": 116,
+              "line_end": 126,
+              "hash": "650066bfe2459e51"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "App",
-              "line_start": 1,
-              "line_end": 7,
-              "hash": "17318b4fc159a3ba",
+              "line_start": 18,
+              "line_end": 53,
+              "hash": "3cdf643bf82f6a64",
+              "kind": "function"
+            },
+            {
+              "name": "Content",
+              "line_start": 55,
+              "line_end": 105,
+              "hash": "d918b469f8c71932",
+              "kind": "function"
+            }
+          ]
+        },
+        {
+          "path": "frontend/src/api/client.ts",
+          "language": "typescript",
+          "imports": [
+            "./types"
+          ],
+          "exports": [
+            "ApiError",
+            "api"
+          ],
+          "functions": [
+            {
+              "name": "decimalReviver",
+              "line_start": 52,
+              "line_end": 54,
+              "hash": "b5a0254618d00cc1"
+            },
+            {
+              "name": "errorDetail",
+              "line_start": 74,
+              "line_end": 89,
+              "hash": "765e518477e65b7e"
+            },
+            {
+              "name": "request",
+              "line_start": 56,
+              "line_end": 72,
+              "hash": "2dda4c2fac5ec951"
+            }
+          ],
+          "classes": [
+            {
+              "name": "ApiError",
+              "line_start": 21,
+              "line_end": 28,
+              "hash": "28a9a3b9b0e33e17",
+              "methods": []
+            }
+          ],
+          "components": []
+        },
+        {
+          "path": "frontend/src/api/types.ts",
+          "language": "typescript",
+          "imports": [],
+          "exports": [
+            "ActivityItem",
+            "AllocationLine",
+            "AssetDetail",
+            "AssetSummary",
+            "BalanceHistory",
+            "BalancePoint",
+            "CheckInBody",
+            "CheckInPreview",
+            "CreateAssetRequest",
+            "CreateAssetResponse",
+            "CreateMaintenanceItemRequest",
+            "CreateTimeBasedCostRequest",
+            "CreateUsageBasedCostRequest",
+            "ExpenseDraft",
+            "ExpenseKind",
+            "ExpenseLine",
+            "ExpenseSourceType",
+            "Health",
+            "IntervalUnit",
+            "MaintenanceItem",
+            "MaintenanceStatus",
+            "TimeBasedCost",
+            "TireType",
+            "UsageBasedCost",
+            "VehicleDetailsInput",
+            "WorkspaceOverview",
+            "WorkspaceTotals"
+          ],
+          "functions": [],
+          "classes": [],
+          "components": []
+        },
+        {
+          "path": "frontend/src/components/Icon.tsx",
+          "language": "typescript",
+          "imports": [],
+          "exports": [
+            "Icon",
+            "IconName"
+          ],
+          "functions": [
+            {
+              "name": "Icon",
+              "line_start": 27,
+              "line_end": 46,
+              "hash": "8d090243042b514a"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "Icon",
+              "line_start": 27,
+              "line_end": 46,
+              "hash": "8d090243042b514a",
+              "kind": "function"
+            }
+          ]
+        },
+        {
+          "path": "frontend/src/components/Illustrations.tsx",
+          "language": "typescript",
+          "imports": [
+            "../utils/assetType"
+          ],
+          "exports": [
+            "CarIllo",
+            "DogIllo",
+            "HouseIllo",
+            "Illo"
+          ],
+          "functions": [
+            {
+              "name": "CarIllo",
+              "line_start": 5,
+              "line_end": 27,
+              "hash": "5c39dd3976ca105f"
+            },
+            {
+              "name": "DogIllo",
+              "line_start": 55,
+              "line_end": 79,
+              "hash": "a251589d9c387348"
+            },
+            {
+              "name": "HouseIllo",
+              "line_start": 29,
+              "line_end": 53,
+              "hash": "f9310d15c3bbecb8"
+            },
+            {
+              "name": "Illo",
+              "line_start": 81,
+              "line_end": 85,
+              "hash": "33f3be4214c50948"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "CarIllo",
+              "line_start": 5,
+              "line_end": 27,
+              "hash": "5c39dd3976ca105f",
+              "kind": "function"
+            },
+            {
+              "name": "DogIllo",
+              "line_start": 55,
+              "line_end": 79,
+              "hash": "a251589d9c387348",
+              "kind": "function"
+            },
+            {
+              "name": "HouseIllo",
+              "line_start": 29,
+              "line_end": 53,
+              "hash": "f9310d15c3bbecb8",
+              "kind": "function"
+            },
+            {
+              "name": "Illo",
+              "line_start": 81,
+              "line_end": 85,
+              "hash": "33f3be4214c50948",
+              "kind": "function"
+            }
+          ]
+        },
+        {
+          "path": "frontend/src/components/Sidebar.tsx",
+          "language": "typescript",
+          "imports": [
+            "../api/types",
+            "../routes",
+            "../utils/assetType",
+            "../utils/format",
+            "./Icon"
+          ],
+          "exports": [
+            "Sidebar"
+          ],
+          "functions": [
+            {
+              "name": "Sidebar",
+              "line_start": 13,
+              "line_end": 78,
+              "hash": "98dacab13382fce5"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "Sidebar",
+              "line_start": 13,
+              "line_end": 78,
+              "hash": "98dacab13382fce5",
+              "kind": "function"
+            }
+          ]
+        },
+        {
+          "path": "frontend/src/components/Sparkline.tsx",
+          "language": "typescript",
+          "imports": [],
+          "exports": [
+            "Sparkline"
+          ],
+          "functions": [
+            {
+              "name": "Sparkline",
+              "line_start": 9,
+              "line_end": 47,
+              "hash": "d819e88e7e519323"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "Sparkline",
+              "line_start": 9,
+              "line_end": 47,
+              "hash": "d819e88e7e519323",
+              "kind": "function"
+            }
+          ]
+        },
+        {
+          "path": "frontend/src/components/StateView.tsx",
+          "language": "typescript",
+          "imports": [
+            "react"
+          ],
+          "exports": [
+            "EmptyState",
+            "ErrorState",
+            "LoadingState"
+          ],
+          "functions": [
+            {
+              "name": "EmptyState",
+              "line_start": 29,
+              "line_end": 37,
+              "hash": "61f322c64bd76467"
+            },
+            {
+              "name": "ErrorState",
+              "line_start": 15,
+              "line_end": 27,
+              "hash": "5c6a945790fb5dca"
+            },
+            {
+              "name": "LoadingState",
+              "line_start": 6,
+              "line_end": 13,
+              "hash": "1610c5904f7b366c"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "EmptyState",
+              "line_start": 29,
+              "line_end": 37,
+              "hash": "61f322c64bd76467",
+              "kind": "function"
+            },
+            {
+              "name": "ErrorState",
+              "line_start": 15,
+              "line_end": 27,
+              "hash": "5c6a945790fb5dca",
+              "kind": "function"
+            },
+            {
+              "name": "LoadingState",
+              "line_start": 6,
+              "line_end": 13,
+              "hash": "1610c5904f7b366c",
+              "kind": "function"
+            }
+          ]
+        },
+        {
+          "path": "frontend/src/components/Tabs.tsx",
+          "language": "typescript",
+          "imports": [],
+          "exports": [
+            "TabItem",
+            "Tabs"
+          ],
+          "functions": [
+            {
+              "name": "Tabs",
+              "line_start": 13,
+              "line_end": 30,
+              "hash": "86cff60cbfe9bc45"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "Tabs",
+              "line_start": 13,
+              "line_end": 30,
+              "hash": "86cff60cbfe9bc45",
+              "kind": "function"
+            }
+          ]
+        },
+        {
+          "path": "frontend/src/components/TopBar.tsx",
+          "language": "typescript",
+          "imports": [
+            "./Icon",
+            "react"
+          ],
+          "exports": [
+            "TopBar"
+          ],
+          "functions": [
+            {
+              "name": "TopBar",
+              "line_start": 9,
+              "line_end": 29,
+              "hash": "96eb87050811dc11"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "TopBar",
+              "line_start": 9,
+              "line_end": 29,
+              "hash": "96eb87050811dc11",
               "kind": "function"
             }
           ]
@@ -2434,11 +2819,705 @@
           "language": "typescript",
           "imports": [
             "./App",
+            "./styles.css",
             "react",
             "react-dom/client"
           ],
           "exports": [],
           "functions": [],
+          "classes": [],
+          "components": []
+        },
+        {
+          "path": "frontend/src/routes.ts",
+          "language": "typescript",
+          "imports": [],
+          "exports": [
+            "AssetTab",
+            "Route"
+          ],
+          "functions": [],
+          "classes": [],
+          "components": []
+        },
+        {
+          "path": "frontend/src/screens/CheckInScreen.tsx",
+          "language": "typescript",
+          "imports": [
+            "../api/client",
+            "../api/types",
+            "../components/Icon",
+            "../components/StateView",
+            "../utils/assetType",
+            "../utils/format",
+            "../utils/health",
+            "../utils/useAsync",
+            "react"
+          ],
+          "exports": [
+            "CheckInScreen"
+          ],
+          "functions": [
+            {
+              "name": "CheckInScreen",
+              "line_start": 16,
+              "line_end": 278,
+              "hash": "8315fb2fc7bbab21"
+            },
+            {
+              "name": "FlagRow",
+              "line_start": 280,
+              "line_end": 314,
+              "hash": "b625656bfcd1e8ad"
+            },
+            {
+              "name": "RowKV",
+              "line_start": 316,
+              "line_end": 327,
+              "hash": "5b2cd9af20e61b05"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "CheckInScreen",
+              "line_start": 16,
+              "line_end": 278,
+              "hash": "8315fb2fc7bbab21",
+              "kind": "function"
+            },
+            {
+              "name": "FlagRow",
+              "line_start": 280,
+              "line_end": 314,
+              "hash": "b625656bfcd1e8ad",
+              "kind": "function"
+            },
+            {
+              "name": "RowKV",
+              "line_start": 316,
+              "line_end": 327,
+              "hash": "5b2cd9af20e61b05",
+              "kind": "function"
+            }
+          ]
+        },
+        {
+          "path": "frontend/src/screens/CostsScreen.tsx",
+          "language": "typescript",
+          "imports": [
+            "../api/client",
+            "../api/types",
+            "../components/Icon",
+            "../components/StateView",
+            "../utils/format",
+            "../utils/health",
+            "../utils/useAsync",
+            "react"
+          ],
+          "exports": [
+            "CostsScreen"
+          ],
+          "functions": [
+            {
+              "name": "ActiveToggle",
+              "line_start": 611,
+              "line_end": 618,
+              "hash": "224a99abecc2bb37"
+            },
+            {
+              "name": "CostsScreen",
+              "line_start": 17,
+              "line_end": 118,
+              "hash": "231c42a61e336d66"
+            },
+            {
+              "name": "EditActions",
+              "line_start": 586,
+              "line_end": 609,
+              "hash": "80b11c488766f2f9"
+            },
+            {
+              "name": "LabeledInput",
+              "line_start": 553,
+              "line_end": 572,
+              "hash": "7f8fe7d5b0379745"
+            },
+            {
+              "name": "LabeledMoney",
+              "line_start": 574,
+              "line_end": 584,
+              "hash": "2fd6ac9280c6f385"
+            },
+            {
+              "name": "MaintCreateRow",
+              "line_start": 514,
+              "line_end": 550,
+              "hash": "fe5e20e991bfec62"
+            },
+            {
+              "name": "MaintEditRow",
+              "line_start": 473,
+              "line_end": 512,
+              "hash": "8d69cd34acd7cb68"
+            },
+            {
+              "name": "MaintTable",
+              "line_start": 411,
+              "line_end": 471,
+              "hash": "b24812710ef53370"
+            },
+            {
+              "name": "TimeCreateRow",
+              "line_start": 257,
+              "line_end": 299,
+              "hash": "f924ba158248ab57"
+            },
+            {
+              "name": "TimeEditRow",
+              "line_start": 200,
+              "line_end": 255,
+              "hash": "8d2af21d0bb672a5"
+            },
+            {
+              "name": "TimeTable",
+              "line_start": 141,
+              "line_end": 198,
+              "hash": "4edfc53b2fbd733e"
+            },
+            {
+              "name": "UsageCreateRow",
+              "line_start": 383,
+              "line_end": 408,
+              "hash": "e1fef820bfe9e939"
+            },
+            {
+              "name": "UsageEditRow",
+              "line_start": 351,
+              "line_end": 381,
+              "hash": "1f7b8faf9250e665"
+            },
+            {
+              "name": "UsageTable",
+              "line_start": 302,
+              "line_end": 349,
+              "hash": "892dbf9120d8fe9e"
+            },
+            {
+              "name": "useMutation",
+              "line_start": 121,
+              "line_end": 138,
+              "hash": "55446c98ea91f0cb"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "ActiveToggle",
+              "line_start": 611,
+              "line_end": 618,
+              "hash": "224a99abecc2bb37",
+              "kind": "function"
+            },
+            {
+              "name": "CostsScreen",
+              "line_start": 17,
+              "line_end": 118,
+              "hash": "231c42a61e336d66",
+              "kind": "function"
+            },
+            {
+              "name": "EditActions",
+              "line_start": 586,
+              "line_end": 609,
+              "hash": "80b11c488766f2f9",
+              "kind": "function"
+            },
+            {
+              "name": "LabeledInput",
+              "line_start": 553,
+              "line_end": 572,
+              "hash": "7f8fe7d5b0379745",
+              "kind": "function"
+            },
+            {
+              "name": "LabeledMoney",
+              "line_start": 574,
+              "line_end": 584,
+              "hash": "2fd6ac9280c6f385",
+              "kind": "function"
+            },
+            {
+              "name": "MaintCreateRow",
+              "line_start": 514,
+              "line_end": 550,
+              "hash": "fe5e20e991bfec62",
+              "kind": "function"
+            },
+            {
+              "name": "MaintEditRow",
+              "line_start": 473,
+              "line_end": 512,
+              "hash": "8d69cd34acd7cb68",
+              "kind": "function"
+            },
+            {
+              "name": "MaintTable",
+              "line_start": 411,
+              "line_end": 471,
+              "hash": "b24812710ef53370",
+              "kind": "function"
+            },
+            {
+              "name": "TimeCreateRow",
+              "line_start": 257,
+              "line_end": 299,
+              "hash": "f924ba158248ab57",
+              "kind": "function"
+            },
+            {
+              "name": "TimeEditRow",
+              "line_start": 200,
+              "line_end": 255,
+              "hash": "8d2af21d0bb672a5",
+              "kind": "function"
+            },
+            {
+              "name": "TimeTable",
+              "line_start": 141,
+              "line_end": 198,
+              "hash": "4edfc53b2fbd733e",
+              "kind": "function"
+            },
+            {
+              "name": "UsageCreateRow",
+              "line_start": 383,
+              "line_end": 408,
+              "hash": "e1fef820bfe9e939",
+              "kind": "function"
+            },
+            {
+              "name": "UsageEditRow",
+              "line_start": 351,
+              "line_end": 381,
+              "hash": "1f7b8faf9250e665",
+              "kind": "function"
+            },
+            {
+              "name": "UsageTable",
+              "line_start": 302,
+              "line_end": 349,
+              "hash": "892dbf9120d8fe9e",
+              "kind": "function"
+            }
+          ]
+        },
+        {
+          "path": "frontend/src/screens/DashboardScreen.tsx",
+          "language": "typescript",
+          "imports": [
+            "../api/client",
+            "../api/types",
+            "../components/Icon",
+            "../components/Illustrations",
+            "../components/Sparkline",
+            "../components/StateView",
+            "../utils/assetType",
+            "../utils/format",
+            "../utils/health",
+            "../utils/useAsync",
+            "react"
+          ],
+          "exports": [
+            "DashboardScreen"
+          ],
+          "functions": [
+            {
+              "name": "DashboardScreen",
+              "line_start": 24,
+              "line_end": 209,
+              "hash": "657f3792e475a356"
+            },
+            {
+              "name": "MaintRow",
+              "line_start": 211,
+              "line_end": 240,
+              "hash": "7c53fdec4e689bb4"
+            },
+            {
+              "name": "TxRow",
+              "line_start": 242,
+              "line_end": 272,
+              "hash": "d49f8a1bd5076dc8"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "DashboardScreen",
+              "line_start": 24,
+              "line_end": 209,
+              "hash": "657f3792e475a356",
+              "kind": "function"
+            },
+            {
+              "name": "MaintRow",
+              "line_start": 211,
+              "line_end": 240,
+              "hash": "7c53fdec4e689bb4",
+              "kind": "function"
+            },
+            {
+              "name": "TxRow",
+              "line_start": 242,
+              "line_end": 272,
+              "hash": "d49f8a1bd5076dc8",
+              "kind": "function"
+            }
+          ]
+        },
+        {
+          "path": "frontend/src/screens/HomeScreen.tsx",
+          "language": "typescript",
+          "imports": [
+            "../api/types",
+            "../components/Icon",
+            "../components/Illustrations",
+            "../utils/assetType",
+            "../utils/format",
+            "../utils/health"
+          ],
+          "exports": [
+            "HomeScreen"
+          ],
+          "functions": [
+            {
+              "name": "BucketCard",
+              "line_start": 107,
+              "line_end": 141,
+              "hash": "93a63a4d6771d4a5"
+            },
+            {
+              "name": "HomeScreen",
+              "line_start": 14,
+              "line_end": 105,
+              "hash": "382e694c50f0995e"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "BucketCard",
+              "line_start": 107,
+              "line_end": 141,
+              "hash": "93a63a4d6771d4a5",
+              "kind": "function"
+            },
+            {
+              "name": "HomeScreen",
+              "line_start": 14,
+              "line_end": 105,
+              "hash": "382e694c50f0995e",
+              "kind": "function"
+            }
+          ]
+        },
+        {
+          "path": "frontend/src/screens/NewBucketScreen.tsx",
+          "language": "typescript",
+          "imports": [
+            "../api/client",
+            "../api/types",
+            "../components/Icon",
+            "../components/Illustrations",
+            "../utils/assetType",
+            "../utils/format",
+            "react"
+          ],
+          "exports": [
+            "NewBucketScreen"
+          ],
+          "functions": [
+            {
+              "name": "CostRow",
+              "line_start": 406,
+              "line_end": 441,
+              "hash": "85497a4c0db63c98"
+            },
+            {
+              "name": "NewBucketScreen",
+              "line_start": 64,
+              "line_end": 184,
+              "hash": "c83a95dc50856be4"
+            },
+            {
+              "name": "Step1",
+              "line_start": 234,
+              "line_end": 258,
+              "hash": "49ab12fc7d0f3473"
+            },
+            {
+              "name": "Step2",
+              "line_start": 268,
+              "line_end": 339,
+              "hash": "d94da0267e6471fa"
+            },
+            {
+              "name": "Step3",
+              "line_start": 341,
+              "line_end": 404,
+              "hash": "37261bfdc1a616d4"
+            },
+            {
+              "name": "Step4",
+              "line_start": 443,
+              "line_end": 554,
+              "hash": "117b337931e2c15e"
+            },
+            {
+              "name": "WizardSteps",
+              "line_start": 214,
+              "line_end": 232,
+              "hash": "6f243b2ca17d5fd9"
+            },
+            {
+              "name": "buildCreateRequest",
+              "line_start": 186,
+              "line_end": 206,
+              "hash": "197880c2313a72d5"
+            },
+            {
+              "name": "draft",
+              "line_start": 56,
+              "line_end": 58,
+              "hash": "deedf4693bb5e619"
+            },
+            {
+              "name": "periodDays",
+              "line_start": 60,
+              "line_end": 62,
+              "hash": "59a638544d32173e"
+            },
+            {
+              "name": "subtitleFromMeta",
+              "line_start": 208,
+              "line_end": 212,
+              "hash": "c96ccc23945292b7"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "CostRow",
+              "line_start": 406,
+              "line_end": 441,
+              "hash": "85497a4c0db63c98",
+              "kind": "function"
+            },
+            {
+              "name": "NewBucketScreen",
+              "line_start": 64,
+              "line_end": 184,
+              "hash": "c83a95dc50856be4",
+              "kind": "function"
+            },
+            {
+              "name": "Step1",
+              "line_start": 234,
+              "line_end": 258,
+              "hash": "49ab12fc7d0f3473",
+              "kind": "function"
+            },
+            {
+              "name": "Step2",
+              "line_start": 268,
+              "line_end": 339,
+              "hash": "d94da0267e6471fa",
+              "kind": "function"
+            },
+            {
+              "name": "Step3",
+              "line_start": 341,
+              "line_end": 404,
+              "hash": "37261bfdc1a616d4",
+              "kind": "function"
+            },
+            {
+              "name": "Step4",
+              "line_start": 443,
+              "line_end": 554,
+              "hash": "117b337931e2c15e",
+              "kind": "function"
+            },
+            {
+              "name": "WizardSteps",
+              "line_start": 214,
+              "line_end": 232,
+              "hash": "6f243b2ca17d5fd9",
+              "kind": "function"
+            }
+          ]
+        },
+        {
+          "path": "frontend/src/utils/assetType.ts",
+          "language": "typescript",
+          "imports": [],
+          "exports": [
+            "IlloKind",
+            "illoBg",
+            "illoKind",
+            "tracksUsage"
+          ],
+          "functions": [
+            {
+              "name": "illoBg",
+              "line_start": 15,
+              "line_end": 17,
+              "hash": "f9579a63f619dd31"
+            },
+            {
+              "name": "illoKind",
+              "line_start": 7,
+              "line_end": 13,
+              "hash": "00119e2a23e65fb2"
+            },
+            {
+              "name": "tracksUsage",
+              "line_start": 21,
+              "line_end": 23,
+              "hash": "aa3dd6fd4e9ef8e7"
+            }
+          ],
+          "classes": [],
+          "components": []
+        },
+        {
+          "path": "frontend/src/utils/format.ts",
+          "language": "typescript",
+          "imports": [],
+          "exports": [
+            "daysBetween",
+            "fmtDate",
+            "fmtDateShort",
+            "fmtMoney",
+            "fmtMonthYear",
+            "fmtNumber",
+            "intervalDays",
+            "mockNextAllocation",
+            "todayIso"
+          ],
+          "functions": [
+            {
+              "name": "daysBetween",
+              "line_start": 29,
+              "line_end": 31,
+              "hash": "b3e4f01a47f6a50d"
+            },
+            {
+              "name": "fmtDate",
+              "line_start": 17,
+              "line_end": 19,
+              "hash": "5ad02f6bc8d4af87"
+            },
+            {
+              "name": "fmtDateShort",
+              "line_start": 21,
+              "line_end": 23,
+              "hash": "d34ff5e0e7d1f3bc"
+            },
+            {
+              "name": "fmtMoney",
+              "line_start": 3,
+              "line_end": 11,
+              "hash": "1a34d6b087943ebf"
+            },
+            {
+              "name": "fmtMonthYear",
+              "line_start": 25,
+              "line_end": 27,
+              "hash": "791f815c9c8f926d"
+            },
+            {
+              "name": "fmtNumber",
+              "line_start": 13,
+              "line_end": 15,
+              "hash": "609da05af3d1790f"
+            },
+            {
+              "name": "intervalDays",
+              "line_start": 38,
+              "line_end": 40,
+              "hash": "77230a5a103315fb"
+            },
+            {
+              "name": "mockNextAllocation",
+              "line_start": 45,
+              "line_end": 50,
+              "hash": "d11d7a5be83ed23d"
+            },
+            {
+              "name": "todayIso",
+              "line_start": 33,
+              "line_end": 35,
+              "hash": "3f701192663f5451"
+            }
+          ],
+          "classes": [],
+          "components": []
+        },
+        {
+          "path": "frontend/src/utils/health.ts",
+          "language": "typescript",
+          "imports": [
+            "../api/types"
+          ],
+          "exports": [
+            "healthBand",
+            "healthPill",
+            "maintenancePill"
+          ],
+          "functions": [
+            {
+              "name": "healthBand",
+              "line_start": 11,
+              "line_end": 15,
+              "hash": "12f9092bb33abe27"
+            },
+            {
+              "name": "healthPill",
+              "line_start": 4,
+              "line_end": 8,
+              "hash": "de90e3cfc5c901ae"
+            },
+            {
+              "name": "maintenancePill",
+              "line_start": 19,
+              "line_end": 30,
+              "hash": "8c049c0bb2381976"
+            }
+          ],
+          "classes": [],
+          "components": []
+        },
+        {
+          "path": "frontend/src/utils/useAsync.ts",
+          "language": "typescript",
+          "imports": [
+            "../api/client",
+            "react"
+          ],
+          "exports": [
+            "AsyncState",
+            "useAsync"
+          ],
+          "functions": [
+            {
+              "name": "useAsync",
+              "line_start": 14,
+              "line_end": 44,
+              "hash": "8c5bc7fe92b18ac1"
+            }
+          ],
           "classes": [],
           "components": []
         }
