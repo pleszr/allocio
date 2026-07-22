@@ -1,0 +1,225 @@
+// TypeScript mirrors of the backend's Pydantic response/request shapes.
+// FastAPI serializes Decimal via jsonable_encoder as JSON numbers, so money
+// fields are `number` here. Dates are ISO "YYYY-MM-DD" strings; UUIDs are strings.
+
+export type Health = "underfunded" | "healthy" | "overflowing";
+export type MaintenanceStatus = "ok" | "soon" | "due" | "overdue";
+export type IntervalUnit = "months" | "years";
+export type TireType = "summer" | "winter" | "all_season";
+export type ExpenseKind = "modeled" | "other";
+export type ExpenseSourceType = "time_based_cost" | "usage_based_cost" | "maintenance_item";
+
+// ── Workspace overview (GET /api/assets) ──────────────────────────────
+export interface AssetSummary {
+  id: string;
+  type: string;
+  name: string;
+  subtitle: string | null;
+  status: string;
+  currency: string;
+  balance: number;
+  recommended_monthly_allocation: number;
+  health: Health;
+}
+
+export interface WorkspaceTotals {
+  total_balance: number;
+  total_recommended_monthly_allocation: number;
+  alert_count: number;
+}
+
+export interface WorkspaceOverview {
+  assets: AssetSummary[];
+  totals: WorkspaceTotals;
+}
+
+// ── Asset detail (GET /api/assets/{id}) ───────────────────────────────
+export interface MaintenanceItem {
+  id: string;
+  asset_id: string;
+  label: string;
+  technical_key: string | null;
+  interval_km: number | null;
+  interval_months: number | null;
+  last_serviced_at_date: string | null;
+  last_serviced_at_odometer: number | null;
+  tire_type: string | null;
+  estimated_cost: number | null;
+  notes: string | null;
+  is_active: boolean;
+  status: MaintenanceStatus | null;
+  km_since_service: number | null;
+  months_since_service: number | null;
+  km_progress: number | null;
+  month_progress: number | null;
+  remaining_km: number | null;
+  remaining_months: number | null;
+}
+
+export interface ActivityItem {
+  event_date: string;
+  kind: "allocation" | "expense";
+  label: string;
+  amount: number;
+}
+
+export interface AssetDetail {
+  id: string;
+  type: string;
+  name: string;
+  subtitle: string | null;
+  attributes: Record<string, unknown> | null;
+  status: string;
+  currency: string;
+  balance: number;
+  recommended_monthly_allocation: number;
+  daily_accrual: number;
+  health: Health;
+  current_usage: number | null;
+  usage_since_last_check_in: number | null;
+  last_check_in_date: string | null;
+  maintenance_items: MaintenanceItem[];
+  recent_activity: ActivityItem[];
+}
+
+// ── Balance history (GET /api/assets/{id}/balance-history) ─────────────
+export interface BalancePoint {
+  month: string;
+  as_of: string;
+  balance: number;
+}
+
+export interface BalanceHistory {
+  asset_id: string;
+  currency: string;
+  points: BalancePoint[];
+}
+
+// ── Cost rows ─────────────────────────────────────────────────────────
+export interface TimeBasedCost {
+  id: string;
+  asset_id: string;
+  label: string;
+  technical_key: string | null;
+  amount: number;
+  interval_value: number;
+  interval_unit: IntervalUnit;
+  first_due_date: string | null;
+  next_due_date: string | null;
+  notes: string | null;
+  is_active: boolean;
+}
+
+export interface UsageBasedCost {
+  id: string;
+  asset_id: string;
+  label: string;
+  technical_key: string | null;
+  amount_per_unit: number;
+  usage_unit: string;
+  currency: string;
+  notes: string | null;
+  is_active: boolean;
+}
+
+// ── Check-in preview / post ───────────────────────────────────────────
+export interface AllocationLine {
+  source_type: string;
+  source_id: string | null;
+  label: string;
+  amount: number;
+}
+
+export interface ExpenseLine {
+  kind: ExpenseKind;
+  amount: number;
+  event_date: string;
+  comment: string | null;
+  source_type: string | null;
+  source_id: string | null;
+  usage_counter_at_event: number | null;
+}
+
+export interface CheckInPreview {
+  asset_id: string;
+  period_start: string;
+  period_end: string;
+  usage_start: number;
+  usage_end: number;
+  elapsed_days: number;
+  usage_amount: number;
+  active_tire_type: string | null;
+  allocation_lines: AllocationLine[];
+  expense_lines: ExpenseLine[];
+  balance_before: number;
+  total_allocation: number;
+  total_expense: number;
+  net_bucket_change: number;
+  balance_after: number;
+}
+
+// ── Request bodies ────────────────────────────────────────────────────
+export interface VehicleDetailsInput {
+  year?: number | null;
+  make?: string | null;
+  model?: string | null;
+  starting_odometer?: number;
+}
+
+export interface CreateAssetRequest {
+  name: string;
+  type?: string | null;
+  template?: "vehicle" | null;
+  vehicle?: VehicleDetailsInput | null;
+  subtitle?: string | null;
+  attributes?: Record<string, string | number | boolean | null> | null;
+}
+
+export interface CreateAssetResponse {
+  asset: { id: string; type: string; name: string; subtitle: string | null };
+}
+
+export interface CreateTimeBasedCostRequest {
+  label: string;
+  amount: number;
+  interval_value: number;
+  interval_unit: IntervalUnit;
+  first_due_date?: string | null;
+  notes?: string | null;
+}
+
+export interface CreateUsageBasedCostRequest {
+  label: string;
+  amount_per_unit: number;
+  usage_unit?: string;
+  notes?: string | null;
+}
+
+export interface CreateMaintenanceItemRequest {
+  label: string;
+  interval_km?: number | null;
+  interval_months?: number | null;
+  last_serviced_at_date?: string | null;
+  last_serviced_at_odometer?: number | null;
+  estimated_cost?: number | null;
+  tire_type?: TireType | null;
+  notes?: string | null;
+}
+
+export interface ExpenseDraft {
+  kind: ExpenseKind;
+  amount: number;
+  event_date?: string | null;
+  usage_counter_at_event?: number | null;
+  comment?: string | null;
+  source_type?: ExpenseSourceType | null;
+  source_id?: string | null;
+}
+
+export interface CheckInBody {
+  period_end: string;
+  usage_end: number;
+  active_tire_type?: TireType | null;
+  expenses?: ExpenseDraft[];
+  notes?: string | null;
+}
