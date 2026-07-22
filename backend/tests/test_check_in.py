@@ -4,10 +4,15 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi.testclient import TestClient
 
+from app.domain.vehicle_defaults import vehicle_catalog_keys
+
+# These scenarios exercise check-in accrual over the full seeded cost set, so select every
+# catalog row at creation (the picker itself is covered by the asset-creation/catalog tests).
 VALID_VEHICLE = {
     "name": "My Car",
     "template": "vehicle",
     "vehicle": {"year": 2018, "make": "Toyota", "model": "Corolla", "starting_odometer": 120000},
+    "selected_cost_keys": sorted(vehicle_catalog_keys()),
 }
 STARTING_ODOMETER = 120000
 FUTURE_END = str(date.today() + timedelta(days=30))

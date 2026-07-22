@@ -351,6 +351,48 @@ class AssetDetailResponse(BaseModel):
     )
 
 
+class TemplateTimeBasedCostItem(BaseModel):
+    """One pickable time-based cost row in a template catalog."""
+
+    technical_key: str = Field(description="Stable template key identifying this cost.", examples=["comprehensive_insurance"])
+    label: str = Field(description="Human-readable cost label.", examples=["Comprehensive insurance"])
+    amount: Decimal = Field(description="Default cost amount per interval.")
+    interval_value: int = Field(description="Number of interval units between occurrences.", examples=[12])
+    interval_unit: str = Field(description="Unit of the recurrence interval.", examples=["months"])
+
+
+class TemplateUsageBasedCostItem(BaseModel):
+    """The pickable usage-based reserve row in a template catalog."""
+
+    technical_key: str = Field(description="Stable template key identifying this reserve.", examples=["usage_based_reserve"])
+    label: str = Field(description="Human-readable reserve label.", examples=["Usage-based reserve"])
+    amount_per_unit: Decimal = Field(description="Default reserve amount accrued per usage unit.")
+    usage_unit: str = Field(description="Unit the reserve accrues per (e.g. km).", examples=["km"])
+    currency: str = Field(description="ISO currency code for the reserve.", examples=["HUF"])
+
+
+class TemplateMaintenanceItem(BaseModel):
+    """One pickable maintenance/replacement item in a template catalog."""
+
+    technical_key: str = Field(description="Stable template key identifying this item.", examples=["all_season_tires"])
+    label: str = Field(description="Human-readable item label.", examples=["All-season tires"])
+    interval_km: int | None = Field(description="Kilometer interval between services, if any.", examples=[50000])
+    interval_months: int | None = Field(description="Month interval between services, if any.", examples=[36])
+    tire_type: str | None = Field(description="Tire type for tire items, if applicable.", examples=["all_season"])
+    estimated_cost: Decimal | None = Field(description="Estimated cost of the item, if known.")
+
+
+class AssetTemplateCatalogResponse(BaseModel):
+    """The complete pickable default cost set for a creation template, grouped for the picker UI."""
+
+    template_key: str = Field(description="The template whose catalog this is.", examples=["vehicle"])
+    time_based_costs: list[TemplateTimeBasedCostItem] = Field(description="Pickable recurring time-based cost rows.")
+    usage_based_costs: list[TemplateUsageBasedCostItem] = Field(
+        description="Pickable per-usage-unit reserve rows (a list for a uniform client shape; vehicle has one)."
+    )
+    maintenance_items: list[TemplateMaintenanceItem] = Field(description="Pickable maintenance/replacement item rows.")
+
+
 class CreateAssetResponse(BaseModel):
     """Full record set returned after creating an asset, so a client can render it without a refetch.
 

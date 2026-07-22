@@ -63,6 +63,24 @@ class CreateAssetRequest(BaseModel):
         description="Opaque free-form detail object for non-vehicle assets; the backend never interprets its keys.",
         examples=[{"built": "1978", "size": "85"}],
     )
+    selected_cost_keys: list[str] | None = Field(
+        default=None,
+        max_length=100,
+        description="Template cost `technical_key`s to clone. Requires a template; omit or null clones no rows. "
+        "Membership in the template catalog is validated server-side.",
+        examples=[["mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"]],
+    )
+
+    @field_validator("selected_cost_keys")
+    @classmethod
+    def _bound_selected_cost_keys(cls, value: list[str] | None) -> list[str] | None:
+        """Cap each key's length (DoS guard); catalog membership is checked in the service."""
+        if value is None:
+            return value
+        for key in value:
+            if len(key) > 60:
+                raise ValueError("selected_cost_keys entries must be at most 60 characters.")
+        return value
 
     @field_validator("attributes")
     @classmethod
@@ -87,6 +105,8 @@ class CreateAssetRequest(BaseModel):
                 raise ValueError("A template-less asset must set a type.")
             if self.vehicle is not None:
                 raise ValueError("Vehicle details require the vehicle template.")
+            if self.selected_cost_keys:
+                raise ValueError("Cost selection requires a template.")
             return self
         if self.template == "vehicle" and self.type not in (None, "vehicle"):
             raise ValueError("The vehicle template sets type to 'vehicle'; a conflicting type is not allowed.")

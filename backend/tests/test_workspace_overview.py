@@ -9,16 +9,18 @@ from app.domain.asset import Asset, Bucket
 from app.domain.calculator import quantize_currency, time_based_monthly_accrual
 from app.domain.check_in import AllocationEvent, CheckIn, ExpenseEvent
 from app.domain.cost import TimeBasedCost, UsageBasedCost
-from app.domain.vehicle_defaults import DEFAULT_TIME_BASED_COSTS
+from app.domain.vehicle_defaults import DEFAULT_TIME_BASED_COSTS, vehicle_catalog_keys
 
 # Must match conftest.TEST_USER_ID (the user the TestClient authenticates as).
 TEST_USER_ID = uuid.UUID("11111111-1111-1111-1111-111111111111")
 OTHER_USER_ID = uuid.UUID("22222222-2222-2222-2222-222222222222")
 
+# The recommended-allocation assertion sums the full seeded time-based set, so select every key.
 VALID_VEHICLE = {
     "name": "My Car",
     "template": "vehicle",
     "vehicle": {"year": 2018, "make": "Toyota", "model": "Corolla", "starting_odometer": 120000},
+    "selected_cost_keys": sorted(vehicle_catalog_keys()),
 }
 
 

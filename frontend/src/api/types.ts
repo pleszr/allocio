@@ -158,6 +158,42 @@ export interface CheckInPreview {
   balance_after: number;
 }
 
+// ── Template catalog (GET /api/asset-templates/{key}/catalog) ─────────
+// Money fields (amount, amount_per_unit, estimated_cost) are `number` here
+// because the client reviver coerces the backend's Decimal strings. Interval
+// fields arrive as JSON numbers already.
+export interface TemplateTimeBasedCostItem {
+  technical_key: string;
+  label: string;
+  amount: number;
+  interval_value: number;
+  interval_unit: IntervalUnit;
+}
+
+export interface TemplateUsageBasedCostItem {
+  technical_key: string;
+  label: string;
+  amount_per_unit: number;
+  usage_unit: string;
+  currency: string;
+}
+
+export interface TemplateMaintenanceItem {
+  technical_key: string;
+  label: string;
+  interval_km: number | null;
+  interval_months: number | null;
+  tire_type: string | null;
+  estimated_cost: number | null;
+}
+
+export interface AssetTemplateCatalog {
+  template_key: string;
+  time_based_costs: TemplateTimeBasedCostItem[];
+  usage_based_costs: TemplateUsageBasedCostItem[];
+  maintenance_items: TemplateMaintenanceItem[];
+}
+
 // ── Request bodies ────────────────────────────────────────────────────
 export interface VehicleDetailsInput {
   year?: number | null;
@@ -173,6 +209,7 @@ export interface CreateAssetRequest {
   vehicle?: VehicleDetailsInput | null;
   subtitle?: string | null;
   attributes?: Record<string, string | number | boolean | null> | null;
+  selected_cost_keys?: string[] | null;
 }
 
 export interface CreateAssetResponse {

@@ -1,8 +1,9 @@
-"""Authoritative default vehicle templates and a deterministic clone builder.
+"""Authoritative default vehicle templates and a deterministic selective clone builder.
 
 The templates are pure data (no SQLAlchemy import) so the authoritative source stays
-portable and versioned in git. `build_default_rows` bridges them to unsaved ORM rows for
-one asset; the asset-creation service owns persistence when the vehicle template is applied.
+portable and versioned in git. `build_selected_rows` bridges the chosen templates to unsaved
+ORM rows for one asset; the asset-creation service owns persistence when the vehicle template
+is applied. `vehicle_catalog_keys` is the source of truth for which keys are pickable.
 """
 
 import uuid
@@ -79,13 +80,26 @@ DEFAULT_MAINTENANCE_ITEMS: tuple[MaintenanceItemTemplate, ...] = (
 )
 
 
-def build_default_rows(
-    asset_id: uuid.UUID,
-) -> tuple[list[TimeBasedCost], list[UsageBasedCost], list[MaintenanceItem]]:
-    """Clone the default templates into unsaved ORM rows for one asset.
+def vehicle_catalog_keys() -> frozenset[str]:
+    """Return every pickable `technical_key` across the vehicle catalog's three groups.
 
-    Returns time-based, usage-based, and maintenance rows in template order with identical
-    field values on every call. Does not open a session or persist anything.
+    This is the validation set for a caller's selection and the single source of truth for
+    "what is pickable" — the read service and the create service both derive from it.
+    """
+    keys = {template.technical_key for template in DEFAULT_TIME_BASED_COSTS}
+    keys.add(DEFAULT_USAGE_BASED_COST.technical_key)
+    keys.update(template.technical_key for template in DEFAULT_MAINTENANCE_ITEMS)
+    return frozenset(keys)
+
+
+def build_selected_rows(
+    asset_id: uuid.UUID, selected_keys: set[str]
+) -> tuple[list[TimeBasedCost], list[UsageBasedCost], list[MaintenanceItem]]:
+    """Clone only the selected default templates into unsaved ORM rows for one asset.
+
+    A template row is cloned only when its `technical_key` is in `selected_keys`, preserving
+    template order within each group. An empty `selected_keys` returns three empty lists. Field
+    mapping is deterministic; does not open a session or persist anything.
     """
     time_based = [
         TimeBasedCost(
@@ -98,18 +112,21 @@ def build_default_rows(
             is_active=True,
         )
         for template in DEFAULT_TIME_BASED_COSTS
+        if template.technical_key in selected_keys
     ]
-    usage_based = [
-        UsageBasedCost(
-            asset_id=asset_id,
-            label=DEFAULT_USAGE_BASED_COST.label,
-            technical_key=DEFAULT_USAGE_BASED_COST.technical_key,
-            amount_per_unit=DEFAULT_USAGE_BASED_COST.amount_per_unit,
-            usage_unit=DEFAULT_USAGE_BASED_COST.usage_unit,
-            currency=DEFAULT_USAGE_BASED_COST.currency,
-            is_active=True,
+    usage_based: list[UsageBasedCost] = []
+    if DEFAULT_USAGE_BASED_COST.technical_key in selected_keys:
+        usage_based.append(
+            UsageBasedCost(
+                asset_id=asset_id,
+                label=DEFAULT_USAGE_BASED_COST.label,
+                technical_key=DEFAULT_USAGE_BASED_COST.technical_key,
+                amount_per_unit=DEFAULT_USAGE_BASED_COST.amount_per_unit,
+                usage_unit=DEFAULT_USAGE_BASED_COST.usage_unit,
+                currency=DEFAULT_USAGE_BASED_COST.currency,
+                is_active=True,
+            )
         )
-    ]
     maintenance = [
         MaintenanceItem(
             asset_id=asset_id,
@@ -122,5 +139,6 @@ def build_default_rows(
             is_active=True,
         )
         for template in DEFAULT_MAINTENANCE_ITEMS
+        if template.technical_key in selected_keys
     ]
     return time_based, usage_based, maintenance

@@ -3,10 +3,14 @@ from datetime import date
 
 from fastapi.testclient import TestClient
 
+from app.domain.vehicle_defaults import vehicle_catalog_keys
+
+# Cost-management scenarios edit the seeded rows, so clone the full catalog at creation.
 VALID_VEHICLE = {
     "name": "My Car",
     "template": "vehicle",
     "vehicle": {"year": 2018, "make": "Toyota", "model": "Corolla", "starting_odometer": 120000},
+    "selected_cost_keys": sorted(vehicle_catalog_keys()),
 }
 
 

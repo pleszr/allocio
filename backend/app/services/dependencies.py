@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.db import get_session
 from app.services.asset_detail_service import AssetDetailService
 from app.services.asset_service import AssetService
+from app.services.asset_template_service import AssetTemplateService
 from app.services.balance_history_service import BalanceHistoryService
 from app.services.check_in_service import CheckInService
 from app.services.cost_service import CostService
@@ -54,3 +55,8 @@ def get_balance_history_service(session: Session = Depends(get_session)) -> Bala
 def get_asset_detail_service(session: Session = Depends(get_session)) -> AssetDetailService:
     """Provide an `AssetDetailService` for the read-only asset detail route over the request-scoped session."""
     return AssetDetailService(session)
+
+
+def get_asset_template_service() -> AssetTemplateService:
+    """Provide an `AssetTemplateService` for the template-catalog read route; the catalog is static, no session."""
+    return AssetTemplateService()

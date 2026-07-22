@@ -4,6 +4,7 @@
 
 import type {
   AssetDetail,
+  AssetTemplateCatalog,
   BalanceHistory,
   CheckInBody,
   CheckInPreview,
@@ -116,6 +117,10 @@ export const api = {
     request<MaintenanceItem>(`/assets/${id}/maintenance-items`, { method: "POST", ...body(data) }),
   updateMaintenanceItem: (id: string, itemId: string, data: Partial<MaintenanceItem>) =>
     request<MaintenanceItem>(`/assets/${id}/maintenance-items/${itemId}`, { method: "PATCH", ...body(data) }),
+
+  // Template catalog (drives the vehicle cost picker at creation)
+  getTemplateCatalog: (templateKey: string) =>
+    request<AssetTemplateCatalog>(`/asset-templates/${templateKey}/catalog`),
 
   // Create asset
   createAsset: (data: CreateAssetRequest) =>
