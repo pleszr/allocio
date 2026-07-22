@@ -140,6 +140,7 @@ Return sections in this exact order:
 - Note that a gitleaks pre-commit hook runs on every commit. If it blocks a commit, the executing agent must surface the finding to Roland instead of bypassing it (`--no-verify` is hook-blocked).
 - Do not require commands or tools that the repo does not support today.
 - If the change spans frontend and backend, include verification for both sides.
+- End with a local dev-stack restart step so Roland can manually test the merged change: after CI is green, restart the running local servers — the backend with `cd backend && uv run uvicorn app.main:app --reload` and, if frontend runtime changed, the Vite dev server with `cd frontend && npm run dev`. A long-lived dev server started before the change will otherwise serve stale code and hide the change during manual testing. Note that `uvicorn --reload` does not hot-load a brand-new router module that was added after the process started (and a server launched without `--reload` reloads nothing), so a new or changed API route requires a full backend restart, not just a file save.
 
 ## Ambiguity Rules
 
