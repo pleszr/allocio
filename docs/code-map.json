@@ -2559,25 +2559,25 @@
             {
               "name": "App",
               "line_start": 18,
-              "line_end": 53,
-              "hash": "3cdf643bf82f6a64"
+              "line_end": 56,
+              "hash": "833c7846ab86844a"
             },
             {
               "name": "Content",
-              "line_start": 55,
-              "line_end": 105,
+              "line_start": 58,
+              "line_end": 108,
               "hash": "d918b469f8c71932"
             },
             {
               "name": "buildCrumbs",
-              "line_start": 107,
-              "line_end": 112,
+              "line_start": 110,
+              "line_end": 115,
               "hash": "23663b0877b8dadb"
             },
             {
               "name": "useOsTheme",
-              "line_start": 116,
-              "line_end": 126,
+              "line_start": 119,
+              "line_end": 129,
               "hash": "650066bfe2459e51"
             }
           ],
@@ -2586,14 +2586,14 @@
             {
               "name": "App",
               "line_start": 18,
-              "line_end": 53,
-              "hash": "3cdf643bf82f6a64",
+              "line_end": 56,
+              "hash": "833c7846ab86844a",
               "kind": "function"
             },
             {
               "name": "Content",
-              "line_start": 55,
-              "line_end": 105,
+              "line_start": 58,
+              "line_end": 108,
               "hash": "d918b469f8c71932",
               "kind": "function"
             }
@@ -3374,20 +3374,20 @@
           "functions": [
             {
               "name": "CatalogGroup",
-              "line_start": 629,
-              "line_end": 662,
+              "line_start": 630,
+              "line_end": 663,
               "hash": "af288f7acd299657"
             },
             {
               "name": "CatalogRow",
-              "line_start": 664,
-              "line_end": 676,
+              "line_start": 665,
+              "line_end": 677,
               "hash": "cb732551ac051385"
             },
             {
               "name": "CostRow",
-              "line_start": 678,
-              "line_end": 713,
+              "line_start": 679,
+              "line_end": 714,
               "hash": "85497a4c0db63c98"
             },
             {
@@ -3405,25 +3405,25 @@
             {
               "name": "Step2",
               "line_start": 402,
-              "line_end": 473,
-              "hash": "d94da0267e6471fa"
+              "line_end": 474,
+              "hash": "634ecc48f1b33e43"
             },
             {
               "name": "Step3",
-              "line_start": 490,
-              "line_end": 543,
+              "line_start": 491,
+              "line_end": 544,
               "hash": "30b2202b0de58ff1"
             },
             {
               "name": "Step4",
-              "line_start": 715,
-              "line_end": 832,
+              "line_start": 716,
+              "line_end": 833,
               "hash": "14508dbd5b17f2a2"
             },
             {
               "name": "VehicleCatalogPicker",
-              "line_start": 545,
-              "line_end": 627,
+              "line_start": 546,
+              "line_end": 628,
               "hash": "83e16dd2e96c1a21"
             },
             {
@@ -3479,22 +3479,22 @@
           "components": [
             {
               "name": "CatalogGroup",
-              "line_start": 629,
-              "line_end": 662,
+              "line_start": 630,
+              "line_end": 663,
               "hash": "af288f7acd299657",
               "kind": "function"
             },
             {
               "name": "CatalogRow",
-              "line_start": 664,
-              "line_end": 676,
+              "line_start": 665,
+              "line_end": 677,
               "hash": "cb732551ac051385",
               "kind": "function"
             },
             {
               "name": "CostRow",
-              "line_start": 678,
-              "line_end": 713,
+              "line_start": 679,
+              "line_end": 714,
               "hash": "85497a4c0db63c98",
               "kind": "function"
             },
@@ -3515,28 +3515,28 @@
             {
               "name": "Step2",
               "line_start": 402,
-              "line_end": 473,
-              "hash": "d94da0267e6471fa",
+              "line_end": 474,
+              "hash": "634ecc48f1b33e43",
               "kind": "function"
             },
             {
               "name": "Step3",
-              "line_start": 490,
-              "line_end": 543,
+              "line_start": 491,
+              "line_end": 544,
               "hash": "30b2202b0de58ff1",
               "kind": "function"
             },
             {
               "name": "Step4",
-              "line_start": 715,
-              "line_end": 832,
+              "line_start": 716,
+              "line_end": 833,
               "hash": "14508dbd5b17f2a2",
               "kind": "function"
             },
             {
               "name": "VehicleCatalogPicker",
-              "line_start": 545,
-              "line_end": 627,
+              "line_start": 546,
+              "line_end": 628,
               "hash": "83e16dd2e96c1a21",
               "kind": "function"
             },
@@ -3705,8 +3705,8 @@
             {
               "name": "useAsync",
               "line_start": 14,
-              "line_end": 44,
-              "hash": "8c5bc7fe92b18ac1"
+              "line_end": 51,
+              "hash": "ecbb42d10d2428e5"
             }
           ],
           "classes": [],

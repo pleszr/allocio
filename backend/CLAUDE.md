@@ -22,6 +22,11 @@ uv run uvicorn app.main:app --reload
 uv run pytest
 ```
 
+### Workflow smoke test
+
+- `tests/test_workflow_e2e.py` replays the browser's full create-bucket -> add-cost -> check-in request sequence in-process (via `TestClient`, against real Postgres using the transactional-rollback fixture in `conftest.py`). It guards the frontend/backend contract that isolated per-endpoint tests miss.
+- It runs as a pre-commit hook (`api-workflow-test` in `.pre-commit-config.yaml`) when `backend/app/` or the test changes, so Postgres must be up (`docker compose up -d`) to commit those changes. Keep it green and extend it when a workflow gains or changes an API call. Its browser counterpart is `frontend/e2e/`.
+
 ## Rules
 
 - Follow `.claude/rules/python-style.md`, `.claude/rules/python-patterns.md`, and `.claude/rules/python-anti-patterns.md`.

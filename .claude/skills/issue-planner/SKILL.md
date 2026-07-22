@@ -121,6 +121,9 @@ Return sections in this exact order:
 - `Tests`
   - State the minimum required coverage.
   - If no new tests are required, give a concrete rationale instead of omitting the section.
+  - Allocio has two end-to-end safety nets that guard the overall user workflow; a feature that changes a user-visible flow must keep both green and extend them when it adds a step:
+    - The API workflow smoke test `backend/tests/test_workflow_e2e.py` — replays the browser's request sequence in-process and runs as a pre-commit hook. Extend it when a workflow gains or changes an API call.
+    - The Playwright browser suite in `frontend/e2e/` (run manually with `cd frontend && npm run e2e`) — drives the real stack. Add or update a spec when a feature changes what the user does on screen.
 - `Acceptance Criteria`
   - Use exact commands and observable evidence.
 
@@ -130,6 +133,7 @@ Return sections in this exact order:
 - For frontend work, include `cd frontend && npm run build`.
 - For backend work, include `cd backend && uv run pytest`.
 - When DB-backed verification matters, include `docker compose up -d postgres` before backend verification commands.
+- When the change touches a user-visible workflow (creating a bucket, adding a cost, running a check-in), include the browser e2e run `cd frontend && npm run e2e` (Postgres must be up; it manages its own throwaway `allocio_e2e` database) and require the API workflow test `backend/tests/test_workflow_e2e.py` to stay green.
 - Begin the git flow with a sync step: `git fetch`, `git checkout main`, `git pull`, then create the feature branch off the freshly pulled `main` (never commit on `main`), commit with a descriptive message (letting the pre-commit hooks run), push the branch, and open a PR against `main` with `gh pr create`.
 - Require running the `pr-prep` skill and getting its proposals approved before `gh pr create`.
 - End with a CI watch-and-iterate loop: after `gh pr create` confirms the PR, watch its checks with `gh pr checks <pr> --watch`. If a check fails, read the failing job logs, fix the cause, commit, push, and re-watch until all checks are green. Fix straightforward failures (lint, type, test, build, structural-map drift) autonomously; stop and surface to Roland after ~3 unsuccessful fix cycles, or immediately if the fix is ambiguous, widens scope, or is a gitleaks/secret or infra failure the agent cannot resolve. Treat `claude-pr-prep` and `claude-review` as advisory — they never gate green.

@@ -445,6 +445,7 @@ function Step2({
           <label className="field-label">Bucket name</label>
           <input
             className="input"
+            data-testid="bucket-name-input"
             placeholder={type.kind === "car" ? "Honda Civic" : type.kind === "house" ? "Cedar St." : "Maya"}
             value={name}
             onChange={(e) => setName(e.target.value)}
