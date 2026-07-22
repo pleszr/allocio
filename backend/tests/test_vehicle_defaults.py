@@ -11,7 +11,8 @@ from app.domain.vehicle_defaults import (  # noqa: E402
     DEFAULT_MAINTENANCE_ITEMS,
     DEFAULT_TIME_BASED_COSTS,
     DEFAULT_USAGE_BASED_COST,
-    build_default_rows,
+    build_selected_rows,
+    vehicle_catalog_keys,
 )
 
 
@@ -72,25 +73,54 @@ def test_maintenance_interval_invariant_except_other():
         assert template.interval_km is not None or template.interval_months is not None
 
 
-def test_build_default_rows_counts():
-    time_based, usage_based, maintenance = build_default_rows(uuid.uuid4())
-    assert len(time_based) == 6
-    assert len(usage_based) == 1
-    assert len(maintenance) == 14
+def test_vehicle_catalog_keys_is_frozenset_of_all_keys():
+    keys = vehicle_catalog_keys()
+    assert isinstance(keys, frozenset)
+    assert len(keys) == 6 + 1 + 14
+    assert {t.technical_key for t in DEFAULT_TIME_BASED_COSTS} <= keys
+    assert DEFAULT_USAGE_BASED_COST.technical_key in keys
+    assert {m.technical_key for m in DEFAULT_MAINTENANCE_ITEMS} <= keys
 
 
-def test_build_default_rows_sets_asset_id_and_is_active():
+def test_build_selected_rows_clones_only_selected_across_groups():
+    selected = {"mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"}
+    time_based, usage_based, maintenance = build_selected_rows(uuid.uuid4(), selected)
+
+    assert [r.technical_key for r in time_based] == ["mandatory_liability_insurance"]
+    assert [r.technical_key for r in usage_based] == ["usage_based_reserve"]
+    assert [r.technical_key for r in maintenance] == ["all_season_tires"]
+
+
+def test_build_selected_rows_empty_selection_returns_three_empty_lists():
+    time_based, usage_based, maintenance = build_selected_rows(uuid.uuid4(), set())
+    assert (time_based, usage_based, maintenance) == ([], [], [])
+
+
+def test_build_selected_rows_sets_asset_id_and_is_active():
     asset_id = uuid.uuid4()
-    time_based, usage_based, maintenance = build_default_rows(asset_id)
+    selected = {"mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"}
+    time_based, usage_based, maintenance = build_selected_rows(asset_id, selected)
     for row in (*time_based, *usage_based, *maintenance):
         assert row.asset_id == asset_id
         assert row.is_active is True
 
 
-def test_build_default_rows_is_deterministic():
+def test_build_selected_rows_preserves_template_order():
+    selected = {"comprehensive_insurance", "seasonal_tire_change", "vehicle_tax"}
+    time_based, _, _ = build_selected_rows(uuid.uuid4(), selected)
+    # Template order is seasonal_tire_change, ..., comprehensive_insurance, vehicle_tax.
+    assert [r.technical_key for r in time_based] == [
+        "seasonal_tire_change",
+        "comprehensive_insurance",
+        "vehicle_tax",
+    ]
+
+
+def test_build_selected_rows_is_deterministic():
     asset_id = uuid.uuid4()
-    first = build_default_rows(asset_id)
-    second = build_default_rows(asset_id)
+    selected = {"mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"}
+    first = build_selected_rows(asset_id, selected)
+    second = build_selected_rows(asset_id, selected)
 
     def snapshot(groups):
         time_based, usage_based, maintenance = groups
@@ -106,8 +136,9 @@ def test_build_default_rows_is_deterministic():
     assert snapshot(first) == snapshot(second)
 
 
-def test_build_default_rows_field_mapping_spot_checks():
-    time_based, usage_based, maintenance = build_default_rows(uuid.uuid4())
+def test_build_selected_rows_field_mapping_spot_checks():
+    selected = {"mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"}
+    time_based, usage_based, maintenance = build_selected_rows(uuid.uuid4(), selected)
 
     liability = next(r for r in time_based if r.technical_key == "mandatory_liability_insurance")
     assert liability.amount == Decimal("50119")

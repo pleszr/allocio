@@ -1,10 +1,10 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "../api/client";
-import type { CreateAssetRequest } from "../api/types";
+import type { AssetTemplateCatalog, CreateAssetRequest } from "../api/types";
 import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
 import type { IlloKind } from "../utils/assetType";
-import { fmtNumber } from "../utils/format";
+import { fmtNumber, intervalDays } from "../utils/format";
 
 interface NewBucketScreenProps {
   onCancel: () => void;
@@ -28,20 +28,24 @@ interface TypeOption {
   assetType: string;
 }
 
+// One review line for Step 4 / the running estimate. `monthly` is null for usage-based
+// (variable) rows, which are excluded from the steady monthly figure.
+interface ReviewLine {
+  id: string;
+  name: string;
+  monthly: number | null;
+  sub: string;
+}
+
 const TYPES: TypeOption[] = [
   { kind: "car", name: "Vehicle", desc: "Car, motorcycle, or anything with an odometer.", bg: "#DDE8F8", assetType: "vehicle" },
   { kind: "house", name: "Property", desc: "House, apartment, or any place you maintain.", bg: "#F8E5E2", assetType: "house" },
   { kind: "pet", name: "Pet", desc: "A dog, cat, or another companion with recurring care.", bg: "#F8EBD8", assetType: "pet" },
 ];
 
-const SUGGESTED: Record<IlloKind, DraftCost[]> = {
-  car: [
-    draft("Insurance", "year", 1280),
-    draft("Registration", "year", 184),
-    draft("Roadside assistance", "year", 96),
-    draft("Fuel", "usage", 0.118, "km"),
-    draft("Tire wear", "usage", 0.041, "km"),
-  ],
+// Suggestions for non-vehicle types stay hardcoded (no backend catalog exists for them).
+// The vehicle path no longer uses this map — it reads the real template catalog instead.
+const SUGGESTED: Record<Exclude<IlloKind, "car">, DraftCost[]> = {
   house: [
     draft("Property tax", "year", 4200),
     draft("Home insurance", "year", 1140),
@@ -61,6 +65,30 @@ function periodDays(period: Period): number {
   return period === "usage" ? 365 : PERIOD_DAYS[period];
 }
 
+function allCatalogKeys(catalog: AssetTemplateCatalog): Set<string> {
+  return new Set([
+    ...catalog.time_based_costs.map((c) => c.technical_key),
+    ...catalog.usage_based_costs.map((c) => c.technical_key),
+    ...catalog.maintenance_items.map((m) => m.technical_key),
+  ]);
+}
+
+// Human-readable recurrence for a catalog time-based row (e.g. "/yr", "/mo", "/6 mo").
+function intervalLabel(value: number, unit: "months" | "years"): string {
+  if (unit === "months" && value === 12) return "/yr";
+  if (unit === "months" && value === 1) return "/mo";
+  if (unit === "years" && value === 1) return "/yr";
+  return `/${value} ${unit === "years" ? "yr" : "mo"}`;
+}
+
+// Human-readable interval for a catalog maintenance row (km and/or months).
+function maintenanceDetail(interval_km: number | null, interval_months: number | null): string {
+  const parts: string[] = [];
+  if (interval_km != null) parts.push(`${fmtNumber(interval_km)} km`);
+  if (interval_months != null) parts.push(`${interval_months} mo`);
+  return parts.length > 0 ? `every ${parts.join(" / ")}` : "no fixed interval";
+}
+
 export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   const [step, setStep] = useState(1);
   const [type, setType] = useState<TypeOption | null>(null);
@@ -70,13 +98,98 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const perDay = useMemo(
-    () =>
-      costs.reduce((s, c) => (c.period === "usage" ? s : s + c.amount / PERIOD_DAYS[c.period]), 0),
+  // Vehicle template catalog + the user's row selection. Owned here so it survives Back/Continue.
+  const isVehicle = type?.kind === "car";
+  const [catalog, setCatalog] = useState<AssetTemplateCatalog | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+
+  const loadCatalog = () => {
+    setCatalogLoading(true);
+    setCatalogError(null);
+    api
+      .getTemplateCatalog("vehicle")
+      .then((c) => {
+        setCatalog(c);
+        // Seed the default selection to every row the first time the catalog arrives.
+        // The effect below never re-fetches once `catalog` is set, so this seeds only once
+        // and the user's later edits are preserved across step navigation.
+        setSelectedKeys(allCatalogKeys(c));
+      })
+      .catch((err: unknown) => setCatalogError(err instanceof ApiError ? err.message : "Could not load the vehicle catalog."))
+      .finally(() => setCatalogLoading(false));
+  };
+
+  // Fetch the vehicle catalog once, as soon as the vehicle path is chosen.
+  useEffect(() => {
+    if (isVehicle && !catalog && !catalogLoading && !catalogError) loadCatalog();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVehicle]);
+
+  const toggleKey = (key: string) =>
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const setGroup = (keys: string[], on: boolean) =>
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      for (const k of keys) {
+        if (on) next.add(k);
+        else next.delete(k);
+      }
+      return next;
+    });
+
+  const catalogTimePerDay = useMemo(() => {
+    if (!isVehicle || !catalog) return 0;
+    return catalog.time_based_costs
+      .filter((c) => selectedKeys.has(c.technical_key))
+      .reduce((s, c) => s + c.amount / intervalDays(c.interval_value, c.interval_unit), 0);
+  }, [isVehicle, catalog, selectedKeys]);
+
+  const draftPerDay = useMemo(
+    () => costs.reduce((s, c) => (c.period === "usage" ? s : s + c.amount / PERIOD_DAYS[c.period]), 0),
     [costs],
   );
+
+  const perDay = draftPerDay + catalogTimePerDay;
   const monthlyEst = perDay * 30;
   const yearlyEst = perDay * 365;
+
+  // Combined review lines: selected catalog rows (vehicle) plus custom drafts.
+  const reviewTimeLines = useMemo<ReviewLine[]>(() => {
+    const lines: ReviewLine[] = [];
+    if (isVehicle && catalog) {
+      for (const c of catalog.time_based_costs) {
+        if (!selectedKeys.has(c.technical_key)) continue;
+        const perDayLine = c.amount / intervalDays(c.interval_value, c.interval_unit);
+        lines.push({ id: c.technical_key, name: c.label, monthly: perDayLine * 30, sub: `${fmtNumber(c.amount)}${intervalLabel(c.interval_value, c.interval_unit)}` });
+      }
+    }
+    for (const c of costs.filter((c) => c.period !== "usage")) {
+      lines.push({ id: c.id, name: c.name || "(unnamed)", monthly: (c.amount / periodDays(c.period)) * 30, sub: `$${c.amount.toFixed(2)} per ${c.period}` });
+    }
+    return lines;
+  }, [isVehicle, catalog, selectedKeys, costs]);
+
+  const reviewUsageLines = useMemo<ReviewLine[]>(() => {
+    const lines: ReviewLine[] = [];
+    if (isVehicle && catalog) {
+      for (const c of catalog.usage_based_costs) {
+        if (!selectedKeys.has(c.technical_key)) continue;
+        lines.push({ id: c.technical_key, name: c.label, monthly: null, sub: `${fmtNumber(c.amount_per_unit)}/${c.usage_unit}` });
+      }
+    }
+    for (const c of costs.filter((c) => c.period === "usage")) {
+      lines.push({ id: c.id, name: c.name || "(unnamed)", monthly: null, sub: `$${c.amount.toFixed(3)} per ${c.unit || "km"}` });
+    }
+    return lines;
+  }, [isVehicle, catalog, selectedKeys, costs]);
 
   const addCost = (c: DraftCost) => setCosts((arr) => [...arr, { ...c, id: Math.random().toString(36).slice(2, 8) }]);
   const removeCost = (id: string) => setCosts((arr) => arr.filter((c) => c.id !== id));
@@ -90,10 +203,11 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
     setSubmitting(true);
     setError(null);
     try {
-      const req = buildCreateRequest(type, name, meta);
+      const req = buildCreateRequest(type, name, meta, selectedKeys);
       const created = await api.createAsset(req);
       const id = created.asset.id;
-      // Post each drafted cost row individually (the API creates rows one at a time).
+      // Only genuinely custom draft rows are posted here; catalog rows are cloned server-side
+      // from `selected_cost_keys` and must NOT be double-posted.
       for (const c of costs) {
         if (c.period === "usage") {
           await api.createUsageBasedCost(id, { label: c.name || "Usage cost", amount_per_unit: c.amount, usage_unit: c.unit || "km" });
@@ -139,9 +253,27 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
             onAdd={addCost}
             onRemove={removeCost}
             onUpdate={updateCost}
+            catalog={catalog}
+            catalogLoading={catalogLoading}
+            catalogError={catalogError}
+            onRetryCatalog={loadCatalog}
+            selectedKeys={selectedKeys}
+            onToggleKey={toggleKey}
+            onSetGroup={setGroup}
           />
         )}
-        {step === 4 && <Step4 type={type!} name={name} meta={meta} costs={costs} monthlyEst={monthlyEst} yearlyEst={yearlyEst} perDay={perDay} />}
+        {step === 4 && (
+          <Step4
+            type={type!}
+            name={name}
+            meta={meta}
+            timeLines={reviewTimeLines}
+            usageLines={reviewUsageLines}
+            monthlyEst={monthlyEst}
+            yearlyEst={yearlyEst}
+            perDay={perDay}
+          />
+        )}
 
         {error && (
           <div className="error-banner" style={{ marginTop: 16 }}>
@@ -183,7 +315,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   );
 }
 
-function buildCreateRequest(type: TypeOption, name: string, meta: Record<string, string>): CreateAssetRequest {
+function buildCreateRequest(type: TypeOption, name: string, meta: Record<string, string>, selectedKeys: Set<string>): CreateAssetRequest {
   if (type.kind === "car") {
     return {
       name,
@@ -194,6 +326,8 @@ function buildCreateRequest(type: TypeOption, name: string, meta: Record<string,
         starting_odometer: meta.odometer ? Number(meta.odometer.replace(/[^\d]/g, "")) : 0,
       },
       subtitle: subtitleFromMeta(meta) || null,
+      // Catalog rows are cloned server-side from these keys; only the chosen rows are created.
+      selected_cost_keys: Array.from(selectedKeys),
     };
   }
   const attributes = Object.fromEntries(Object.entries(meta).filter(([, v]) => v.trim() !== ""));
@@ -338,41 +472,46 @@ function Step2({
   );
 }
 
-function Step3({
-  type,
-  costs,
-  onAdd,
-  onRemove,
-  onUpdate,
-}: {
+interface Step3Props {
   type: TypeOption;
   costs: DraftCost[];
   onAdd: (c: DraftCost) => void;
   onRemove: (id: string) => void;
   onUpdate: (id: string, patch: Partial<DraftCost>) => void;
-}) {
-  const suggestions = SUGGESTED[type.kind].filter((s) => !costs.some((c) => c.name === s.name));
+  catalog: AssetTemplateCatalog | null;
+  catalogLoading: boolean;
+  catalogError: string | null;
+  onRetryCatalog: () => void;
+  selectedKeys: Set<string>;
+  onToggleKey: (key: string) => void;
+  onSetGroup: (keys: string[], on: boolean) => void;
+}
+
+function Step3(props: Step3Props) {
+  const { type, costs, onAdd, onRemove, onUpdate } = props;
+  const isVehicle = type.kind === "car";
+  const suggestions = isVehicle ? [] : SUGGESTED[type.kind as Exclude<IlloKind, "car">].filter((s) => !costs.some((c) => c.name === s.name));
 
   return (
     <>
-      {type.kind === "car" && (
-        <div className="card card-pad" style={{ marginBottom: 16, background: "var(--surface-sunk)" }}>
-          <div className="row-meta" style={{ lineHeight: 1.5 }}>
-            The vehicle template already seeds common costs (insurance, registration, fuel reserve, tire wear…). Add anything
-            extra below — you can fine-tune everything on the Costs tab afterwards.
-          </div>
-        </div>
-      )}
+      {isVehicle && <VehicleCatalogPicker {...props} />}
+
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ padding: "20px var(--pad) 14px" }}>
-          <div className="card-title">Costs</div>
-          <div className="card-sub">Add recurring costs and per-use rates. Allocio averages them into a steady monthly draw.</div>
+          <div className="card-title">{isVehicle ? "Custom costs" : "Costs"}</div>
+          <div className="card-sub">
+            {isVehicle
+              ? "Add anything the template doesn't cover. Allocio averages recurring costs into a steady monthly draw."
+              : "Add recurring costs and per-use rates. Allocio averages them into a steady monthly draw."}
+          </div>
         </div>
 
         {costs.length === 0 ? (
           <div style={{ padding: "14px var(--pad) 18px", borderTop: "1px solid var(--line-soft)" }}>
             <div className="muted" style={{ fontSize: 13 }}>
-              No costs added yet. Pick from the suggestions below or add a custom one.
+              {isVehicle
+                ? "No custom costs yet. The rows you checked above are created automatically."
+                : "No costs added yet. Pick from the suggestions below or add a custom one."}
             </div>
           </div>
         ) : (
@@ -400,6 +539,139 @@ function Step3({
         </div>
       )}
     </>
+  );
+}
+
+function VehicleCatalogPicker({
+  catalog,
+  catalogLoading,
+  catalogError,
+  onRetryCatalog,
+  selectedKeys,
+  onToggleKey,
+  onSetGroup,
+}: Step3Props) {
+  if (catalogLoading) {
+    return (
+      <div className="card card-pad" style={{ marginBottom: 16 }}>
+        <div className="muted" style={{ fontSize: 13 }}>
+          Loading the vehicle cost catalog…
+        </div>
+      </div>
+    );
+  }
+  if (catalogError) {
+    return (
+      <div className="card card-pad" style={{ marginBottom: 16 }}>
+        <div className="error-banner" style={{ marginBottom: 12 }}>
+          {catalogError}
+        </div>
+        <button className="btn btn-outline btn-sm" onClick={onRetryCatalog}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+  if (!catalog) return null;
+
+  const timeKeys = catalog.time_based_costs.map((c) => c.technical_key);
+  const usageKeys = catalog.usage_based_costs.map((c) => c.technical_key);
+  const maintKeys = catalog.maintenance_items.map((m) => m.technical_key);
+
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <div style={{ padding: "20px var(--pad) 6px" }}>
+        <div className="card-title">Template costs</div>
+        <div className="card-sub">
+          The vehicle template seeds these common costs. Uncheck anything you don't want — only the checked rows are created.
+        </div>
+      </div>
+
+      <CatalogGroup title="Recurring costs" allKeys={timeKeys} selectedKeys={selectedKeys} onSetGroup={onSetGroup}>
+        {catalog.time_based_costs.map((c) => (
+          <CatalogRow
+            key={c.technical_key}
+            checked={selectedKeys.has(c.technical_key)}
+            onToggle={() => onToggleKey(c.technical_key)}
+            label={c.label}
+            detail={`${fmtNumber(c.amount)}${intervalLabel(c.interval_value, c.interval_unit)}`}
+          />
+        ))}
+      </CatalogGroup>
+
+      <CatalogGroup title="Usage reserve" allKeys={usageKeys} selectedKeys={selectedKeys} onSetGroup={onSetGroup}>
+        {catalog.usage_based_costs.map((c) => (
+          <CatalogRow
+            key={c.technical_key}
+            checked={selectedKeys.has(c.technical_key)}
+            onToggle={() => onToggleKey(c.technical_key)}
+            label={c.label}
+            detail={`${fmtNumber(c.amount_per_unit)}/${c.usage_unit}`}
+          />
+        ))}
+      </CatalogGroup>
+
+      <CatalogGroup title="Maintenance & replacements" allKeys={maintKeys} selectedKeys={selectedKeys} onSetGroup={onSetGroup}>
+        {catalog.maintenance_items.map((m) => (
+          <CatalogRow
+            key={m.technical_key}
+            checked={selectedKeys.has(m.technical_key)}
+            onToggle={() => onToggleKey(m.technical_key)}
+            label={m.label}
+            detail={maintenanceDetail(m.interval_km, m.interval_months)}
+          />
+        ))}
+      </CatalogGroup>
+    </div>
+  );
+}
+
+function CatalogGroup({
+  title,
+  allKeys,
+  selectedKeys,
+  onSetGroup,
+  children,
+}: {
+  title: string;
+  allKeys: string[];
+  selectedKeys: Set<string>;
+  onSetGroup: (keys: string[], on: boolean) => void;
+  children: React.ReactNode;
+}) {
+  const selectedCount = allKeys.filter((k) => selectedKeys.has(k)).length;
+
+  return (
+    <div style={{ borderTop: "1px solid var(--line)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px var(--pad) 6px" }}>
+        <div className="eyebrow">
+          {title} · {selectedCount}/{allKeys.length}
+        </div>
+        <div style={{ display: "flex", gap: 4 }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => onSetGroup(allKeys, true)}>
+            All
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={() => onSetGroup(allKeys, false)}>
+            None
+          </button>
+        </div>
+      </div>
+      <div style={{ padding: "0 var(--pad) 8px" }}>{children}</div>
+    </div>
+  );
+}
+
+function CatalogRow({ checked, onToggle, label, detail }: { checked: boolean; onToggle: () => void; label: string; detail: string }) {
+  return (
+    <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0", cursor: "pointer" }}>
+      <input type="checkbox" checked={checked} onChange={onToggle} />
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 13.5 }}>{label}</div>
+        <div className="row-meta" style={{ marginTop: 2 }}>
+          {detail}
+        </div>
+      </div>
+    </label>
   );
 }
 
@@ -444,7 +716,8 @@ function Step4({
   type,
   name,
   meta,
-  costs,
+  timeLines,
+  usageLines,
   monthlyEst,
   yearlyEst,
   perDay,
@@ -452,14 +725,12 @@ function Step4({
   type: TypeOption;
   name: string;
   meta: Record<string, string>;
-  costs: DraftCost[];
+  timeLines: ReviewLine[];
+  usageLines: ReviewLine[];
   monthlyEst: number;
   yearlyEst: number;
   perDay: number;
 }) {
-  const usageCosts = costs.filter((c) => c.period === "usage");
-  const timeCosts = costs.filter((c) => c.period !== "usage");
-
   return (
     <div className="stack">
       <div className="allocation-callout">
@@ -468,7 +739,6 @@ function Step4({
           <div className="num">${fmtNumber(monthlyEst)}</div>
           <div className="sub">
             ${perDay.toFixed(2)}/day · ${fmtNumber(yearlyEst)}/year
-            {type.kind === "car" ? " · plus vehicle template costs" : ""}
           </div>
         </div>
         <div style={{ width: 140, height: 100, background: "rgba(255,255,255,.12)", borderRadius: 12, padding: 8 }}>
@@ -484,16 +754,24 @@ function Step4({
           <div className="card-sub">{subtitleFromMeta(meta) || "No details"}</div>
         </div>
 
-        {timeCosts.map((c) => (
+        {timeLines.length === 0 && usageLines.length === 0 && (
+          <div style={{ padding: "0 var(--pad) 18px" }}>
+            <div className="muted" style={{ fontSize: 13 }}>
+              No cost rows selected — the bucket starts empty and you can add costs later.
+            </div>
+          </div>
+        )}
+
+        {timeLines.map((c) => (
           <div key={c.id} className="review-row">
             <div>
-              <div>{c.name || "(unnamed)"}</div>
+              <div>{c.name}</div>
               <div className="row-meta" style={{ marginTop: 2 }}>
-                ${c.amount.toFixed(2)} per {c.period} · ${(c.amount / periodDays(c.period)).toFixed(2)}/day
+                {c.sub}
               </div>
             </div>
             <div className="review-row-amt">
-              ${fmtNumber((c.amount / periodDays(c.period)) * 30)}
+              ${fmtNumber(c.monthly ?? 0)}
               <span className="muted" style={{ fontSize: 11.5, fontWeight: 400 }}>
                 /mo
               </span>
@@ -501,17 +779,17 @@ function Step4({
           </div>
         ))}
 
-        {usageCosts.length > 0 && (
+        {usageLines.length > 0 && (
           <>
             <div style={{ padding: "14px var(--pad) 6px", borderTop: "1px solid var(--line)" }}>
               <div className="eyebrow">Usage-based (charged at check-in)</div>
             </div>
-            {usageCosts.map((c) => (
+            {usageLines.map((c) => (
               <div key={c.id} className="review-row">
                 <div>
-                  <div>{c.name || "(unnamed)"}</div>
+                  <div>{c.name}</div>
                   <div className="row-meta" style={{ marginTop: 2 }}>
-                    ${c.amount.toFixed(3)} per {c.unit || "km"}
+                    {c.sub}
                   </div>
                 </div>
                 <div className="review-row-amt muted" style={{ fontWeight: 400, fontSize: 12.5 }}>

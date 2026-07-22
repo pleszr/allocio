@@ -9,7 +9,7 @@ from app.common.exceptions import ValidationError
 from app.domain.asset import Asset, Bucket, VehicleProfile
 from app.domain.asset_templates import ASSET_TEMPLATES, AssetTemplate
 from app.domain.cost import MaintenanceItem, TimeBasedCost, UsageBasedCost
-from app.domain.vehicle_defaults import build_default_rows
+from app.domain.vehicle_defaults import build_selected_rows, vehicle_catalog_keys
 from app.repository.asset_repository import insert_asset_dependents, persist_asset
 
 BUCKET_CURRENCY = "HUF"
@@ -55,17 +55,20 @@ class AssetService:
         vehicle_details: VehicleDetails | None,
         subtitle: str | None = None,
         attributes: dict | None = None,
+        selected_cost_keys: list[str] | None = None,
     ) -> CreatedAsset:
-        """Create an asset, its bucket, and any template-supplied profile and cost rows atomically.
+        """Create an asset, its bucket, and any template-supplied profile and selected cost rows atomically.
 
-        A template-less asset gets only a bucket. Selecting a template resolves the stored type,
-        clones its default cost rows, and attaches a vehicle profile when the template carries one.
-        `subtitle` and `attributes` are opaque, type-agnostic detail the caller supplies for any asset.
-        Persists the asset first for its id, inserts every dependent, and commits exactly once; any
-        failure rolls back the whole set.
+        A template-less asset gets only a bucket. Selecting a template resolves the stored type and
+        attaches a vehicle profile when the template carries one; only the template cost rows whose
+        `technical_key` is in `selected_cost_keys` are cloned (omitted/empty clones none). `subtitle`
+        and `attributes` are opaque, type-agnostic detail the caller supplies for any asset. Persists
+        the asset first for its id, inserts every dependent, and commits exactly once; any failure
+        rolls back the whole set.
         """
         template = self._resolve_template(template_key)
         resolved_type = template.asset_type if template is not None else self._require_type(asset_type)
+        selected_keys = self._validate_selected_keys(template, selected_cost_keys)
         try:
             asset = Asset(
                 type=resolved_type, user_id=user_id, name=name, subtitle=subtitle, attributes=attributes
@@ -74,7 +77,7 @@ class AssetService:
 
             bucket = Bucket(asset_id=asset.id, currency=BUCKET_CURRENCY)
             profile, time_based, usage_based, maintenance = self._build_template_dependents(
-                asset.id, template, vehicle_details
+                asset.id, template, vehicle_details, selected_keys
             )
 
             insert_asset_dependents(self._session, bucket, profile, time_based, usage_based, maintenance)
@@ -107,13 +110,31 @@ class AssetService:
             raise ValidationError("A template-less asset must set a type.")
         return asset_type
 
+    def _validate_selected_keys(
+        self, template: AssetTemplate | None, selected_cost_keys: list[str] | None
+    ) -> set[str]:
+        """Normalize the selected keys and reject a template-less selection or unknown catalog keys."""
+        selected = set(selected_cost_keys or ())
+        if template is None:
+            if selected:
+                raise ValidationError("Cost selection requires a template.")
+            return set()
+        unknown = selected - vehicle_catalog_keys()
+        if unknown:
+            raise ValidationError(f"Unknown cost keys: {sorted(unknown)}.")
+        return selected
+
     def _build_template_dependents(
-        self, asset_id: uuid.UUID, template: AssetTemplate | None, vehicle_details: VehicleDetails | None
+        self,
+        asset_id: uuid.UUID,
+        template: AssetTemplate | None,
+        vehicle_details: VehicleDetails | None,
+        selected_keys: set[str],
     ) -> tuple[VehicleProfile | None, list[TimeBasedCost], list[UsageBasedCost], list[MaintenanceItem]]:
-        """Build the profile and cloned cost rows for a template, or empty results for a bare asset."""
+        """Build the profile and selected cost rows for a template, or empty results for a bare asset."""
         if template is None:
             return None, [], [], []
-        time_based, usage_based, maintenance = build_default_rows(asset_id)
+        time_based, usage_based, maintenance = build_selected_rows(asset_id, selected_keys)
         profile = self._build_vehicle_profile(asset_id, vehicle_details) if template.has_vehicle_profile else None
         return profile, time_based, usage_based, maintenance
 

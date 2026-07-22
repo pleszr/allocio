@@ -375,7 +375,7 @@ Derived:
 
 ## Built-In Templates
 
-Vehicle is the first built-in template; more may be added later, each as its own registry entry with its own default rows. Selecting the vehicle template at creation prefills default rows for:
+Vehicle is the first built-in template; more may be added later, each as its own registry entry with its own default rows. The template exposes a catalog of pickable default rows the caller selects from at creation time, across:
 
 - time-based costs
 - usage-based reserve settings
@@ -383,7 +383,9 @@ Vehicle is the first built-in template; more may be added later, each as its own
 
 Creation rule:
 
-- selecting the vehicle template clones its current default rows into asset-owned rows
+- the template's full catalog is readable up front so a client can build a selection UI
+- selecting the vehicle template clones only the caller-selected catalog rows (by `technical_key`) into asset-owned rows; selecting none clones no rows (there is no implicit clone-all)
+- the vehicle profile and bucket are still created from the template regardless of the cost selection
 - after creation, the asset owns those rows
 - the user may deactivate or remove them
 - the user may add custom rows
