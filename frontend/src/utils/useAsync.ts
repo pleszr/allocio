@@ -17,7 +17,14 @@ export function useAsync<T>(fetcher: () => Promise<T>, deps: React.DependencyLis
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
 
-  const reload = useCallback(() => setNonce((n) => n + 1), []);
+  // Mark loading immediately (not just inside the effect) so consumers see the in-flight
+  // state in the same render that triggers the reload. This lets callers distinguish "data is
+  // stale because a refetch is in progress" from "data is settled", avoiding races where stale
+  // data is acted on before the refetch resolves.
+  const reload = useCallback(() => {
+    setLoading(true);
+    setNonce((n) => n + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

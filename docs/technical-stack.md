@@ -204,6 +204,7 @@ At that point likely changes are:
 
 - A deterministic code map (`tools/code_map.py`, Python standard library only) generates `docs/code-map.json`, renders structural PR diffs (a badge-driven, layer-grouped Change Map), and writes a self-contained interactive architecture overview (`docs/code-map.html`: a per-area columnar module graph with hover, layer filtering, click-through, and a PR changed-only mode).
 - TypeScript/TSX symbol extraction (`tools/ts_symbol_map.mjs`) reuses the frontend `typescript` dependency via the TypeScript compiler API; it adds no new runtime dependency.
+- End-to-end workflow coverage is two-layered: a fast in-process API smoke test (`backend/tests/test_workflow_e2e.py`) replays the browser's request sequence and runs as a pre-commit hook, and a Playwright browser suite (`frontend/e2e/`, `@playwright/test`, TypeScript) drives the full stack on demand (`npm run e2e`) against a throwaway `allocio_e2e` database. Playwright is a local dev-only dependency; it is not run in CI and not part of the deployed runtime.
 - These are development and review tools, not part of the deployed runtime stack.
 
 ## Where This Decision Lives

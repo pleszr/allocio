@@ -21,12 +21,15 @@ export default function App() {
   const workspace = useAsync(() => api.listAssets(), []);
   const assets = workspace.data?.assets ?? [];
 
-  // Keep routing valid if the active asset disappears from the workspace.
+  // Keep routing valid if the active asset disappears from the workspace. Only act on a
+  // settled load: during a reload (e.g. right after creating a bucket and navigating to it)
+  // `workspace.data` still holds the pre-refetch list, which would otherwise bounce a
+  // just-created asset back to Home before its row arrives.
   useEffect(() => {
-    if (route.kind === "asset" && workspace.data && !assets.some((a) => a.id === route.assetId)) {
+    if (route.kind === "asset" && workspace.data && !workspace.loading && !assets.some((a) => a.id === route.assetId)) {
       setRoute({ kind: "home" });
     }
-  }, [route, workspace.data, assets]);
+  }, [route, workspace.data, workspace.loading, assets]);
 
   const crumbs = buildCrumbs(route, assets);
 
