@@ -8,6 +8,7 @@ from app.db import Base
 from app.domain import asset  # noqa: F401  (register mappers on Base.metadata)
 from app.domain import check_in  # noqa: F401  (register mappers on Base.metadata)
 from app.domain import cost  # noqa: F401  (register mappers on Base.metadata)
+from app.domain import user  # noqa: F401  (register mappers on Base.metadata)
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

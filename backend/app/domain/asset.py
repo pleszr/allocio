@@ -18,7 +18,9 @@ class Asset(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"), default=uuid.uuid4
     )
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
     type: Mapped[str] = mapped_column(String, nullable=False, server_default=text("'vehicle'"))
     name: Mapped[str] = mapped_column(String, nullable=False)
     subtitle: Mapped[str | None] = mapped_column(String, nullable=True)

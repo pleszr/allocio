@@ -66,15 +66,16 @@ Reasoning:
 
 ### Auth
 
-- MVP launch: application-managed email/password auth
-- Password hashing: Argon2id
-- Session model: secure HTTP-only cookies
+- MVP launch: Google Sign-In via server-side OAuth 2.0 Authorization-Code flow (Authlib), backed by a `users` table (issue #62)
+- Session model: signed HTTP-only `SameSite=Lax` cookie (Starlette `SessionMiddleware` + `itsdangerous`); no bearer tokens, same-origin app and API
+- Dev/e2e bypass: `AUTH_DISABLED=true` returns a synthetic dev user with no Google round-trip; when auth is enabled, missing `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`SESSION_SECRET` fail loud at startup
+- Setup guide: `docs/google-auth-setup.md`
 
 Reasoning:
 
-- This is simpler than introducing Cognito on day one for a very small MVP
-- It keeps launch scope smaller while still allowing a secure baseline
-- Revisit Cognito when Google Sign-In, Apple Sign-In, or broader identity requirements become real product needs
+- Google Sign-In removes password storage/hashing from MVP scope while keeping a secure baseline
+- Server-side flow keeps tokens off the client; only a signed session cookie is exposed
+- Revisit Cognito when Apple Sign-In or broader multi-provider identity requirements become real product needs
 
 ### Background Work
 

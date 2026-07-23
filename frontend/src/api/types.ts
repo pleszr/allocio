@@ -2,6 +2,13 @@
 // FastAPI serializes Decimal via jsonable_encoder as JSON numbers, so money
 // fields are `number` here. Dates are ISO "YYYY-MM-DD" strings; UUIDs are strings.
 
+// ── Auth (GET /api/auth/me) ───────────────────────────────────────────
+export interface CurrentUser {
+  id: string;
+  email: string;
+  name: string;
+}
+
 export type Health = "underfunded" | "healthy" | "overflowing";
 export type MaintenanceStatus = "ok" | "soon" | "due" | "overdue";
 export type IntervalUnit = "months" | "years";
