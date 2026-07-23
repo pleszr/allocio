@@ -13,6 +13,14 @@ class HealthResponse(BaseModel):
     status: str = Field(description="Service status. Always 'ok' on success.", examples=["ok"])
 
 
+class CurrentUserResponse(BaseModel):
+    """The authenticated user, as returned by `GET /api/auth/me`."""
+
+    id: uuid.UUID = Field(description="Server-generated user id; owner of every asset and bucket.")
+    email: str = Field(description="The user's Google account email.", examples=["ada@example.com"])
+    name: str = Field(description="The user's Google display name; may be empty.", examples=["Ada Lovelace"])
+
+
 class AssetResponse(BaseModel):
     """The tracked asset record created for the request."""
 

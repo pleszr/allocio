@@ -131,6 +131,32 @@
           "routes": []
         },
         {
+          "path": "backend/alembic/versions/0007_add_users_and_asset_fk.py",
+          "language": "python",
+          "imports": [
+            "alembic",
+            "sqlalchemy",
+            "sqlalchemy.dialects",
+            "typing"
+          ],
+          "functions": [
+            {
+              "name": "downgrade",
+              "line_start": 36,
+              "line_end": 38,
+              "hash": "ac347351ee6ef673"
+            },
+            {
+              "name": "upgrade",
+              "line_start": 22,
+              "line_end": 33,
+              "hash": "912efc4e73bb28ed"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        },
+        {
           "path": "backend/app/__init__.py",
           "language": "python",
           "imports": [],
@@ -275,6 +301,89 @@
               "line_start": 113,
               "line_end": 121,
               "hash": "a1f20da6d002471e"
+            }
+          ]
+        },
+        {
+          "path": "backend/app/api/auth.py",
+          "language": "python",
+          "imports": [
+            "app.api.schemas.responses",
+            "app.common.exceptions",
+            "app.common.message_bundle",
+            "app.config",
+            "app.services.auth_service",
+            "app.services.dependencies",
+            "authlib.integrations.starlette_client",
+            "fastapi",
+            "fastapi.responses",
+            "uuid"
+          ],
+          "functions": [
+            {
+              "name": "_resolve_google_claims",
+              "line_start": 117,
+              "line_end": 125,
+              "hash": "9174fd39083b0309"
+            },
+            {
+              "name": "callback",
+              "line_start": 66,
+              "line_end": 74,
+              "hash": "a47fa8196ff80142"
+            },
+            {
+              "name": "login",
+              "line_start": 48,
+              "line_end": 51,
+              "hash": "41f6dc4aa221a4a2"
+            },
+            {
+              "name": "logout",
+              "line_start": 84,
+              "line_end": 86,
+              "hash": "c824795302fb1ee1"
+            },
+            {
+              "name": "me",
+              "line_start": 103,
+              "line_end": 114,
+              "hash": "2e6eb05b4f69126d"
+            }
+          ],
+          "classes": [],
+          "routes": [
+            {
+              "method": "get",
+              "path": "/callback",
+              "handler": "callback",
+              "line_start": 66,
+              "line_end": 74,
+              "hash": "a47fa8196ff80142"
+            },
+            {
+              "method": "get",
+              "path": "/login",
+              "handler": "login",
+              "line_start": 48,
+              "line_end": 51,
+              "hash": "41f6dc4aa221a4a2"
+            },
+            {
+              "method": "post",
+              "path": "/logout",
+              "handler": "logout",
+              "line_start": 84,
+              "line_end": 86,
+              "hash": "c824795302fb1ee1"
+            },
+            {
+              "method": "get",
+              "path": "/me",
+              "handler": "me",
+              "line_start": 103,
+              "line_end": 114,
+              "hash": "2e6eb05b4f69126d"
             }
           ]
         },
@@ -712,113 +821,120 @@
           "classes": [
             {
               "name": "ActivityItemResponse",
-              "line_start": 303,
-              "line_end": 311,
+              "line_start": 311,
+              "line_end": 319,
               "hash": "eb061705446af4a0",
               "methods": []
             },
             {
               "name": "AllocationEventResponse",
-              "line_start": 206,
-              "line_end": 218,
+              "line_start": 214,
+              "line_end": 226,
               "hash": "7f1cc42ccd37defa",
               "methods": []
             },
             {
               "name": "AllocationLineResponse",
-              "line_start": 165,
-              "line_end": 171,
+              "line_start": 173,
+              "line_end": 179,
               "hash": "b929526362bbc394",
               "methods": []
             },
             {
               "name": "AssetDetailResponse",
-              "line_start": 314,
-              "line_end": 351,
+              "line_start": 322,
+              "line_end": 359,
               "hash": "57e14bad706de321",
               "methods": []
             },
             {
               "name": "AssetResponse",
-              "line_start": 16,
-              "line_end": 28,
+              "line_start": 24,
+              "line_end": 36,
               "hash": "2e35bf2ba1142eab",
               "methods": []
             },
             {
               "name": "AssetSummaryResponse",
-              "line_start": 247,
-              "line_end": 263,
+              "line_start": 255,
+              "line_end": 271,
               "hash": "f9e3ffdecc20bd68",
               "methods": []
             },
             {
               "name": "AssetTemplateCatalogResponse",
-              "line_start": 385,
-              "line_end": 393,
+              "line_start": 393,
+              "line_end": 401,
               "hash": "4a72e4925b14f5fb",
               "methods": []
             },
             {
               "name": "BalanceHistoryResponse",
-              "line_start": 295,
-              "line_end": 300,
+              "line_start": 303,
+              "line_end": 308,
               "hash": "48cc6340b7d0aecc",
               "methods": []
             },
             {
               "name": "BalancePointResponse",
-              "line_start": 283,
-              "line_end": 292,
+              "line_start": 291,
+              "line_end": 300,
               "hash": "21c4562e5b6f4cec",
               "methods": []
             },
             {
               "name": "BucketResponse",
-              "line_start": 43,
-              "line_end": 51,
+              "line_start": 51,
+              "line_end": 59,
               "hash": "b12b05c9272cb618",
               "methods": []
             },
             {
               "name": "CheckInPostResponse",
-              "line_start": 239,
-              "line_end": 244,
+              "line_start": 247,
+              "line_end": 252,
               "hash": "dedfba65f01c240e",
               "methods": []
             },
             {
               "name": "CheckInPreviewResponse",
-              "line_start": 186,
-              "line_end": 203,
+              "line_start": 194,
+              "line_end": 211,
               "hash": "f29cec4ddd960f2e",
               "methods": []
             },
             {
               "name": "CheckInResponse",
-              "line_start": 221,
-              "line_end": 236,
+              "line_start": 229,
+              "line_end": 244,
               "hash": "c6d5cb7782f53cf6",
               "methods": []
             },
             {
               "name": "CreateAssetResponse",
-              "line_start": 396,
-              "line_end": 409,
+              "line_start": 404,
+              "line_end": 417,
               "hash": "c6a982f195b870cf",
               "methods": []
             },
             {
+              "name": "CurrentUserResponse",
+              "line_start": 16,
+              "line_end": 21,
+              "hash": "11ad46c43081cdc7",
+              "methods": []
+            },
+            {
               "name": "ExpenseEventResponse",
-              "line_start": 147,
-              "line_end": 162,
+              "line_start": 155,
+              "line_end": 170,
               "hash": "8c171e5fbf9da7d6",
               "methods": []
             },
             {
               "name": "ExpenseLineResponse",
-              "line_start": 174,
-              "line_end": 183,
+              "line_start": 182,
+              "line_end": 191,
               "hash": "28d118d5c8927af5",
               "methods": []
             },
@@ -831,64 +947,64 @@
             },
             {
               "name": "MaintenanceItemResponse",
-              "line_start": 93,
-              "line_end": 144,
+              "line_start": 101,
+              "line_end": 152,
               "hash": "dc472b95adc618b9",
               "methods": []
             },
             {
               "name": "TemplateMaintenanceItem",
-              "line_start": 374,
-              "line_end": 382,
+              "line_start": 382,
+              "line_end": 390,
               "hash": "af7fb581d1c4f6fa",
               "methods": []
             },
             {
               "name": "TemplateTimeBasedCostItem",
-              "line_start": 354,
-              "line_end": 361,
+              "line_start": 362,
+              "line_end": 369,
               "hash": "1d23216d4ae0e735",
               "methods": []
             },
             {
               "name": "TemplateUsageBasedCostItem",
-              "line_start": 364,
-              "line_end": 371,
+              "line_start": 372,
+              "line_end": 379,
               "hash": "7628d3fda97c8093",
               "methods": []
             },
             {
               "name": "TimeBasedCostResponse",
-              "line_start": 54,
-              "line_end": 72,
+              "line_start": 62,
+              "line_end": 80,
               "hash": "641cc35d7e2a6ae3",
               "methods": []
             },
             {
               "name": "UsageBasedCostResponse",
-              "line_start": 75,
-              "line_end": 90,
+              "line_start": 83,
+              "line_end": 98,
               "hash": "c181d338c965ae66",
               "methods": []
             },
             {
               "name": "VehicleProfileResponse",
-              "line_start": 31,
-              "line_end": 40,
+              "line_start": 39,
+              "line_end": 48,
               "hash": "7b2d696b7b2a71f4",
               "methods": []
             },
             {
               "name": "WorkspaceOverviewResponse",
-              "line_start": 276,
-              "line_end": 280,
+              "line_start": 284,
+              "line_end": 288,
               "hash": "756a8ecd270c29ed",
               "methods": []
             },
             {
               "name": "WorkspaceTotalsResponse",
-              "line_start": 266,
-              "line_end": 273,
+              "line_start": 274,
+              "line_end": 281,
               "hash": "de9a6ecf5f221017",
               "methods": []
             }
@@ -915,6 +1031,20 @@
               "line_end": 5,
               "hash": "e610555ec179cf65",
               "methods": []
+            },
+            {
+              "name": "AuthenticationError",
+              "line_start": 16,
+              "line_end": 20,
+              "hash": "540bfb001733a7d4",
+              "methods": [
+                {
+                  "name": "__init__",
+                  "line_start": 19,
+                  "line_end": 20,
+                  "hash": "255d6d862dc9da0c"
+                }
+              ]
             },
             {
               "name": "NotFoundError",
@@ -992,16 +1122,24 @@
           "path": "backend/app/config.py",
           "language": "python",
           "imports": [
+            "pydantic",
             "pydantic_settings"
           ],
           "functions": [],
           "classes": [
             {
               "name": "Settings",
-              "line_start": 4,
-              "line_end": 7,
-              "hash": "2280de3f6aa232eb",
-              "methods": []
+              "line_start": 5,
+              "line_end": 42,
+              "hash": "b0265a469d554bbf",
+              "methods": [
+                {
+                  "name": "_require_auth_config_when_enabled",
+                  "line_start": 20,
+                  "line_end": 42,
+                  "hash": "c393f092970a0a6c"
+                }
+              ]
             }
           ],
           "routes": []
@@ -1058,21 +1196,21 @@
             {
               "name": "Asset",
               "line_start": 13,
-              "line_end": 28,
-              "hash": "09db096b268eac50",
+              "line_end": 30,
+              "hash": "8dc1a0fed9c9a2b5",
               "methods": []
             },
             {
               "name": "Bucket",
-              "line_start": 45,
-              "line_end": 58,
+              "line_start": 47,
+              "line_end": 60,
               "hash": "e8faf7f12696f1f6",
               "methods": []
             },
             {
               "name": "VehicleProfile",
-              "line_start": 31,
-              "line_end": 42,
+              "line_start": 33,
+              "line_end": 44,
               "hash": "3721d0f43c2daa2a",
               "methods": []
             }
@@ -1398,6 +1536,29 @@
           "routes": []
         },
         {
+          "path": "backend/app/domain/user.py",
+          "language": "python",
+          "imports": [
+            "app.db",
+            "datetime",
+            "sqlalchemy",
+            "sqlalchemy.dialects.postgresql",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "User",
+              "line_start": 13,
+              "line_end": 28,
+              "hash": "196c9deee8dae52f",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
           "path": "backend/app/domain/vehicle_defaults.py",
           "language": "python",
           "imports": [
@@ -1451,21 +1612,40 @@
           "imports": [
             "app.api",
             "app.common.exceptions",
+            "app.config",
+            "app.db",
+            "app.repository",
+            "app.services.dependencies",
+            "collections.abc",
+            "contextlib",
             "fastapi",
-            "fastapi.responses"
+            "fastapi.responses",
+            "starlette.middleware.sessions"
           ],
           "functions": [
             {
+              "name": "_authentication_handler",
+              "line_start": 48,
+              "line_end": 49,
+              "hash": "3eb30d380f516444"
+            },
+            {
               "name": "_not_found_handler",
-              "line_start": 19,
-              "line_end": 20,
+              "line_start": 53,
+              "line_end": 54,
               "hash": "9a953235772419d0"
             },
             {
               "name": "_validation_handler",
-              "line_start": 24,
-              "line_end": 25,
+              "line_start": 58,
+              "line_end": 59,
               "hash": "4b147d0475452a59"
+            },
+            {
+              "name": "lifespan",
+              "line_start": 22,
+              "line_end": 31,
+              "hash": "79cff3724443dc71"
             }
           ],
           "classes": [],
@@ -1693,6 +1873,38 @@
           "routes": []
         },
         {
+          "path": "backend/app/repository/user_repository.py",
+          "language": "python",
+          "imports": [
+            "app.domain.user",
+            "sqlalchemy",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [
+            {
+              "name": "ensure_dev_user",
+              "line_start": 35,
+              "line_end": 44,
+              "hash": "84a4d21f4981dd3d"
+            },
+            {
+              "name": "get_by_id",
+              "line_start": 30,
+              "line_end": 32,
+              "hash": "9c078c8f40b7df88"
+            },
+            {
+              "name": "upsert_by_google_sub",
+              "line_start": 11,
+              "line_end": 27,
+              "hash": "87562f36688bea38"
+            }
+          ],
+          "classes": [],
+          "routes": []
+        },
+        {
           "path": "backend/app/services/__init__.py",
           "language": "python",
           "imports": [],
@@ -1904,6 +2116,47 @@
               "line_end": 29,
               "hash": "f1060f8324f88b8a",
               "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
+          "path": "backend/app/services/auth_service.py",
+          "language": "python",
+          "imports": [
+            "app.common.exceptions",
+            "app.domain.user",
+            "app.repository",
+            "sqlalchemy.orm",
+            "uuid"
+          ],
+          "functions": [],
+          "classes": [
+            {
+              "name": "AuthService",
+              "line_start": 17,
+              "line_end": 40,
+              "hash": "9bc52f659ef83eb6",
+              "methods": [
+                {
+                  "name": "__init__",
+                  "line_start": 20,
+                  "line_end": 21,
+                  "hash": "2c8f2810305a160d"
+                },
+                {
+                  "name": "get_user",
+                  "line_start": 38,
+                  "line_end": 40,
+                  "hash": "e764263701c46c47"
+                },
+                {
+                  "name": "upsert_from_google",
+                  "line_start": 23,
+                  "line_end": 36,
+                  "hash": "926badab26d6ee1f"
+                }
+              ]
             }
           ],
           "routes": []
@@ -2291,10 +2544,13 @@
           "path": "backend/app/services/dependencies.py",
           "language": "python",
           "imports": [
+            "app.common.exceptions",
+            "app.config",
             "app.db",
             "app.services.asset_detail_service",
             "app.services.asset_service",
             "app.services.asset_template_service",
+            "app.services.auth_service",
             "app.services.balance_history_service",
             "app.services.check_in_service",
             "app.services.cost_service",
@@ -2307,56 +2563,62 @@
           "functions": [
             {
               "name": "get_asset_detail_service",
-              "line_start": 55,
-              "line_end": 57,
+              "line_start": 73,
+              "line_end": 75,
               "hash": "015b6f2511cdb3be"
             },
             {
               "name": "get_asset_service",
-              "line_start": 25,
-              "line_end": 27,
+              "line_start": 43,
+              "line_end": 45,
               "hash": "5e04ae31d9c873c4"
             },
             {
               "name": "get_asset_template_service",
-              "line_start": 60,
-              "line_end": 62,
+              "line_start": 78,
+              "line_end": 80,
               "hash": "717b5af0fa8fa878"
             },
             {
+              "name": "get_auth_service",
+              "line_start": 38,
+              "line_end": 40,
+              "hash": "56bc3b7820d11661"
+            },
+            {
               "name": "get_balance_history_service",
-              "line_start": 50,
-              "line_end": 52,
+              "line_start": 68,
+              "line_end": 70,
               "hash": "aacb24be78d42c2c"
             },
             {
               "name": "get_check_in_service",
-              "line_start": 40,
-              "line_end": 42,
+              "line_start": 58,
+              "line_end": 60,
               "hash": "c5853f481a764c31"
             },
             {
               "name": "get_cost_service",
-              "line_start": 30,
-              "line_end": 32,
+              "line_start": 48,
+              "line_end": 50,
               "hash": "752ac61d3ed6ece3"
             },
             {
               "name": "get_current_user_id",
-              "line_start": 20,
-              "line_end": 22,
-              "hash": "e2d5767e2d9f43e8"
+              "line_start": 24,
+              "line_end": 35,
+              "hash": "48203a7646ccdec7"
             },
             {
               "name": "get_expense_service",
-              "line_start": 35,
-              "line_end": 37,
+              "line_start": 53,
+              "line_end": 55,
               "hash": "edc92dd1813e846e"
             },
             {
               "name": "get_workspace_service",
-              "line_start": 45,
-              "line_end": 47,
+              "line_start": 63,
+              "line_end": 65,
               "hash": "8a855c63096b0fc5"
             }
           ],
@@ -2548,6 +2810,7 @@
             "./screens/DashboardScreen",
             "./screens/HomeScreen",
             "./screens/NewBucketScreen",
+            "./screens/SignInScreen",
             "./utils/useAsync",
             "react"
           ],
@@ -2558,26 +2821,32 @@
           "functions": [
             {
               "name": "App",
-              "line_start": 18,
-              "line_end": 56,
-              "hash": "833c7846ab86844a"
+              "line_start": 21,
+              "line_end": 30,
+              "hash": "5189cde957766a41"
             },
             {
               "name": "Content",
-              "line_start": 58,
-              "line_end": 108,
+              "line_start": 71,
+              "line_end": 121,
               "hash": "d918b469f8c71932"
             },
             {
+              "name": "Workspace",
+              "line_start": 32,
+              "line_end": 69,
+              "hash": "c9a692247aeec0f8"
+            },
+            {
               "name": "buildCrumbs",
-              "line_start": 110,
-              "line_end": 115,
+              "line_start": 123,
+              "line_end": 128,
               "hash": "23663b0877b8dadb"
             },
             {
               "name": "useOsTheme",
-              "line_start": 119,
-              "line_end": 129,
+              "line_start": 132,
+              "line_end": 142,
               "hash": "650066bfe2459e51"
             }
           ],
@@ -2585,16 +2854,23 @@
           "components": [
             {
               "name": "App",
-              "line_start": 18,
-              "line_end": 56,
-              "hash": "833c7846ab86844a",
+              "line_start": 21,
+              "line_end": 30,
+              "hash": "5189cde957766a41",
               "kind": "function"
             },
             {
               "name": "Content",
-              "line_start": 58,
-              "line_end": 108,
+              "line_start": 71,
+              "line_end": 121,
               "hash": "d918b469f8c71932",
+              "kind": "function"
+            },
+            {
+              "name": "Workspace",
+              "line_start": 32,
+              "line_end": 69,
+              "hash": "c9a692247aeec0f8",
               "kind": "function"
             }
           ]
@@ -2612,28 +2888,28 @@
           "functions": [
             {
               "name": "decimalReviver",
-              "line_start": 53,
-              "line_end": 55,
+              "line_start": 56,
+              "line_end": 58,
               "hash": "b5a0254618d00cc1"
             },
             {
               "name": "errorDetail",
-              "line_start": 75,
-              "line_end": 90,
+              "line_start": 78,
+              "line_end": 93,
               "hash": "765e518477e65b7e"
             },
             {
               "name": "request",
-              "line_start": 57,
-              "line_end": 73,
+              "line_start": 60,
+              "line_end": 76,
               "hash": "2dda4c2fac5ec951"
             }
           ],
           "classes": [
             {
               "name": "ApiError",
-              "line_start": 22,
-              "line_end": 29,
+              "line_start": 25,
+              "line_end": 32,
               "hash": "28a9a3b9b0e33e17",
               "methods": []
             }
@@ -2659,6 +2935,7 @@
             "CreateMaintenanceItemRequest",
             "CreateTimeBasedCostRequest",
             "CreateUsageBasedCostRequest",
+            "CurrentUser",
             "ExpenseDraft",
             "ExpenseKind",
             "ExpenseLine",
@@ -2782,6 +3059,7 @@
           "path": "frontend/src/components/Sidebar.tsx",
           "language": "typescript",
           "imports": [
+            "../api/client",
             "../api/types",
             "../routes",
             "../utils/assetType",
@@ -2794,18 +3072,30 @@
           "functions": [
             {
               "name": "Sidebar",
-              "line_start": 13,
-              "line_end": 78,
-              "hash": "98dacab13382fce5"
+              "line_start": 15,
+              "line_end": 83,
+              "hash": "b5d1ef87d54ea894"
+            },
+            {
+              "name": "initials",
+              "line_start": 97,
+              "line_end": 103,
+              "hash": "db31cd02d558a74c"
+            },
+            {
+              "name": "logout",
+              "line_start": 87,
+              "line_end": 93,
+              "hash": "7e1c353741f09af7"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "Sidebar",
-              "line_start": 13,
-              "line_end": 78,
-              "hash": "98dacab13382fce5",
+              "line_start": 15,
+              "line_end": 83,
+              "hash": "b5d1ef87d54ea894",
               "kind": "function"
             }
           ]
@@ -3545,6 +3835,32 @@
               "line_start": 348,
               "line_end": 366,
               "hash": "6f243b2ca17d5fd9",
+              "kind": "function"
+            }
+          ]
+        },
+        {
+          "path": "frontend/src/screens/SignInScreen.tsx",
+          "language": "typescript",
+          "imports": [],
+          "exports": [
+            "SignInScreen"
+          ],
+          "functions": [
+            {
+              "name": "SignInScreen",
+              "line_start": 8,
+              "line_end": 24,
+              "hash": "52a55ebb4378f26d"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "SignInScreen",
+              "line_start": 8,
+              "line_end": 24,
+              "hash": "52a55ebb4378f26d",
               "kind": "function"
             }
           ]

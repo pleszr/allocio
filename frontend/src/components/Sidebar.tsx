@@ -1,4 +1,5 @@
-import type { AssetSummary } from "../api/types";
+import { api } from "../api/client";
+import type { AssetSummary, CurrentUser } from "../api/types";
 import { illoKind } from "../utils/assetType";
 import { fmtNumber } from "../utils/format";
 import type { Route } from "../routes";
@@ -8,9 +9,10 @@ interface SidebarProps {
   assets: AssetSummary[];
   route: Route;
   onNavigate: (route: Route) => void;
+  user: CurrentUser;
 }
 
-export function Sidebar({ assets, route, onNavigate }: SidebarProps) {
+export function Sidebar({ assets, route, onNavigate, user }: SidebarProps) {
   const activeAssetId = route.kind === "asset" ? route.assetId : null;
   const onOverview = route.kind === "home";
   const onCheckin = route.kind === "asset" && route.tab === "checkin";
@@ -67,12 +69,35 @@ export function Sidebar({ assets, route, onNavigate }: SidebarProps) {
       </div>
 
       <div className="sidebar-footer">
-        <div className="avatar">AL</div>
-        <div>
-          <div className="user-name">Allocio</div>
-          <div className="user-email">local workspace</div>
+        <div className="avatar">{initials(user)}</div>
+        <div className="sidebar-user">
+          <div className="user-name">{user.name || user.email}</div>
+          <div className="user-email">{user.email}</div>
         </div>
+        <button className="logout-btn" title="Sign out" onClick={logout}>
+          Sign out
+        </button>
       </div>
     </aside>
   );
+}
+
+// Best-effort logout: clear the session server-side, then reload so the auth gate re-checks and
+// shows the sign-in screen. Reload even if the call fails — a failed logout must not trap the user.
+async function logout(): Promise<void> {
+  try {
+    await api.logout();
+  } finally {
+    window.location.reload();
+  }
+}
+
+// Initials from the first letters of the first two name words, uppercased; falls back to the first
+// two chars of the email local-part when the name is empty.
+function initials(user: CurrentUser): string {
+  const words = user.name.trim().split(/\s+/).filter(Boolean);
+  if (words.length > 0) {
+    return words.slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+  }
+  return user.email.split("@")[0].slice(0, 2).toUpperCase();
 }

@@ -10,6 +10,8 @@ dependencies = [
     "alembic>=1.13",
     "psycopg[binary]>=3.2",
     "pydantic-settings>=2.6",
+    "authlib>=1.7.2",
+    "itsdangerous>=2.2.0",
 ]
 
 [dependency-groups]

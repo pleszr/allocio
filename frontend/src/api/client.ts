@@ -1,6 +1,8 @@
 // Thin fetch client for the Allocio backend. All calls go through `/api/*`,
 // which Vite proxies to the FastAPI server in local development. Auth is a
-// backend-side stub (fixed dev user), so no token handling is needed here.
+// backend-set HttpOnly session cookie: the browser sends it automatically on
+// same-origin requests, so this client still needs no token logic. A `401`
+// now means "not signed in" — the app's auth gate routes those to sign-in.
 
 import type {
   AssetDetail,
@@ -13,6 +15,7 @@ import type {
   CreateMaintenanceItemRequest,
   CreateTimeBasedCostRequest,
   CreateUsageBasedCostRequest,
+  CurrentUser,
   MaintenanceItem,
   TimeBasedCost,
   UsageBasedCost,
@@ -92,6 +95,11 @@ async function errorDetail(res: Response): Promise<string> {
 const body = (data: unknown): RequestInit => ({ body: JSON.stringify(data) });
 
 export const api = {
+  // Auth. `getMe` resolves the current user or throws ApiError(401) when not signed in.
+  // Login is a full-page navigation to `/api/auth/login` (see SignInScreen), not a fetch.
+  getMe: () => request<CurrentUser>("/auth/me"),
+  logout: () => request<void>("/auth/logout", { method: "POST" }),
+
   // Workspace + detail reads
   listAssets: () => request<WorkspaceOverview>("/assets"),
   getAsset: (id: string) => request<AssetDetail>(`/assets/${id}`),

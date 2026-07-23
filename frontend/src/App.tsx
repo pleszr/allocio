@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "./api/client";
-import type { WorkspaceOverview } from "./api/types";
+import type { CurrentUser, WorkspaceOverview } from "./api/types";
 import { Sidebar } from "./components/Sidebar";
 import { ErrorState, LoadingState } from "./components/StateView";
 import { Tabs } from "./components/Tabs";
@@ -12,11 +12,24 @@ import { CostsScreen } from "./screens/CostsScreen";
 import { DashboardScreen } from "./screens/DashboardScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { NewBucketScreen } from "./screens/NewBucketScreen";
+import { SignInScreen } from "./screens/SignInScreen";
 
 const TAB_LABEL: Record<AssetTab, string> = { dashboard: "Dashboard", costs: "Costs", checkin: "Check-in" };
 
+// Auth gate: before the workspace can render, find out whether the user is signed in.
+// Three outcomes — checking (spinner), not signed in (sign-in screen), signed in (the app).
 export default function App() {
   useOsTheme();
+  const auth = useAsync(() => api.getMe(), []);
+
+  if (auth.loading && !auth.data) return <LoadingState label="Checking sign-in…" />;
+  // Any error here means "can't proceed authenticated": a 401 is the normal unauthenticated
+  // case, and a network error still can't reach the workspace — both route to sign-in.
+  if (auth.error || !auth.data) return <SignInScreen />;
+  return <Workspace user={auth.data} />;
+}
+
+function Workspace({ user }: { user: CurrentUser }) {
   const [route, setRoute] = useState<Route>({ kind: "home" });
   const workspace = useAsync(() => api.listAssets(), []);
   const assets = workspace.data?.assets ?? [];
@@ -35,7 +48,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar assets={assets} route={route} onNavigate={setRoute} />
+      <Sidebar assets={assets} route={route} onNavigate={setRoute} user={user} />
       <main className="main">
         <TopBar crumbs={crumbs} />
         {route.kind === "asset" && (
