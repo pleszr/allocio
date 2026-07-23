@@ -244,6 +244,43 @@ body {
 }
 .logout-btn:hover { background: var(--paper-2); color: var(--ink); }
 
+/* ── User menu popover (sidebar footer) ─────────────── */
+.user-menu { position: relative; flex: 1; min-width: 0; }
+.user-menu-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.user-menu-trigger:hover { background: var(--paper-2); }
+.user-menu .sidebar-user { pointer-events: none; }
+
+.user-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+.user-popover-head { min-width: 0; padding-bottom: 4px; border-bottom: 1px solid var(--line-soft); }
+.user-popover-field { gap: 6px; }
+.user-popover-error { font-size: 12px; padding: 8px 12px; }
+.user-popover-signout { flex-shrink: 0; width: 100%; text-align: center; padding: 8px 9px; }
+
 /* ── Sign-in gate ──────────────────────────────────── */
 .signin-wrap {
   min-height: 100vh;

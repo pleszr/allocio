@@ -11,6 +11,21 @@ TireType: TypeAlias = Literal["summer", "winter", "all_season"]
 AssetTemplateKey: TypeAlias = Literal["vehicle"]
 ExpenseKind: TypeAlias = Literal["modeled", "other"]
 ExpenseSourceType: TypeAlias = Literal["time_based_cost", "usage_based_cost", "maintenance_item"]
+CurrencyCode: TypeAlias = Literal["HUF", "EUR", "USD"]
+LanguageCode: TypeAlias = Literal["en", "hu", "en_hu_alloc"]
+
+
+class UpdateUserSettingsRequest(BaseModel):
+    """Full-replace body for the caller's workspace-wide settings; an out-of-range value yields a 422."""
+
+    default_currency: CurrencyCode = Field(
+        description="Workspace-wide display currency (relabel only, no FX). One of HUF, EUR, USD.",
+        examples=["HUF"],
+    )
+    language: LanguageCode = Field(
+        description="Persisted language preference. Stored only for now; UI translation lands in a later issue.",
+        examples=["en"],
+    )
 
 
 class VehicleDetailsInput(BaseModel):

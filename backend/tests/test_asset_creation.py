@@ -120,6 +120,35 @@ def test_create_bare_asset_has_bucket_but_no_profile_or_rows(client: TestClient,
     assert db_session.scalars(select(TimeBasedCost).where(TimeBasedCost.asset_id == asset.id)).all() == []
 
 
+def test_new_bucket_adopts_owner_default_currency_after_settings_change(
+    client: TestClient, db_session: Session
+) -> None:
+    # Existing bucket created before the settings change keeps its currency.
+    client.post("/api/assets", json=VEHICLE_BODY_WITH_SELECTION)
+    first_asset = db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).one()
+    first_bucket = db_session.scalars(select(Bucket).where(Bucket.asset_id == first_asset.id)).one()
+    assert first_bucket.currency == "HUF"
+
+    # Change the owner's default currency, then create a second vehicle asset.
+    assert client.put("/api/users/me/settings", json={"default_currency": "EUR", "language": "en"}).status_code == 200
+    client.post("/api/assets", json=VEHICLE_BODY_WITH_SELECTION)
+
+    assets = db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all()
+    assert len(assets) == 2
+    second_asset = next(a for a in assets if a.id != first_asset.id)
+
+    second_bucket = db_session.scalars(select(Bucket).where(Bucket.asset_id == second_asset.id)).one()
+    assert second_bucket.currency == "EUR"
+    second_reserve = db_session.scalars(
+        select(UsageBasedCost).where(UsageBasedCost.asset_id == second_asset.id)
+    ).one()
+    assert second_reserve.currency == "EUR"
+
+    # The pre-existing bucket is untouched by the settings change.
+    db_session.refresh(first_bucket)
+    assert first_bucket.currency == "HUF"
+
+
 def test_create_asset_rolls_back_on_failure(
     client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

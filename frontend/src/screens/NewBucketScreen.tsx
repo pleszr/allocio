@@ -4,6 +4,7 @@ import type { AssetTemplateCatalog, CreateAssetRequest } from "../api/types";
 import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
 import type { IlloKind } from "../utils/assetType";
+import { useCurrency } from "../utils/currency";
 import { fmtNumber, intervalDays } from "../utils/format";
 
 interface NewBucketScreenProps {
@@ -90,6 +91,7 @@ function maintenanceDetail(interval_km: number | null, interval_months: number |
 }
 
 export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
+  const fmt = useCurrency();
   const [step, setStep] = useState(1);
   const [type, setType] = useState<TypeOption | null>(null);
   const [name, setName] = useState("");
@@ -172,10 +174,10 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
       }
     }
     for (const c of costs.filter((c) => c.period !== "usage")) {
-      lines.push({ id: c.id, name: c.name || "(unnamed)", monthly: (c.amount / periodDays(c.period)) * 30, sub: `$${c.amount.toFixed(2)} per ${c.period}` });
+      lines.push({ id: c.id, name: c.name || "(unnamed)", monthly: (c.amount / periodDays(c.period)) * 30, sub: `${fmt(c.amount, { decimals: 2 })} per ${c.period}` });
     }
     return lines;
-  }, [isVehicle, catalog, selectedKeys, costs]);
+  }, [isVehicle, catalog, selectedKeys, costs, fmt]);
 
   const reviewUsageLines = useMemo<ReviewLine[]>(() => {
     const lines: ReviewLine[] = [];
@@ -186,10 +188,10 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
       }
     }
     for (const c of costs.filter((c) => c.period === "usage")) {
-      lines.push({ id: c.id, name: c.name || "(unnamed)", monthly: null, sub: `$${c.amount.toFixed(3)} per ${c.unit || "km"}` });
+      lines.push({ id: c.id, name: c.name || "(unnamed)", monthly: null, sub: `${fmt(c.amount, { decimals: 3 })} per ${c.unit || "km"}` });
     }
     return lines;
-  }, [isVehicle, catalog, selectedKeys, costs]);
+  }, [isVehicle, catalog, selectedKeys, costs, fmt]);
 
   const addCost = (c: DraftCost) => setCosts((arr) => [...arr, { ...c, id: Math.random().toString(36).slice(2, 8) }]);
   const removeCost = (id: string) => setCosts((arr) => arr.filter((c) => c.id !== id));
@@ -292,7 +294,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
                   Estimated allocation
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 600, fontFeatureSettings: '"tnum"' }}>
-                  ${fmtNumber(monthlyEst)}
+                  {fmt(monthlyEst, { decimals: 0 })}
                   <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>
                     /mo
                   </span>
@@ -489,6 +491,7 @@ interface Step3Props {
 }
 
 function Step3(props: Step3Props) {
+  const fmt = useCurrency();
   const { type, costs, onAdd, onRemove, onUpdate } = props;
   const isVehicle = type.kind === "car";
   const suggestions = isVehicle ? [] : SUGGESTED[type.kind as Exclude<IlloKind, "car">].filter((s) => !costs.some((c) => c.name === s.name));
@@ -533,7 +536,9 @@ function Step3(props: Step3Props) {
             {suggestions.map((s) => (
               <button key={s.id} className="suggested-chip" onClick={() => onAdd(s)}>
                 <Icon name="plus" size={11} stroke={2.4} /> {s.name} ·{" "}
-                {s.period === "usage" ? `$${s.amount}/${s.unit}` : `$${s.amount}/${s.period}`}
+                {s.period === "usage"
+                  ? `${fmt(s.amount, { decimals: 0 })}/${s.unit}`
+                  : `${fmt(s.amount, { decimals: 0 })}/${s.period}`}
               </button>
             ))}
           </div>
@@ -677,6 +682,7 @@ function CatalogRow({ checked, onToggle, label, detail }: { checked: boolean; on
 }
 
 function CostRow({ cost, onUpdate, onRemove }: { cost: DraftCost; onUpdate: (p: Partial<DraftCost>) => void; onRemove: () => void }) {
+  const fmt = useCurrency();
   return (
     <div className="cost-row">
       <input className="input" placeholder="Cost name" value={cost.name} onChange={(e) => onUpdate({ name: e.target.value })} />
@@ -703,7 +709,7 @@ function CostRow({ cost, onUpdate, onRemove }: { cost: DraftCost; onUpdate: (p: 
         </select>
       ) : (
         <div className="row-meta" style={{ textAlign: "right" }}>
-          ≈ ${(cost.amount / PERIOD_DAYS[cost.period]).toFixed(2)}/day
+          ≈ {fmt(cost.amount / PERIOD_DAYS[cost.period], { decimals: 2 })}/day
         </div>
       )}
       <button className="cost-row-x" aria-label="Remove" onClick={onRemove}>
@@ -732,14 +738,15 @@ function Step4({
   yearlyEst: number;
   perDay: number;
 }) {
+  const fmt = useCurrency();
   return (
     <div className="stack">
       <div className="allocation-callout">
         <div>
           <div className="label">Estimated monthly allocation</div>
-          <div className="num">${fmtNumber(monthlyEst)}</div>
+          <div className="num">{fmt(monthlyEst, { decimals: 0 })}</div>
           <div className="sub">
-            ${perDay.toFixed(2)}/day · ${fmtNumber(yearlyEst)}/year
+            {fmt(perDay, { decimals: 2 })}/day · {fmt(yearlyEst, { decimals: 0 })}/year
           </div>
         </div>
         <div style={{ width: 140, height: 100, background: "rgba(255,255,255,.12)", borderRadius: 12, padding: 8 }}>
@@ -772,7 +779,7 @@ function Step4({
               </div>
             </div>
             <div className="review-row-amt">
-              ${fmtNumber(c.monthly ?? 0)}
+              {fmt(c.monthly ?? 0, { decimals: 0 })}
               <span className="muted" style={{ fontSize: 11.5, fontWeight: 400 }}>
                 /mo
               </span>
@@ -822,7 +829,7 @@ function Step4({
             <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>What happens next</div>
             <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.55 }}>
               Allocio starts accruing{" "}
-              <strong style={{ color: "var(--ink)" }}>${perDay.toFixed(2)}/day</strong> into this bucket. Run a monthly
+              <strong style={{ color: "var(--ink)" }}>{fmt(perDay, { decimals: 2 })}/day</strong> into this bucket. Run a monthly
               check-in to log usage and post the accrual.
             </div>
           </div>

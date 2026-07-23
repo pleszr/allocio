@@ -11,7 +11,7 @@ React 18 + TypeScript + Vite product app for Allocio. Built as static assets, no
 - `src/api/` — `types.ts` (TS mirrors of backend response/request shapes) and `client.ts` (typed `fetch` wrapper over `/api/*`)
 - `src/components/` — presentational + chrome components (Icon, Sparkline, Illustrations, Sidebar, TopBar, Tabs, StateView)
 - `src/screens/` — one file per screen (Home, Dashboard, Costs, CheckIn, NewBucket)
-- `src/utils/` — pure helpers: `format.ts`, `assetType.ts`, `health.ts`, and the `useAsync` fetch hook. Do NOT name this `lib/` — the repo `.gitignore` ignores `lib/`.
+- `src/utils/` — pure helpers: `format.ts` (currency-agnostic number/date helpers), `assetType.ts`, `health.ts`, and the `useAsync` fetch hook, plus `currency.tsx` — the `CurrencyProvider` React context and `useCurrency()` hook that own money rendering (the display currency symbol and its placement). Money must be rendered through `useCurrency()`'s `fmt`, not a hardcoded symbol. Do NOT name this `lib/` — the repo `.gitignore` ignores `lib/`.
 - `vite.config.ts` — Vite config, dev server, and `/api` proxy to the backend (proxy target defaults to `http://localhost:8000`, overridable via `VITE_API_TARGET`)
 - `e2e/` — Playwright browser end-to-end tests (`*.spec.ts`) plus `global-teardown.ts` and the shared throwaway-DB identity in `db.ts`; config is `playwright.config.ts`. The throwaway DB is provisioned (dropped, recreated, migrated) inside the backend `webServer` command — not `globalSetup` — because Playwright starts the webServer before global setup, and the backend's startup hook needs a migrated DB at boot
 - `dist/` — production build output

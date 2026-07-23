@@ -2,7 +2,7 @@ import type { AssetSummary, WorkspaceOverview } from "../api/types";
 import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
 import { illoBg, illoKind } from "../utils/assetType";
-import { fmtNumber } from "../utils/format";
+import { useCurrency } from "../utils/currency";
 import { healthBand } from "../utils/health";
 
 interface HomeScreenProps {
@@ -13,6 +13,7 @@ interface HomeScreenProps {
 
 export function HomeScreen({ overview, onOpenAsset, onNew }: HomeScreenProps) {
   const { assets, totals } = overview;
+  const fmt = useCurrency();
   const underfunded = assets.filter((a) => a.health === "underfunded");
 
   return (
@@ -51,14 +52,14 @@ export function HomeScreen({ overview, onOpenAsset, onNew }: HomeScreenProps) {
           <div className="summary">
             <div className="summary-cell">
               <div className="summary-label">Total to allocate</div>
-              <div className="num-lg">${fmtNumber(totals.total_recommended_monthly_allocation)}</div>
+              <div className="num-lg">{fmt(totals.total_recommended_monthly_allocation, { decimals: 0 })}</div>
               <div className="row-meta" style={{ marginTop: 4 }}>
                 recommended across all buckets
               </div>
             </div>
             <div className="summary-cell">
               <div className="summary-label">Combined balance</div>
-              <div className="num-lg">${fmtNumber(totals.total_balance)}</div>
+              <div className="num-lg">{fmt(totals.total_balance, { decimals: 0 })}</div>
               <div className="row-meta" style={{ marginTop: 4 }}>
                 across {assets.length} {assets.length === 1 ? "bucket" : "buckets"}
               </div>
@@ -105,6 +106,7 @@ export function HomeScreen({ overview, onOpenAsset, onNew }: HomeScreenProps) {
 }
 
 function BucketCard({ asset, onOpen }: { asset: AssetSummary; onOpen: () => void }) {
+  const fmt = useCurrency();
   const kind = illoKind(asset.type);
   const band = healthBand(asset.health);
   const decimals = asset.balance < 1000 ? 2 : 0;
@@ -122,11 +124,11 @@ function BucketCard({ asset, onOpen }: { asset: AssetSummary; onOpen: () => void
         <div className="bucket-stats">
           <div className="bucket-row">
             <span className="bucket-row-label">Balance</span>
-            <span className="bucket-row-val">${fmtNumber(asset.balance, decimals)}</span>
+            <span className="bucket-row-val">{fmt(asset.balance, { decimals })}</span>
           </div>
           <div className="bucket-row">
             <span className="bucket-row-label">Next allocation</span>
-            <span className="bucket-row-val">${fmtNumber(asset.recommended_monthly_allocation)}</span>
+            <span className="bucket-row-val">{fmt(asset.recommended_monthly_allocation, { decimals: 0 })}</span>
           </div>
         </div>
       </div>

@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.api import asset_templates, assets, auth, check_ins, costs, expenses, health
+from app.api import asset_templates, assets, auth, check_ins, costs, expenses, health, users
 from app.common.exceptions import AuthenticationError, NotFoundError, ValidationError
 from app.config import settings
 from app.db import SessionLocal
@@ -37,6 +37,7 @@ app.add_middleware(SessionMiddleware, secret_key=_SESSION_SECRET, same_site="lax
 
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(users.router)
 app.include_router(assets.router)
 app.include_router(asset_templates.router)
 app.include_router(costs.router)

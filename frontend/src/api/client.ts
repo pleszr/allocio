@@ -19,6 +19,7 @@ import type {
   MaintenanceItem,
   TimeBasedCost,
   UsageBasedCost,
+  UserSettings,
   WorkspaceOverview,
 } from "./types";
 
@@ -99,6 +100,12 @@ export const api = {
   // Login is a full-page navigation to `/api/auth/login` (see SignInScreen), not a fetch.
   getMe: () => request<CurrentUser>("/auth/me"),
   logout: () => request<void>("/auth/logout", { method: "POST" }),
+
+  // User settings. PUT is a full replace and returns the saved settings, so the caller can trust
+  // the server's stored value rather than optimistically assuming its own input took effect.
+  getSettings: () => request<UserSettings>("/users/me/settings"),
+  updateSettings: (data: UserSettings) =>
+    request<UserSettings>("/users/me/settings", { method: "PUT", ...body(data) }),
 
   // Workspace + detail reads
   listAssets: () => request<WorkspaceOverview>("/assets"),

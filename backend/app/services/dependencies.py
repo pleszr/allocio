@@ -14,6 +14,7 @@ from app.services.balance_history_service import BalanceHistoryService
 from app.services.check_in_service import CheckInService
 from app.services.cost_service import CostService
 from app.services.expense_service import ExpenseService
+from app.services.user_settings_service import UserSettingsService
 from app.services.workspace_service import WorkspaceService
 
 # Fixed dev identity used only under the `AUTH_DISABLED` bypass; the startup hook ensures a matching
@@ -78,3 +79,8 @@ def get_asset_detail_service(session: Session = Depends(get_session)) -> AssetDe
 def get_asset_template_service() -> AssetTemplateService:
     """Provide an `AssetTemplateService` for the template-catalog read route; the catalog is static, no session."""
     return AssetTemplateService()
+
+
+def get_user_settings_service(session: Session = Depends(get_session)) -> UserSettingsService:
+    """Provide a `UserSettingsService` for the settings read/replace routes over the request-scoped session."""
+    return UserSettingsService(session)

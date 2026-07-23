@@ -13,8 +13,10 @@ from app.db import Base
 class User(Base):
     """An authenticated user, keyed to a Google account by its stable `sub` claim.
 
-    Lives in `app/domain/` under the MVP 1:1 entity/model shortcut. Currency and language
-    preferences are intentionally absent — they arrive with the settings panel (#67).
+    Lives in `app/domain/` under the MVP 1:1 entity/model shortcut. Carries the workspace-wide
+    display preferences the settings panel (#67) edits: `default_currency` (relabel-only display
+    currency new buckets adopt) and `language` (persisted preference; UI translation lands later).
+    Both have server defaults so existing and future rows are valid without explicit values.
     """
 
     __tablename__ = "users"
@@ -25,4 +27,6 @@ class User(Base):
     google_sub: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     email: Mapped[str] = mapped_column(String, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False, server_default=text("''"))
+    default_currency: Mapped[str] = mapped_column(String(3), nullable=False, server_default=text("'HUF'"))
+    language: Mapped[str] = mapped_column(String(16), nullable=False, server_default=text("'en'"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=text("now()"))
