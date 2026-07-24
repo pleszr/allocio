@@ -54,3 +54,4 @@ Codes intentionally NOT enabled:
 
 - `[tool.pytest.ini_options]` → `asyncio_default_fixture_loop_scope = "function"` (important for async test stability)
 - Prefer `httpx.AsyncClient` + `app.dependency_overrides` over `@patch` chains. Tests call routes via the FastAPI dispatcher, not by importing handler functions directly.
+- Use a factory fixture (a fixture that returns a callable, parameterized per call) when several tests need the same parameterized `db_session` mutation — e.g. `backdate_asset_creation` in `tests/conftest.py`, which lets a test push an asset's `created_at` into the past directly through `db_session` rather than duplicating the same raw mutation in every test module.

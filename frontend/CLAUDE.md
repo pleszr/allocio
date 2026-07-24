@@ -39,7 +39,7 @@ npm run e2e   # Playwright browser e2e; needs Postgres up (docker compose up -d)
   `E2E_FRONTEND_PORT` in `frontend/.env.local`.
 - The suite requires the always-on local Postgres container (`docker compose up -d`); it creates and drops a throwaway `allocio_e2e` database per run and never touches the `allocio` dev database. If Postgres is down, the backend command fails fast with the command to start it. The e2e backend runs with `AUTH_DISABLED=true` so the app renders past the auth gate without Google.
 - Not run in CI. The fast API-level counterpart (`backend/tests/test_workflow_e2e.py`) runs as a pre-commit hook.
-- Selectors prefer user-facing roles and text; add a `data-testid` only where no good role/text handle exists (currently just the bucket-name input).
+- Selectors prefer user-facing roles and text; add a `data-testid` only where no good role/text handle exists (currently just the bucket-name input). Playwright's `getByLabel` requires a real `htmlFor`/`id` pairing (or nesting) between a `.field-label` and its input/select — a visually-adjacent label with no `htmlFor` is invisible to it. `CheckInScreen.tsx`'s fields pair every label this way so e2e specs can target them directly instead of falling back to a `data-testid`; prefer the same pairing when adding a new labeled form field elsewhere.
 
 ## Rules
 

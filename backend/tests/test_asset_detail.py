@@ -1,5 +1,6 @@
 """GET /api/assets/{asset_id} composes one asset's dashboard payload (issue #23)."""
 import uuid
+from collections.abc import Callable
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -15,22 +16,27 @@ VALID_VEHICLE = {
     "selected_cost_keys": sorted(vehicle_catalog_keys()),
 }
 STARTING_ODOMETER = 120000
-FUTURE_END = str(date.today() + timedelta(days=30))
+# The asset is backdated 90 days (see `_create_vehicle`) so this period can end in the past.
+PERIOD_END = str(date.today() - timedelta(days=60))
 
 
-def _create_vehicle(client: TestClient) -> str:
-    return client.post("/api/assets", json=VALID_VEHICLE).json()["asset"]["id"]
+def _create_vehicle(client: TestClient, backdate_asset_creation: Callable[[str], None]) -> str:
+    asset_id = client.post("/api/assets", json=VALID_VEHICLE).json()["asset"]["id"]
+    backdate_asset_creation(asset_id)
+    return asset_id
 
 
 def _post_check_in(client: TestClient, asset_id: str, usage_end: int, expenses: list | None = None) -> dict:
-    body = {"period_end": FUTURE_END, "usage_end": usage_end, "expenses": expenses or []}
+    body = {"period_end": PERIOD_END, "usage_end": usage_end, "expenses": expenses or []}
     response = client.post(f"/api/assets/{asset_id}/check-ins", json=body)
     assert response.status_code == 201
     return response.json()
 
 
-def test_detail_composes_derived_figures_and_usage(client: TestClient) -> None:
-    asset_id = _create_vehicle(client)
+def test_detail_composes_derived_figures_and_usage(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    asset_id = _create_vehicle(client, backdate_asset_creation)
     posted = _post_check_in(
         client, asset_id, usage_end=130000, expenses=[{"kind": "other", "amount": 100, "comment": "Wipers"}]
     )
@@ -43,7 +49,7 @@ def test_detail_composes_derived_figures_and_usage(client: TestClient) -> None:
     assert body["type"] == "vehicle"
     assert body["current_usage"] == 130000
     assert body["usage_since_last_check_in"] == 130000 - STARTING_ODOMETER
-    assert body["last_check_in_date"] == FUTURE_END
+    assert body["last_check_in_date"] == PERIOD_END
     assert body["health"] in {"underfunded", "healthy", "overflowing"}
 
     # daily_accrual = recommended_monthly_allocation * 12 / 365, quantized to cents.
@@ -56,15 +62,19 @@ def test_detail_composes_derived_figures_and_usage(client: TestClient) -> None:
     assert Decimal(body["balance"]) == allocated - Decimal("100")
 
 
-def test_detail_maintenance_items_carry_status(client: TestClient) -> None:
-    asset_id = _create_vehicle(client)
+def test_detail_maintenance_items_carry_status(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    asset_id = _create_vehicle(client, backdate_asset_creation)
     body = client.get(f"/api/assets/{asset_id}").json()
     assert len(body["maintenance_items"]) > 0  # vehicle template seeds maintenance rows
     assert all(item["status"] in {"ok", "soon", "due", "overdue"} for item in body["maintenance_items"])
 
 
-def test_detail_recent_activity_merges_inflows_and_outflows(client: TestClient) -> None:
-    asset_id = _create_vehicle(client)
+def test_detail_recent_activity_merges_inflows_and_outflows(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    asset_id = _create_vehicle(client, backdate_asset_creation)
     _post_check_in(
         client, asset_id, usage_end=130000, expenses=[{"kind": "other", "amount": 250, "comment": "Brake job"}]
     )

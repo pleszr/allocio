@@ -1,7 +1,8 @@
 import os
 import sys
 import uuid
-from collections.abc import Generator
+from collections.abc import Callable, Generator
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,7 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.db import engine, get_session  # noqa: E402
+from app.domain.asset import Asset  # noqa: E402
 from app.domain.user import User  # noqa: E402
 from app.main import app  # noqa: E402
 from app.services.dependencies import get_current_user_id  # noqa: E402
@@ -67,3 +69,22 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
         yield TestClient(app, raise_server_exceptions=False)
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def backdate_asset_creation(db_session: Session) -> Callable[[str], None]:
+    """Factory fixture: push an asset's `created_at` into the past.
+
+    Every asset in these tests is created moments before use, so its first check-in
+    `period_start` (`asset.created_at.date()`) is today. Since `period_end` must be later than
+    `period_start` and no later than today, a same-day-created asset has no valid first-check-in
+    period at all — tests that post/preview a first check-in must backdate the asset first.
+    """
+
+    def _backdate(asset_id: str, days: int = 90) -> None:
+        asset = db_session.get(Asset, uuid.UUID(asset_id))
+        assert asset is not None
+        asset.created_at = datetime.now(timezone.utc) - timedelta(days=days)
+        db_session.flush()
+
+    return _backdate

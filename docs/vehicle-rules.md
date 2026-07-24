@@ -366,6 +366,13 @@ Preview must derive:
 - maintenance statuses at period end
 - usage-based reserve recommendation
 
+### Period validation and tire-type default
+
+- `period_start` is always server-derived from the latest posted check-in's `period_end` (or the asset's creation date/starting odometer for the first check-in) — a caller can never supply it, so backdating is inherently append-only: there is no way to insert a period between two already-posted ones.
+- `period_end` must be later than the derived `period_start` **and** no later than today. A future `period_end` is rejected: future-dated events would make the live bucket balance diverge from the derived monthly series (see "Derived monthly series" below, which only counts events dated on or before today).
+- Within that window, `period_end` may be in the past — a backdated check-in is a normal, supported preview/post input, not a special case.
+- `active_tire_type` defaults to the previous posted check-in's value when the caller omits it (`null`); there is no default for an asset's first check-in. An explicit value in the request always overrides the default, for both preview and posting.
+
 ### Preview formulas
 
 Formula:
@@ -402,6 +409,18 @@ Rules:
 - the posted amounts must match the immediately preceding preview for the same input
 - posting is transactional
 - either the check-in and all resulting events are written, or none of them are
+
+### Maintenance service-baseline reset
+
+When a posted check-in includes an expense whose `source_type = maintenance_item`, posting resets that maintenance item's service baseline as a side-effect, in the same transaction as the rest of the post:
+
+- MVP rule: **any** maintenance-linked expense resets the item — there is no separate "was this actually a service?" flag.
+- Reset target is the check-in's own `period_end` and `usage_end`, not the expense's `event_date`:
+  - non-tire items (`tire_type` is unset): `last_serviced_at_date = period_end` and `last_serviced_at_odometer = usage_end`
+  - tire items (`tire_type` set): `last_serviced_at_date = period_end` only — the odometer field is left unchanged, because tire km-since-service already re-sums usage from that date across matching-tire-type check-ins (see "Elapsed distance and elapsed months" above); resetting the odometer too would double-count.
+- The reset changes only the maintenance item's current editable row, which drives future status/recommendation figures. It does not alter the posted `check_in`/`allocation_event`/`expense_event` rows, which stay immutable exactly as before (see "Future-Only Effect Of Edits" below).
+- If multiple submitted expenses link to the same maintenance item in one check-in, the result is the same as if only one had — the target values are the check-in's own `period_end`/`usage_end`, not the expense's.
+- A failure anywhere in the post (including an unexpected missing maintenance row) rolls back the whole transaction, so a maintenance item is never reset without its triggering check-in also being posted, and vice versa.
 
 ### Check-in status
 

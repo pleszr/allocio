@@ -58,6 +58,7 @@ class _PeriodContext:
 
     period_start: date
     usage_start: int
+    previous_active_tire_type: str | None
 
 
 class CheckInService:
@@ -80,6 +81,7 @@ class CheckInService:
         bucket = self._require_bucket(asset_id)
         context = self._derive_period(asset)
         self._validate_period(context, period_end, usage_end)
+        resolved_tire_type = active_tire_type if active_tire_type is not None else context.previous_active_tire_type
         computation = self._compute(asset_id, bucket, context, period_end, usage_end, expenses)
         return CheckInPreview(
             asset_id=asset_id,
@@ -87,7 +89,7 @@ class CheckInService:
             period_end=period_end,
             usage_start=context.usage_start,
             usage_end=usage_end,
-            active_tire_type=active_tire_type,
+            active_tire_type=resolved_tire_type,
             computation=computation,
         )
 
@@ -107,8 +109,9 @@ class CheckInService:
         context = self._derive_period(asset)
         self._validate_period(context, period_end, usage_end)
         self._require_expense_sources_exist(asset_id, expenses)
+        resolved_tire_type = active_tire_type if active_tire_type is not None else context.previous_active_tire_type
         computation = self._compute(asset_id, bucket, context, period_end, usage_end, expenses)
-        return self._persist(bucket, context, period_end, usage_end, active_tire_type, notes, computation)
+        return self._persist(bucket, context, period_end, usage_end, resolved_tire_type, notes, expenses, computation)
 
     def _require_owned_asset(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> Asset:
         """Return the owned asset or raise `NotFoundError` so unowned assets never leak."""
@@ -125,18 +128,30 @@ class CheckInService:
         return bucket
 
     def _derive_period(self, asset: Asset) -> _PeriodContext:
-        """Derive the period start and usage start from the last posted check-in, or the first-check-in rule."""
+        """Derive the period start, usage start, and default tire type from the last posted check-in.
+
+        Falls back to the first-check-in rule (asset creation date and starting odometer) when no
+        check-in has been posted yet; there is nothing to default the tire type from in that case.
+        """
         previous = check_in_repository.get_latest_posted_check_in(self._session, asset.id)
         if previous is not None:
-            return _PeriodContext(period_start=previous.period_end, usage_start=previous.usage_end or 0)
+            return _PeriodContext(
+                period_start=previous.period_end,
+                usage_start=previous.usage_end or 0,
+                previous_active_tire_type=previous.active_tire_type,
+            )
         profile = check_in_repository.get_vehicle_profile(self._session, asset.id)
         starting_odometer = profile.starting_odometer if profile is not None else 0
-        return _PeriodContext(period_start=asset.created_at.date(), usage_start=starting_odometer)
+        return _PeriodContext(
+            period_start=asset.created_at.date(), usage_start=starting_odometer, previous_active_tire_type=None
+        )
 
     def _validate_period(self, context: _PeriodContext, period_end: date, usage_end: int) -> None:
-        """Reject a period that ends before it starts or whose usage counter moves backward."""
+        """Reject a period that ends before it starts, in the future, or whose usage counter moves backward."""
         if period_end <= context.period_start:
             raise ValidationError("period_end must be later than the derived period start.")
+        if period_end > date.today():
+            raise ValidationError("period_end cannot be in the future.")
         if usage_end < context.usage_start:
             raise ValidationError("usage_end must be greater than or equal to the derived usage start.")
 
@@ -226,14 +241,16 @@ class CheckInService:
         usage_end: int,
         active_tire_type: str | None,
         notes: str | None,
+        expenses: list[ExpenseDraft],
         computation: CheckInComputation,
     ) -> tuple[CheckIn, list[AllocationEvent], list[ExpenseEvent]]:
-        """Write the posted check-in and its allocation/expense events under one rollback-guarded commit."""
+        """Write the posted check-in, its allocation/expense events, and any maintenance resets in one commit."""
         try:
             check_in = self._build_check_in(bucket, context, period_end, usage_end, active_tire_type, notes)
             check_in_repository.add_and_flush(self._session, check_in)
             allocation_events = self._build_allocation_events(bucket, check_in, period_end, computation)
             expense_events = self._build_expense_events(bucket, check_in, computation)
+            self._reset_maintenance_baselines(bucket.asset_id, expenses, period_end, usage_end)
             self._session.flush()
             self._session.commit()
         except Exception:
@@ -306,3 +323,24 @@ class CheckInService:
         for event in events:
             self._session.add(event)
         return events
+
+    def _reset_maintenance_baselines(
+        self, asset_id: uuid.UUID, expenses: list[ExpenseDraft], period_end: date, usage_end: int
+    ) -> None:
+        """Reset each maintenance-linked expense's item to the check-in's period_end/usage_end.
+
+        Any maintenance-linked expense resets its item's baseline (MVP: no separate "was this a
+        service?" flag). Tire items reset by date only — their km-since-service re-sums from that
+        date across matching-tire-type check-ins, so mutating the odometer field would double-count.
+        """
+        seen: set[uuid.UUID] = set()
+        for draft in expenses:
+            if draft.source_type != "maintenance_item" or draft.source_id is None or draft.source_id in seen:
+                continue
+            seen.add(draft.source_id)
+            item = cost_repository.get_maintenance_item(self._session, asset_id, draft.source_id)
+            if item is None:
+                raise NotFoundError("Maintenance item not found.")
+            item.last_serviced_at_date = period_end
+            if item.tire_type is None:
+                item.last_serviced_at_odometer = usage_end
