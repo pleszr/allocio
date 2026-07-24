@@ -31,7 +31,6 @@ export interface AssetSummary {
   id: string;
   type: string;
   name: string;
-  subtitle: string | null;
   status: string;
   currency: string;
   balance: number;
@@ -84,8 +83,6 @@ export interface AssetDetail {
   id: string;
   type: string;
   name: string;
-  subtitle: string | null;
-  attributes: Record<string, unknown> | null;
   status: string;
   currency: string;
   balance: number;
@@ -213,9 +210,6 @@ export interface AssetTemplateCatalog {
 
 // ── Request bodies ────────────────────────────────────────────────────
 export interface VehicleDetailsInput {
-  year?: number | null;
-  make?: string | null;
-  model?: string | null;
   starting_odometer?: number;
 }
 
@@ -224,13 +218,11 @@ export interface CreateAssetRequest {
   type?: string | null;
   template?: "vehicle" | null;
   vehicle?: VehicleDetailsInput | null;
-  subtitle?: string | null;
-  attributes?: Record<string, string | number | boolean | null> | null;
   selected_cost_keys?: string[] | null;
 }
 
 export interface CreateAssetResponse {
-  asset: { id: string; type: string; name: string; subtitle: string | null };
+  asset: { id: string; type: string; name: string };
 }
 
 export interface CreateTimeBasedCostRequest {

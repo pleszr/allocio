@@ -19,7 +19,7 @@ OTHER_USER_ID = uuid.UUID("22222222-2222-2222-2222-222222222222")
 VALID_VEHICLE = {
     "name": "My Car",
     "template": "vehicle",
-    "vehicle": {"year": 2018, "make": "Toyota", "model": "Corolla", "starting_odometer": 120000},
+    "vehicle": {"starting_odometer": 120000},
     "selected_cost_keys": sorted(vehicle_catalog_keys()),
 }
 

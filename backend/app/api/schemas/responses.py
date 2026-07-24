@@ -43,8 +43,6 @@ class AssetResponse(BaseModel):
     user_id: uuid.UUID = Field(description="Owner of the asset.")
     type: str = Field(description="Asset type, e.g. 'vehicle' or 'house'.", examples=["vehicle"])
     name: str = Field(description="Human-readable asset name.", examples=["My Car"])
-    subtitle: str | None = Field(description="Opaque display subtitle supplied at creation, if any.")
-    attributes: dict | None = Field(description="Opaque free-form detail object supplied at creation, if any.")
     status: str = Field(description="Lifecycle status of the asset.", examples=["active"])
     created_at: datetime = Field(description="Server timestamp when the asset was created.")
 
@@ -55,9 +53,6 @@ class VehicleProfileResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     asset_id: uuid.UUID = Field(description="Owning asset id (also the primary key).")
-    year: int | None = Field(description="Model year of the vehicle.", examples=[2018])
-    make: str | None = Field(description="Manufacturer of the vehicle.", examples=["Toyota"])
-    model: str | None = Field(description="Model name of the vehicle.", examples=["Corolla"])
     starting_odometer: int = Field(description="Odometer reading in kilometers at creation time.", examples=[120000])
 
 
@@ -271,7 +266,6 @@ class AssetSummaryResponse(BaseModel):
     id: uuid.UUID = Field(description="Server-generated asset id.")
     type: str = Field(description="Asset type, e.g. 'vehicle' or 'house'.", examples=["vehicle"])
     name: str = Field(description="Human-readable asset name.", examples=["My Car"])
-    subtitle: str | None = Field(description="Opaque display subtitle supplied at creation, if any.")
     status: str = Field(description="Lifecycle status of the asset.", examples=["active"])
     currency: str = Field(description="ISO currency code of the asset's bucket.", examples=["HUF"])
     balance: Decimal = Field(description="Event-derived bucket balance: sum(allocations) - sum(expenses).")
@@ -338,8 +332,6 @@ class AssetDetailResponse(BaseModel):
     id: uuid.UUID = Field(description="Server-generated asset id.")
     type: str = Field(description="Asset type, e.g. 'vehicle' or 'house'.", examples=["vehicle"])
     name: str = Field(description="Human-readable asset name.", examples=["My Car"])
-    subtitle: str | None = Field(description="Opaque display subtitle supplied at creation, if any.")
-    attributes: dict | None = Field(description="Opaque free-form detail object supplied at creation, if any.")
     status: str = Field(description="Lifecycle status of the asset.", examples=["active"])
     currency: str = Field(description="ISO currency code of the asset's bucket.", examples=["HUF"])
     balance: Decimal = Field(description="Event-derived bucket balance: sum(allocations) - sum(expenses).")

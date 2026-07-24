@@ -19,7 +19,7 @@ from fastapi.testclient import TestClient
 VEHICLE_BODY = {
     "name": "My Car",
     "template": "vehicle",
-    "vehicle": {"year": 2018, "make": "Toyota", "model": "Corolla", "starting_odometer": 120000},
+    "vehicle": {"starting_odometer": 120000},
     "selected_cost_keys": ["mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"],
 }
 STARTING_ODOMETER = 120000

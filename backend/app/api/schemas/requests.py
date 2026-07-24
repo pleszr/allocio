@@ -31,13 +31,8 @@ class UpdateUserSettingsRequest(BaseModel):
 class VehicleDetailsInput(BaseModel):
     """Vehicle-profile fields, accepted only when the vehicle template is selected."""
 
-    year: int | None = Field(default=None, description="Model year of the vehicle.", examples=[2018])
-    make: str | None = Field(
-        default=None, description="Manufacturer of the vehicle.", max_length=60, examples=["Toyota"]
-    )
-    model: str | None = Field(
-        default=None, description="Model name of the vehicle.", max_length=60, examples=["Corolla"]
-    )
+    model_config = ConfigDict(extra="forbid")
+
     starting_odometer: int = Field(
         default=0, ge=0, description="Odometer reading in kilometers at creation time.", examples=[120000]
     )
@@ -49,6 +44,8 @@ class CreateAssetRequest(BaseModel):
     A bare asset needs a free-form `type`. Selecting a `template` prefills the type and default cost
     rows instead; the vehicle template additionally accepts a `vehicle` detail block.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     name: str = Field(
         description="Human-readable asset name shown in the UI.", max_length=120, examples=["My Car"]
@@ -67,17 +64,6 @@ class CreateAssetRequest(BaseModel):
     vehicle: VehicleDetailsInput | None = Field(
         default=None, description="Vehicle profile details; only valid with the vehicle template."
     )
-    subtitle: str | None = Field(
-        default=None,
-        max_length=200,
-        description="Opaque display subtitle the client composes (e.g. '2-bed · Built 1978'); stored verbatim.",
-        examples=["2-bed · Built 1978"],
-    )
-    attributes: dict | None = Field(
-        default=None,
-        description="Opaque free-form detail object for non-vehicle assets; the backend never interprets its keys.",
-        examples=[{"built": "1978", "size": "85"}],
-    )
     selected_cost_keys: list[str] | None = Field(
         default=None,
         max_length=100,
@@ -95,21 +81,6 @@ class CreateAssetRequest(BaseModel):
         for key in value:
             if len(key) > 60:
                 raise ValueError("selected_cost_keys entries must be at most 60 characters.")
-        return value
-
-    @field_validator("attributes")
-    @classmethod
-    def _bound_attributes(cls, value: dict | None) -> dict | None:
-        """Reject an oversized opaque blob (DoS guard): cap key count and require scalar values."""
-        if value is None:
-            return value
-        if len(value) > 30:
-            raise ValueError("attributes may hold at most 30 keys.")
-        for key, item in value.items():
-            if not isinstance(item, (str, int, float, bool)) and item is not None:
-                raise ValueError(f"attributes['{key}'] must be a scalar value.")
-            if isinstance(item, str) and len(item) > 500:
-                raise ValueError(f"attributes['{key}'] is too long.")
         return value
 
     @model_validator(mode="after")

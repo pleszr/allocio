@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 VALID_VEHICLE = {
     "name": "My Car",
     "template": "vehicle",
-    "vehicle": {"year": 2018, "make": "Toyota", "model": "Corolla", "starting_odometer": 120000},
+    "vehicle": {"starting_odometer": 120000},
 }
 STARTING_ODOMETER = 120000
 FUTURE_END = str(date.today() + timedelta(days=30))
