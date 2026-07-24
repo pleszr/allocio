@@ -52,6 +52,12 @@ const DECIMAL_KEYS = new Set([
   "total_allocation",
   "total_expense",
   "net_bucket_change",
+  // Template catalog rows carry a per-currency amount map (`amounts`/`amounts_per_unit`/
+  // `estimated_costs`, e.g. `{"HUF": "11650.00", ...}`); the reviver runs bottom-up per key, so it
+  // sees "HUF"/"EUR"/"USD" as the string value's own key before it sees the parent map's key.
+  "HUF",
+  "EUR",
+  "USD",
 ]);
 
 function decimalReviver(key: string, value: unknown): unknown {

@@ -391,6 +391,9 @@ Creation rule:
 - the user may add custom rows
 - later template changes do not retroactively change existing assets
 - system-defined template rows should carry both a user-facing `label` and an internal `technical_key`
+- a time-based or usage-based row's default amount is curated per currency (HUF/EUR/USD); the clone uses the entry matching the asset owner's currency, never a live or computed conversion
+- the caller may override a selected time-based or usage-based row's amount (and, for time-based rows, its interval) at clone time; the template value is only the starting default. A maintenance-item row has no curated amount yet and does not accept an override
+- a template row's `label` is the stable translation source: the New Bucket wizard looks up a UI-language translation keyed by `technical_key`, falling back to this `label` when no translation exists for the active language
 
 The defaults are code-backed seed definitions today (`app/domain/vehicle_defaults.py`), selected through the template registry (`app/domain/asset_templates.py`). That implementation choice is separate from the domain model.
 
@@ -411,6 +414,7 @@ Notes:
 - `Vehicle inspection` should default to a recurring cadence of every two years
 - `Vehicle tax` should default to two payments per year, matching the workbook model
 - `Comprehensive insurance` is a single merged row (`technical_key` `comprehensive_insurance`) covering own-damage cover that pays even when the driver is at fault. It replaces the earlier two-row `Theft CASCO` + `Parking CASCO` model; its default `amount` is the sum of those two workbook lines. The non-English "CASCO"/"Kasko" term is intentionally dropped in favor of the English label.
+- each row's HUF amount is the workbook-sourced figure; its EUR and USD amounts are a rough flat-conversion placeholder (not live/authoritative pricing) pending a market-accuracy review
 
 ## Default Usage-Based Cost Templates For Vehicles
 
@@ -423,7 +427,7 @@ Proposed label:
 Notes:
 
 - this is a per-kilometer rate for the whole vehicle
-- example: `10 HUF/km`
+- example: `10 HUF/km` (HUF default; the row also carries a curated EUR and USD default — see "Built-In Templates" above)
 - the rate is user-adjustable
 - users may add further usage-based components (e.g. fuel, tire wear); the seeded row is a starting default, not a hard limit
 - the app should later help the user understand whether the chosen rate is low, reasonable, or high based on captured maintenance assumptions

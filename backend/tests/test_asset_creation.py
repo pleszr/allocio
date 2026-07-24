@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -199,3 +201,105 @@ def test_negative_odometer_is_422(client: TestClient, db_session: Session) -> No
 
     assert response.status_code == 422
     assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
+
+
+def test_cost_override_changes_time_based_amount_and_interval(client: TestClient, db_session: Session) -> None:
+    body = {
+        **VEHICLE_BODY_WITH_SELECTION,
+        "cost_overrides": [
+            {
+                "technical_key": "mandatory_liability_insurance",
+                "amount": 60000,
+                "interval_value": 6,
+                "interval_unit": "months",
+            }
+        ],
+    }
+    response = client.post("/api/assets", json=body)
+
+    assert response.status_code == 201
+    asset = db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).one()
+    liability = db_session.scalars(
+        select(TimeBasedCost).where(
+            TimeBasedCost.asset_id == asset.id, TimeBasedCost.technical_key == "mandatory_liability_insurance"
+        )
+    ).one()
+    assert liability.amount == 60000
+    assert liability.interval_value == 6
+    assert liability.interval_unit == "months"
+
+
+def test_cost_override_changes_usage_based_amount(client: TestClient, db_session: Session) -> None:
+    body = {
+        **VEHICLE_BODY_WITH_SELECTION,
+        "cost_overrides": [{"technical_key": "usage_based_reserve", "amount": 15}],
+    }
+    response = client.post("/api/assets", json=body)
+
+    assert response.status_code == 201
+    asset = db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).one()
+    reserve = db_session.scalars(select(UsageBasedCost).where(UsageBasedCost.asset_id == asset.id)).one()
+    assert reserve.amount_per_unit == 15
+
+
+def test_cost_override_for_unselected_key_is_422(client: TestClient, db_session: Session) -> None:
+    body = {
+        **VEHICLE_BODY_WITH_SELECTION,
+        "cost_overrides": [{"technical_key": "vehicle_tax", "amount": 1000}],
+    }
+    response = client.post("/api/assets", json=body)
+
+    assert response.status_code == 422
+    assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
+
+
+def test_cost_override_for_maintenance_key_is_422(client: TestClient, db_session: Session) -> None:
+    body = {
+        **VEHICLE_BODY_WITH_SELECTION,
+        "cost_overrides": [{"technical_key": "all_season_tires", "amount": 1000}],
+    }
+    response = client.post("/api/assets", json=body)
+
+    assert response.status_code == 422
+    assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
+
+
+def test_cost_override_with_partial_interval_is_422(client: TestClient, db_session: Session) -> None:
+    body = {
+        **VEHICLE_BODY_WITH_SELECTION,
+        "cost_overrides": [{"technical_key": "mandatory_liability_insurance", "amount": 60000, "interval_value": 6}],
+    }
+    response = client.post("/api/assets", json=body)
+
+    assert response.status_code == 422
+    assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
+
+
+def test_cost_overrides_without_template_is_422(client: TestClient, db_session: Session) -> None:
+    body = {
+        "name": "My House",
+        "type": "house",
+        "cost_overrides": [{"technical_key": "mandatory_liability_insurance", "amount": 1000}],
+    }
+    response = client.post("/api/assets", json=body)
+
+    assert response.status_code == 422
+    assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
+
+
+def test_create_vehicle_with_eur_currency_clones_eur_template_amounts(
+    client: TestClient, db_session: Session
+) -> None:
+    assert client.put("/api/users/me/settings", json={"default_currency": "EUR", "language": "en"}).status_code == 200
+    response = client.post("/api/assets", json=VEHICLE_BODY_WITH_SELECTION)
+
+    assert response.status_code == 201
+    asset = db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).one()
+    liability = db_session.scalars(
+        select(TimeBasedCost).where(
+            TimeBasedCost.asset_id == asset.id, TimeBasedCost.technical_key == "mandatory_liability_insurance"
+        )
+    ).one()
+    assert liability.amount == 125
+    reserve = db_session.scalars(select(UsageBasedCost).where(UsageBasedCost.asset_id == asset.id)).one()
+    assert reserve.amount_per_unit == Decimal("0.025")

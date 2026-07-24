@@ -2,11 +2,11 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { api, ApiError } from "../api/client";
-import type { AssetTemplateCatalog, CreateAssetRequest } from "../api/types";
+import type { AssetTemplateCatalog, CreateAssetRequest, IntervalUnit, TemplateCostOverride } from "../api/types";
 import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
 import type { IlloKind } from "../utils/assetType";
-import { useCurrency } from "../utils/currency";
+import { useCurrency, useCurrencyCode } from "../utils/currency";
 import { fmtNumber, intervalDays } from "../utils/format";
 
 interface NewBucketScreenProps {
@@ -92,9 +92,22 @@ function maintenanceDetail(interval_km: number | null, interval_months: number |
   return parts.length > 0 ? t("newBucket.maint_every", { parts: parts.join(" / ") }) : t("newBucket.no_fixed_interval");
 }
 
+// A vehicle template row's label, translated by its stable `technical_key`; falls back to the
+// backend-supplied English label if a translation key is missing (e.g. a future untranslated row).
+function templateLabel(t: TFunction, technicalKey: string, fallback: string): string {
+  return t(`templates.vehicle.${technicalKey}.label`, { defaultValue: fallback });
+}
+
+interface CatalogOverride {
+  amount: number;
+  interval_value?: number; // time-based rows only
+  interval_unit?: IntervalUnit; // time-based rows only
+}
+
 export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   const { t } = useTranslation();
   const fmt = useCurrency();
+  const currencyCode = useCurrencyCode();
   const periodLabel = (p: Period) => t(`newBucket.period_noun_${p === "2 years" ? "2years" : p}`);
   const [step, setStep] = useState(1);
   const [type, setType] = useState<TypeOption | null>(null);
@@ -110,6 +123,10 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  // The user-edited amount/interval for each time-based/usage-based catalog row, seeded from the
+  // template default in the owner's currency once, then owned by the user. Maintenance items don't
+  // participate here — they have no curated amount to edit.
+  const [catalogOverrides, setCatalogOverrides] = useState<Record<string, CatalogOverride>>({});
 
   const loadCatalog = () => {
     setCatalogLoading(true);
@@ -122,10 +139,24 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
         // The effect below never re-fetches once `catalog` is set, so this seeds only once
         // and the user's later edits are preserved across step navigation.
         setSelectedKeys(allCatalogKeys(c));
+        setCatalogOverrides({
+          ...Object.fromEntries(
+            c.time_based_costs.map((row) => [
+              row.technical_key,
+              { amount: row.amounts[currencyCode], interval_value: row.interval_value, interval_unit: row.interval_unit },
+            ]),
+          ),
+          ...Object.fromEntries(
+            c.usage_based_costs.map((row) => [row.technical_key, { amount: row.amounts_per_unit[currencyCode] }]),
+          ),
+        });
       })
       .catch((err: unknown) => setCatalogError(err instanceof ApiError ? err.message : t("newBucket.catalog_error")))
       .finally(() => setCatalogLoading(false));
   };
+
+  const updateCatalogOverride = (key: string, patch: Partial<CatalogOverride>) =>
+    setCatalogOverrides((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
 
   // Fetch the vehicle catalog once, as soon as the vehicle path is chosen.
   useEffect(() => {
@@ -155,8 +186,14 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
     if (!isVehicle || !catalog) return 0;
     return catalog.time_based_costs
       .filter((c) => selectedKeys.has(c.technical_key))
-      .reduce((s, c) => s + c.amount / intervalDays(c.interval_value, c.interval_unit), 0);
-  }, [isVehicle, catalog, selectedKeys]);
+      .reduce((s, c) => {
+        const o = catalogOverrides[c.technical_key];
+        const amount = o?.amount ?? c.amounts[currencyCode];
+        const intervalValue = o?.interval_value ?? c.interval_value;
+        const intervalUnit = o?.interval_unit ?? c.interval_unit;
+        return s + amount / intervalDays(intervalValue, intervalUnit);
+      }, 0);
+  }, [isVehicle, catalog, selectedKeys, catalogOverrides, currencyCode]);
 
   const draftPerDay = useMemo(
     () => costs.reduce((s, c) => (c.period === "usage" ? s : s + c.amount / PERIOD_DAYS[c.period]), 0),
@@ -173,8 +210,17 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
     if (isVehicle && catalog) {
       for (const c of catalog.time_based_costs) {
         if (!selectedKeys.has(c.technical_key)) continue;
-        const perDayLine = c.amount / intervalDays(c.interval_value, c.interval_unit);
-        lines.push({ id: c.technical_key, name: c.label, monthly: perDayLine * 30, sub: `${fmtNumber(c.amount)}${intervalLabel(c.interval_value, c.interval_unit)}` });
+        const o = catalogOverrides[c.technical_key];
+        const amount = o?.amount ?? c.amounts[currencyCode];
+        const intervalValue = o?.interval_value ?? c.interval_value;
+        const intervalUnit = o?.interval_unit ?? c.interval_unit;
+        const perDayLine = amount / intervalDays(intervalValue, intervalUnit);
+        lines.push({
+          id: c.technical_key,
+          name: templateLabel(t, c.technical_key, c.label),
+          monthly: perDayLine * 30,
+          sub: `${fmtNumber(amount)}${intervalLabel(intervalValue, intervalUnit)}`,
+        });
       }
     }
     for (const c of costs.filter((c) => c.period !== "usage")) {
@@ -186,14 +232,20 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
       });
     }
     return lines;
-  }, [isVehicle, catalog, selectedKeys, costs, fmt, t]);
+  }, [isVehicle, catalog, selectedKeys, catalogOverrides, currencyCode, costs, fmt, t]);
 
   const reviewUsageLines = useMemo<ReviewLine[]>(() => {
     const lines: ReviewLine[] = [];
     if (isVehicle && catalog) {
       for (const c of catalog.usage_based_costs) {
         if (!selectedKeys.has(c.technical_key)) continue;
-        lines.push({ id: c.technical_key, name: c.label, monthly: null, sub: `${fmtNumber(c.amount_per_unit)}/${c.usage_unit}` });
+        const amount = catalogOverrides[c.technical_key]?.amount ?? c.amounts_per_unit[currencyCode];
+        lines.push({
+          id: c.technical_key,
+          name: templateLabel(t, c.technical_key, c.label),
+          monthly: null,
+          sub: `${fmtNumber(amount)}/${c.usage_unit}`,
+        });
       }
     }
     for (const c of costs.filter((c) => c.period === "usage")) {
@@ -205,7 +257,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
       });
     }
     return lines;
-  }, [isVehicle, catalog, selectedKeys, costs, fmt, t]);
+  }, [isVehicle, catalog, selectedKeys, catalogOverrides, currencyCode, costs, fmt, t]);
 
   const addCost = (c: DraftCost) => setCosts((arr) => [...arr, { ...c, id: Math.random().toString(36).slice(2, 8) }]);
   const removeCost = (id: string) => setCosts((arr) => arr.filter((c) => c.id !== id));
@@ -219,7 +271,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
     setSubmitting(true);
     setError(null);
     try {
-      const req = buildCreateRequest(type, name, meta, selectedKeys);
+      const req = buildCreateRequest(type, name, meta, selectedKeys, catalogOverrides);
       const created = await api.createAsset(req);
       const id = created.asset.id;
       // Only genuinely custom draft rows are posted here; catalog rows are cloned server-side
@@ -287,6 +339,8 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
             selectedKeys={selectedKeys}
             onToggleKey={toggleKey}
             onSetGroup={setGroup}
+            catalogOverrides={catalogOverrides}
+            onUpdateCatalogOverride={updateCatalogOverride}
           />
         )}
         {step === 4 && (
@@ -342,8 +396,22 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   );
 }
 
-function buildCreateRequest(type: TypeOption, name: string, meta: Record<string, string>, selectedKeys: Set<string>): CreateAssetRequest {
+function buildCreateRequest(
+  type: TypeOption,
+  name: string,
+  meta: Record<string, string>,
+  selectedKeys: Set<string>,
+  catalogOverrides: Record<string, { amount: number; interval_value?: number; interval_unit?: IntervalUnit }>,
+): CreateAssetRequest {
   if (type.kind === "car") {
+    const costOverrides: TemplateCostOverride[] = Array.from(selectedKeys)
+      .filter((key) => key in catalogOverrides)
+      .map((key) => {
+        const o = catalogOverrides[key];
+        return o.interval_value != null && o.interval_unit != null
+          ? { technical_key: key, amount: o.amount, interval_value: o.interval_value, interval_unit: o.interval_unit }
+          : { technical_key: key, amount: o.amount };
+      });
     return {
       name,
       template: "vehicle",
@@ -355,6 +423,7 @@ function buildCreateRequest(type: TypeOption, name: string, meta: Record<string,
       subtitle: subtitleFromMeta(meta) || null,
       // Catalog rows are cloned server-side from these keys; only the chosen rows are created.
       selected_cost_keys: Array.from(selectedKeys),
+      cost_overrides: costOverrides,
     };
   }
   const attributes = Object.fromEntries(Object.entries(meta).filter(([, v]) => v.trim() !== ""));
@@ -515,6 +584,8 @@ interface Step3Props {
   selectedKeys: Set<string>;
   onToggleKey: (key: string) => void;
   onSetGroup: (keys: string[], on: boolean) => void;
+  catalogOverrides: Record<string, CatalogOverride>;
+  onUpdateCatalogOverride: (key: string, patch: Partial<CatalogOverride>) => void;
 }
 
 function Step3(props: Step3Props) {
@@ -581,8 +652,11 @@ function VehicleCatalogPicker({
   selectedKeys,
   onToggleKey,
   onSetGroup,
+  catalogOverrides,
+  onUpdateCatalogOverride,
 }: Step3Props) {
   const { t } = useTranslation();
+  const currencyCode = useCurrencyCode();
   if (catalogLoading) {
     return (
       <div className="card card-pad" style={{ marginBottom: 16 }}>
@@ -620,25 +694,37 @@ function VehicleCatalogPicker({
       </div>
 
       <CatalogGroup title={t("newBucket.group_recurring")} allKeys={timeKeys} selectedKeys={selectedKeys} onSetGroup={onSetGroup}>
-        {catalog.time_based_costs.map((c) => (
-          <CatalogRow
-            key={c.technical_key}
-            checked={selectedKeys.has(c.technical_key)}
-            onToggle={() => onToggleKey(c.technical_key)}
-            label={c.label}
-            detail={`${fmtNumber(c.amount)}${intervalLabel(c.interval_value, c.interval_unit)}`}
-          />
-        ))}
+        {catalog.time_based_costs.map((c) => {
+          const o = catalogOverrides[c.technical_key];
+          return (
+            <EditableCatalogRow
+              key={c.technical_key}
+              technicalKey={c.technical_key}
+              checked={selectedKeys.has(c.technical_key)}
+              onToggle={() => onToggleKey(c.technical_key)}
+              label={templateLabel(t, c.technical_key, c.label)}
+              amount={o?.amount ?? c.amounts[currencyCode]}
+              onAmountChange={(v) => onUpdateCatalogOverride(c.technical_key, { amount: v })}
+              intervalValue={o?.interval_value ?? c.interval_value}
+              intervalUnit={o?.interval_unit ?? c.interval_unit}
+              onIntervalChange={(value, unit) =>
+                onUpdateCatalogOverride(c.technical_key, { interval_value: value, interval_unit: unit })
+              }
+            />
+          );
+        })}
       </CatalogGroup>
 
       <CatalogGroup title={t("newBucket.group_usage")} allKeys={usageKeys} selectedKeys={selectedKeys} onSetGroup={onSetGroup}>
         {catalog.usage_based_costs.map((c) => (
-          <CatalogRow
+          <EditableCatalogRow
             key={c.technical_key}
+            technicalKey={c.technical_key}
             checked={selectedKeys.has(c.technical_key)}
             onToggle={() => onToggleKey(c.technical_key)}
-            label={c.label}
-            detail={`${fmtNumber(c.amount_per_unit)}/${c.usage_unit}`}
+            label={`${templateLabel(t, c.technical_key, c.label)} (/${c.usage_unit})`}
+            amount={catalogOverrides[c.technical_key]?.amount ?? c.amounts_per_unit[currencyCode]}
+            onAmountChange={(v) => onUpdateCatalogOverride(c.technical_key, { amount: v })}
           />
         ))}
       </CatalogGroup>
@@ -649,7 +735,7 @@ function VehicleCatalogPicker({
             key={m.technical_key}
             checked={selectedKeys.has(m.technical_key)}
             onToggle={() => onToggleKey(m.technical_key)}
-            label={m.label}
+            label={templateLabel(t, m.technical_key, m.label)}
             detail={maintenanceDetail(m.interval_km, m.interval_months, t)}
           />
         ))}
@@ -705,6 +791,82 @@ function CatalogRow({ checked, onToggle, label, detail }: { checked: boolean; on
         </div>
       </div>
     </label>
+  );
+}
+
+// Editable counterpart of `CatalogRow`, used for time-based/usage-based template rows: the
+// checkbox stays, but amount (and, for time-based rows, the interval) become inputs pre-filled
+// from the template default. `intervalValue`/`intervalUnit`/`onIntervalChange` are omitted for
+// usage-based rows, which have no time interval to edit.
+function EditableCatalogRow({
+  technicalKey,
+  checked,
+  onToggle,
+  label,
+  amount,
+  onAmountChange,
+  intervalValue,
+  intervalUnit,
+  onIntervalChange,
+}: {
+  technicalKey: string;
+  checked: boolean;
+  onToggle: () => void;
+  label: string;
+  amount: number;
+  onAmountChange: (v: number) => void;
+  intervalValue?: number;
+  intervalUnit?: IntervalUnit;
+  onIntervalChange?: (value: number, unit: IntervalUnit) => void;
+}) {
+  const { t } = useTranslation();
+  const hasInterval = intervalValue != null && intervalUnit != null && onIntervalChange;
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: hasInterval ? "auto 1fr 110px 70px 100px" : "auto 1fr 110px",
+        gap: 10,
+        alignItems: "center",
+        padding: "8px 0",
+      }}
+    >
+      <input type="checkbox" checked={checked} onChange={onToggle} />
+      <div style={{ fontSize: 13.5, minWidth: 0 }}>{label}</div>
+      <input
+        className="input mono"
+        type="number"
+        style={{ width: "100%", boxSizing: "border-box" }}
+        value={amount}
+        onChange={(e) => onAmountChange(Number(e.target.value))}
+        disabled={!checked}
+        data-testid={`catalog-amount-${technicalKey}`}
+      />
+      {hasInterval && (
+        <>
+          <input
+            className="input mono"
+            type="number"
+            style={{ width: "100%", boxSizing: "border-box" }}
+            value={intervalValue}
+            onChange={(e) => onIntervalChange(Number(e.target.value), intervalUnit)}
+            disabled={!checked}
+            data-testid={`catalog-interval-value-${technicalKey}`}
+          />
+          <select
+            className="input"
+            style={{ width: "100%", boxSizing: "border-box" }}
+            value={intervalUnit}
+            onChange={(e) => onIntervalChange(intervalValue, e.target.value as IntervalUnit)}
+            disabled={!checked}
+            data-testid={`catalog-interval-unit-${technicalKey}`}
+          >
+            <option value="months">{t("newBucket.interval_unit_months")}</option>
+            <option value="years">{t("newBucket.interval_unit_years")}</option>
+          </select>
+        </>
+      )}
+    </div>
   );
 }
 

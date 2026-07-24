@@ -47,7 +47,7 @@ def _to_catalog_response(catalog: TemplateCatalog) -> AssetTemplateCatalogRespon
             TemplateTimeBasedCostItem(
                 technical_key=item.technical_key,
                 label=item.label,
-                amount=item.amount,
+                amounts=item.amounts,
                 interval_value=item.interval_value,
                 interval_unit=item.interval_unit,
             )
@@ -57,9 +57,8 @@ def _to_catalog_response(catalog: TemplateCatalog) -> AssetTemplateCatalogRespon
             TemplateUsageBasedCostItem(
                 technical_key=catalog.usage_based_cost.technical_key,
                 label=catalog.usage_based_cost.label,
-                amount_per_unit=catalog.usage_based_cost.amount_per_unit,
+                amounts_per_unit=catalog.usage_based_cost.amounts_per_unit,
                 usage_unit=catalog.usage_based_cost.usage_unit,
-                currency=catalog.usage_based_cost.currency,
             )
         ],
         maintenance_items=[
@@ -69,7 +68,7 @@ def _to_catalog_response(catalog: TemplateCatalog) -> AssetTemplateCatalogRespon
                 interval_km=item.interval_km,
                 interval_months=item.interval_months,
                 tire_type=item.tire_type,
-                estimated_cost=item.estimated_cost,
+                estimated_costs=item.estimated_costs,
             )
             for item in catalog.maintenance_items
         ],
