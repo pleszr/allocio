@@ -1,0 +1,134 @@
+name: architecture-review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: architecture-pages
+  cancel-in-progress: false
+jobs:
+  publish-review:
+    if: >-
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+
+      - name: Check code map is current
+        run: uv run --python 3.14 python tools/code_map.py --check docs/code-map.json
+
+      - name: Generate interactive architecture review
+        run: |
+          mkdir -p .architecture-preview
+          uv run --python 3.14 python tools/code_map.py \
+            --write-overview-html-diff \
+            "origin/${{ github.base_ref }}...HEAD" \
+            .architecture-preview/index.html
+
+      - name: Publish architecture review to the Pages branch
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          preview_file="${PWD}/.architecture-preview/index.html"
+          pages_worktree="$(mktemp -d)"
+          cleanup() {
+            git worktree remove --force "$pages_worktree" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages:refs/remotes/origin/gh-pages
+            git worktree add -B gh-pages "$pages_worktree" origin/gh-pages
+          else
+            git worktree add --detach "$pages_worktree" HEAD
+            git -C "$pages_worktree" switch --orphan gh-pages
+            git -C "$pages_worktree" rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          preview_dir="$pages_worktree/architecture/pr-${PR}"
+          mkdir -p "$preview_dir"
+          cp "$preview_file" "$preview_dir/index.html"
+          touch "$pages_worktree/.nojekyll"
+
+          git -C "$pages_worktree" config user.name "github-actions[bot]"
+          git -C "$pages_worktree" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$pages_worktree" add .nojekyll "architecture/pr-${PR}/index.html"
+          if git -C "$pages_worktree" diff --cached --quiet; then
+            exit 0
+          fi
+          git -C "$pages_worktree" commit -m "docs: publish architecture review for PR #${PR}"
+          git -C "$pages_worktree" push origin HEAD:gh-pages
+
+      - name: Post or update the architecture-review link
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          repo_name="${REPO#*/}"
+          preview_url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repo_name}/architecture/pr-${PR}/?v=${HEAD_SHA}"
+          body="<!-- architecture-review:start -->
+          [Open the interactive architecture review ↗](${preview_url})
+          <!-- architecture-review:end -->"
+          id="$(gh api "repos/${REPO}/issues/${PR}/comments" --paginate \
+            --jq '.[] | select((.body | contains("<!-- architecture-review:start -->")) or (.body | contains("<!-- structural-changes:start -->"))) | .id' \
+            | head -n1)"
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/${REPO}/issues/comments/${id}" \
+              -f body="$body"
+          else
+            gh api --method POST "repos/${REPO}/issues/${PR}/comments" \
+              -f body="$body"
+          fi
+
+  remove-review:
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Remove the closed PR preview from the Pages branch
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if ! git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            exit 0
+          fi
+
+          pages_worktree="$(mktemp -d)"
+          cleanup() {
+            git worktree remove --force "$pages_worktree" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          git fetch origin gh-pages:refs/remotes/origin/gh-pages
+          git worktree add -B gh-pages "$pages_worktree" origin/gh-pages
+          if [ ! -d "$pages_worktree/architecture/pr-${PR}" ]; then
+            exit 0
+          fi
+
+          git -C "$pages_worktree" config user.name "github-actions[bot]"
+          git -C "$pages_worktree" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$pages_worktree" rm -r "architecture/pr-${PR}"
+          git -C "$pages_worktree" commit -m "docs: remove architecture review for PR #${PR}"
+          git -C "$pages_worktree" push origin HEAD:gh-pages

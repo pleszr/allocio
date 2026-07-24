@@ -20,7 +20,7 @@ Read `.claude/memory-structure.md` first.
 - When files, modules, routes, or public helpers were renamed, added, or removed
 - When you suspect repo-local instructions have drifted from the actual codebase
 
-This skill applies changes directly to instruction and documentation files. It never edits application source, tests, or generated files (`docs/code-map.json`, `docs/code-map.html`), and it never auto-edits skill files (it only flags skill drift — see section 5).
+This skill applies changes directly to instruction and documentation files. It never edits application source, tests, or the generated `docs/code-map.json` file, and it never auto-edits skill files (it only flags skill drift — see section 5).
 
 ## Workflow
 
@@ -38,17 +38,13 @@ Then run the deterministic structural checks. These are required before commit. 
 
 ```bash
 uv run --python 3.14 python tools/code_map.py --check docs/code-map.json
-uv run --python 3.14 python tools/code_map.py --check-overview-html docs/code-map.html
 uv run --python 3.14 python tools/code_map.py --staged --format markdown
-uv run --python 3.14 python tools/code_map.py --overview-html-diff origin/main...HEAD
 ```
 
 - `--check docs/code-map.json` must pass. If it fails, run `uv run --python 3.14 python tools/code_map.py --write docs/code-map.json && git add docs/code-map.json` and re-stage before continuing.
-- `--check-overview-html docs/code-map.html` must pass. If it fails, run `uv run --python 3.14 python tools/code_map.py --write-overview-html docs/code-map.html && git add docs/code-map.html` and re-stage.
 - `--staged --format markdown` is the staged-change review surface: read it to confirm the staged symbol, route, import, and component changes match intent before committing.
-- `--overview-html-diff origin/main...HEAD` prints the githack proxy link that opens the interactive overview in changed-only mode for this PR's head branch (an orientation aid for the PR body; not CI-verified).
 
-The PR-range structural Change Map is no longer produced here: the `structural-diff` CI workflow generates it and posts it as a sticky PR comment. Do not put a `Structural Changes` section in the PR body.
+The PR architecture review is not produced here: the `architecture-review` CI workflow generates and publishes the interactive HTML after the branch is pushed, then posts a link-only sticky comment. Do not put `Structural Changes` or `Architecture overview` sections in the PR body.
 
 Identify:
 
@@ -157,14 +153,13 @@ Skill files are flagged, not auto-edited (see section 5). If no update is needed
 
 The surrounding workflow creates the PR after this audit is approved. The PR body it produces must include:
 
-- An `## Architecture overview` line linking to the interactive overview for this PR's head branch via the githack proxy: `https://raw.githack.com/pleszr/allocio/<head-branch>/docs/code-map.html` (append the `#chg=...` fragment from `uv run --python 3.14 python tools/code_map.py --overview-html-diff origin/main...HEAD` to open it in changed-only mode). GitHub renders committed `.html` as source, so this proxy link — not a repo-relative path — is what renders the live page. This link is not CI-verified — it is an orientation aid.
 - A `## Requirements` section containing the full contents of any issue-planner requirements file used for the implementation (see `CLAUDE.md`). That temporary file under `.claude/plans/` must be deleted before the final commit or PR unless Roland asks to keep it.
 
 ## What This Skill Does Not Do
 
 - It does not create the PR. The surrounding workflow runs `git commit`, `git push`, and `gh pr create` after this audit applies its edits.
 - It does not commit or push changes itself.
-- It does not modify application source, tests, or generated files (`docs/code-map.json`, `docs/code-map.html`).
+- It does not modify application source, tests, or the generated `docs/code-map.json` file.
 - It does not auto-edit skill files; it only flags skill drift.
 
 ## Example Triggers
