@@ -300,6 +300,11 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
               </div>
             ) : (
               <div style={{ marginTop: 8 }}>
+                {preview.elapsed_days === 0 && !e.last_check_in_date && (
+                  <div className="row-meta" style={{ padding: "0 var(--pad) 12px" }}>
+                    {t("checkin.baseline_note")}
+                  </div>
+                )}
                 <div className="checkin-line">
                   <div>
                     <div>{t("checkin.allocations")}</div>
@@ -426,45 +431,39 @@ function ExpenseRow({
 }) {
   const { t } = useTranslation();
   const kindId = `checkin-expense-kind-${row.key}`;
-  const sourceId = `checkin-expense-source-${row.key}`;
   const commentId = `checkin-expense-comment-${row.key}`;
   const amountId = `checkin-expense-amount-${row.key}`;
+  const isOther = row.kind === "other";
+  const selectedValue = isOther ? "other" : row.maintenanceItemId;
+
+  const handleKindChange = (value: string) => {
+    if (value === "other") {
+      onChange({ kind: "other", maintenanceItemId: "" });
+    } else {
+      onChange({ kind: "modeled", maintenanceItemId: value, comment: "" });
+    }
+  };
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 10, alignItems: "end" }}>
+    <div style={{ display: "grid", gridTemplateColumns: isOther ? "1fr 1fr 1fr auto" : "1fr 1fr auto", gap: 10, alignItems: "end" }}>
       <div className="field">
         <label className="field-label" htmlFor={kindId}>
           {t("checkin.expense_kind_label")}
         </label>
-        <select
-          id={kindId}
-          className="input"
-          value={row.kind}
-          onChange={(ev) => onChange({ kind: ev.target.value as "other" | "modeled" })}
-        >
+        <select id={kindId} className="input" value={selectedValue} onChange={(ev) => handleKindChange(ev.target.value)}>
           <option value="other">{t("checkin.expense_kind_other")}</option>
-          <option value="modeled">{t("checkin.expense_kind_maintenance")}</option>
+          {maintenanceItems.length > 0 && (
+            <optgroup label={t("checkin.expense_kind_maintenance")}>
+              {maintenanceItems.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
       </div>
-      {row.kind === "modeled" ? (
-        <div className="field">
-          <label className="field-label" htmlFor={sourceId}>
-            {t("checkin.expense_source_label")}
-          </label>
-          <select
-            id={sourceId}
-            className="input"
-            value={row.maintenanceItemId}
-            onChange={(ev) => onChange({ maintenanceItemId: ev.target.value })}
-          >
-            <option value="">{t("checkin.expense_source_placeholder")}</option>
-            {maintenanceItems.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : (
+      {isOther && (
         <div className="field">
           <label className="field-label" htmlFor={commentId}>
             {t("checkin.expense_comment")}

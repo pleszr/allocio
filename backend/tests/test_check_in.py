@@ -223,6 +223,77 @@ def test_period_end_not_after_start_is_422(client: TestClient, backdate_asset_cr
     assert result.status_code == 422
 
 
+def test_period_end_error_message_includes_derived_start(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    created = _create_vehicle(client, backdate_asset_creation)
+    asset_id = created["asset"]["id"]
+    client.post(f"/api/assets/{asset_id}/check-ins", json=_preview_body(PERIOD_END, STARTING_ODOMETER + 900))
+
+    # A later attempt to end no later than the last posted period_end names that date in the error.
+    result = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(PERIOD_END, STARTING_ODOMETER + 900),
+    )
+
+    assert result.status_code == 422
+    assert PERIOD_END in result.json()["detail"]
+
+
+def test_first_check_in_allows_zero_length_baseline(client: TestClient) -> None:
+    """A same-day-created asset has period_start == today; the first check-in may still end today,
+    as a zero-accrual baseline, since there is otherwise no valid period_end for it (see
+    `backdate_asset_creation` in conftest.py, which every other test in this module uses to avoid
+    this exact same-day collision)."""
+    response = client.post("/api/assets", json=VALID_VEHICLE)
+    assert response.status_code == 201
+    asset_id = response.json()["asset"]["id"]
+    today = str(date.today())
+
+    preview = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(today, STARTING_ODOMETER),
+    ).json()
+    assert preview["period_start"] == today
+    assert preview["period_end"] == today
+    assert preview["elapsed_days"] == 0
+    assert preview["usage_amount"] == 0
+    assert _dec(preview["total_allocation"]) == Decimal("0")
+
+    posted = client.post(
+        f"/api/assets/{asset_id}/check-ins",
+        json=_preview_body(today, STARTING_ODOMETER),
+    )
+    assert posted.status_code == 201
+    body = posted.json()["check_in"]
+    assert body["period_start"] == today
+    assert body["period_end"] == today
+    assert body["usage_amount"] == 0
+
+    # A second same-day check-in is no longer "first", so it falls back to the strict rule: with
+    # period_start now also today (this baseline's own period_end), same-day is rejected again —
+    # exactly as `test_subsequent_check_in_starts_where_previous_ended` covers with a backdated asset.
+    second = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(today, STARTING_ODOMETER + 300),
+    )
+    assert second.status_code == 422
+
+
+def test_first_check_in_before_creation_date_is_still_422(client: TestClient) -> None:
+    """The zero-length exception only allows period_end == period_start, never earlier."""
+    response = client.post("/api/assets", json=VALID_VEHICLE)
+    assert response.status_code == 201
+    asset_id = response.json()["asset"]["id"]
+
+    result = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body("2000-01-01", STARTING_ODOMETER),
+    )
+
+    assert result.status_code == 422
+
+
 def test_period_end_in_future_is_422(client: TestClient, backdate_asset_creation: Callable[[str], None]) -> None:
     created = _create_vehicle(client, backdate_asset_creation)
     asset_id = created["asset"]["id"]

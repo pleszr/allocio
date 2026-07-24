@@ -59,6 +59,7 @@ class _PeriodContext:
     period_start: date
     usage_start: int
     previous_active_tire_type: str | None
+    is_first_check_in: bool
 
 
 class CheckInService:
@@ -139,17 +140,32 @@ class CheckInService:
                 period_start=previous.period_end,
                 usage_start=previous.usage_end or 0,
                 previous_active_tire_type=previous.active_tire_type,
+                is_first_check_in=False,
             )
         profile = check_in_repository.get_vehicle_profile(self._session, asset.id)
         starting_odometer = profile.starting_odometer if profile is not None else 0
         return _PeriodContext(
-            period_start=asset.created_at.date(), usage_start=starting_odometer, previous_active_tire_type=None
+            period_start=asset.created_at.date(),
+            usage_start=starting_odometer,
+            previous_active_tire_type=None,
+            is_first_check_in=True,
         )
 
     def _validate_period(self, context: _PeriodContext, period_end: date, usage_end: int) -> None:
-        """Reject a period that ends before it starts, in the future, or whose usage counter moves backward."""
-        if period_end <= context.period_start:
-            raise ValidationError("period_end must be later than the derived period start.")
+        """Reject a period that ends before it starts, in the future, or whose usage counter moves backward.
+
+        The very first check-in may have `period_end == period_start` (a zero-length baseline that
+        records the starting odometer/tire type with no accrual) since `period_start` is fixed to the
+        asset's creation date and cannot be moved earlier. Every later check-in must move forward.
+        """
+        period_start = context.period_start
+        is_too_early = period_end < period_start if context.is_first_check_in else period_end <= period_start
+        if is_too_early:
+            raise ValidationError(
+                f"period_end must be on or after the derived period start ({period_start.isoformat()})."
+                if context.is_first_check_in
+                else f"period_end must be later than the derived period start ({period_start.isoformat()})."
+            )
         if period_end > date.today():
             raise ValidationError("period_end cannot be in the future.")
         if usage_end < context.usage_start:

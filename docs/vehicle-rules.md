@@ -51,7 +51,9 @@ A vehicle check-in period is defined by:
 
 Rules:
 
-- `period_end` must be later than `period_start`
+- `period_end` must be later than `period_start`, with one exception: the first posted check-in
+  may have `period_end == period_start` (a zero-length baseline period, `elapsed_days = 0`) — see
+  "First check-in" below
 - a posted check-in covers one contiguous period
 - `elapsed_days = period_end - period_start`, measured in whole calendar days
 
@@ -61,6 +63,14 @@ For the first posted vehicle check-in:
 
 - `period_start = asset.created_at::date`
 - `usage_start = vehicle_profile.starting_odometer`
+
+Since `period_start` is pinned to asset creation and cannot be moved earlier, an asset checked in
+on its creation day would otherwise have no valid `period_end` at all (today collides with
+`period_start`, and any later date is rejected as future-dated). The first check-in is therefore
+allowed to have `period_end == period_start`: a zero-length baseline that records the starting
+odometer and tire type with zero accrual (`elapsed_days = 0` accrues nothing — see "Time-Based
+Accrual" and "Usage-Based Reserve Accrual" below, both linear in `elapsed_days`/`usage_amount`). The
+next check-in then starts from that same date, same as if the user had waited a day to post it.
 
 ### Subsequent check-ins
 
@@ -369,7 +379,7 @@ Preview must derive:
 ### Period validation and tire-type default
 
 - `period_start` is always server-derived from the latest posted check-in's `period_end` (or the asset's creation date/starting odometer for the first check-in) — a caller can never supply it, so backdating is inherently append-only: there is no way to insert a period between two already-posted ones.
-- `period_end` must be later than the derived `period_start` **and** no later than today. A future `period_end` is rejected: future-dated events would make the live bucket balance diverge from the derived monthly series (see "Derived monthly series" below, which only counts events dated on or before today).
+- `period_end` must be later than the derived `period_start` **and** no later than today, except that the first posted check-in may have `period_end == period_start` (see "First check-in" above). A future `period_end` is rejected: future-dated events would make the live bucket balance diverge from the derived monthly series (see "Derived monthly series" below, which only counts events dated on or before today).
 - Within that window, `period_end` may be in the past — a backdated check-in is a normal, supported preview/post input, not a special case.
 - `active_tire_type` defaults to the previous posted check-in's value when the caller omits it (`null`); there is no default for an asset's first check-in. An explicit value in the request always overrides the default, for both preview and posting.
 
