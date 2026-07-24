@@ -28,7 +28,7 @@ Out of scope for this document:
 - frontend copy and layout
 - SQL schema details
 - non-vehicle asset types
-- deferred workbook-only concepts such as depreciation or extra safety
+- deferred workbook-only concepts such as depreciation
 
 ## Core Principle
 
