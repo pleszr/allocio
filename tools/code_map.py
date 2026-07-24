@@ -214,7 +214,7 @@ def _command_write_overview_html_diff(range_expr: str, path: Path) -> int:
     changed = _changed_files(["diff", "--name-only", base_ref, right])
     diff = diff_maps(base_map, head_map, changed)
     change_map = _overview_diff_payload(diff)
-    preview_map = _overview_map_with_removed_files(base_map, head_map, change_map["removed"])
+    preview_map = _overview_map_with_removed_structure(base_map, head_map, diff)
     head_sha = _rev_parse(right)
     html = render_overview_html(
         preview_map,
@@ -765,17 +765,38 @@ def _overview_node(entry: dict, prefix: str) -> dict:
 def _overview_symbols(entry: dict) -> list[dict]:
     handlers = {route["handler"] for route in entry.get("routes", [])}
     component_names = {component["name"] for component in entry.get("components", [])}
+    class_names = {cls["name"] for cls in entry.get("classes", [])}
     symbols = [
         {"kind": "route", "name": f"{route['method'].upper()} {route['path']}", "line": route.get("line_start")}
         for route in entry.get("routes", [])
     ]
-    symbols += [{"kind": "class", "name": cls["name"], "line": cls.get("line_start")} for cls in entry.get("classes", [])]
+    symbols += [
+        {
+            "kind": "class",
+            "name": cls["name"],
+            "line": cls.get("line_start"),
+            "methods": [
+                {
+                    "kind": "method",
+                    "name": method["name"],
+                    "qualified_name": f"{cls['name']}.{method['name']}",
+                    "line": method.get("line_start"),
+                }
+                for method in sorted(
+                    cls.get("methods", []),
+                    key=lambda item: (item.get("line_start") or 0, item["name"]),
+                )
+            ],
+        }
+        for cls in entry.get("classes", [])
+    ]
     symbols += [
         {"kind": "component", "name": component["name"], "line": component.get("line_start")}
         for component in entry.get("components", [])
+        if component["name"] not in class_names
     ]
     symbols += [
-        {"kind": "fn", "name": fn["name"], "line": fn.get("line_start")}
+        {"kind": "function", "name": fn["name"], "line": fn.get("line_start")}
         for fn in entry.get("functions", [])
         if fn["name"] not in handlers and fn["name"] not in component_names
     ]
@@ -812,7 +833,27 @@ def _overview_diff_payload(diff: DiffResult) -> dict:
             removed.append(path)
         else:
             modified.append(path)
-    return {"added": added, "modified": modified, "removed": removed}
+    symbols = {
+        status.lower(): [
+            {
+                "path": change.path,
+                "kind": change.kind,
+                "name": change.name,
+                "line": change.line,
+            }
+            for change in sorted(
+                changes,
+                key=lambda item: (item.path, item.kind, item.name),
+            )
+            if _overview_source_file(change.path)
+        ]
+        for status, changes in (
+            ("Added", diff.added),
+            ("Modified", diff.modified),
+            ("Removed", diff.removed),
+        )
+    }
+    return {"added": added, "modified": modified, "removed": removed, "symbols": symbols}
 
 
 def _overview_source_file(path: str) -> bool:
@@ -825,20 +866,101 @@ def _overview_source_file(path: str) -> bool:
     return product_prefix and _overview_include(path) and PurePosixPath(path).suffix in {".py", ".ts", ".tsx"}
 
 
-def _overview_map_with_removed_files(base_map: dict, head_map: dict, removed_paths: list[str]) -> dict:
-    """Keep removed modules visible in a PR review using their base-ref structure."""
+def _overview_map_with_removed_structure(base_map: dict, head_map: dict, diff: DiffResult) -> dict:
+    """Keep removed files and symbols visible using their base-ref structure."""
     preview_map = copy.deepcopy(head_map)
-    removed = set(removed_paths)
+    removed_paths = {
+        path
+        for path, status in diff.file_statuses.items()
+        if status == "Removed"
+    }
     for area, base_payload in base_map["areas"].items():
         preview_files = preview_map["areas"][area]["files"]
         preview_paths = {entry["path"] for entry in preview_files}
         preview_files.extend(
             copy.deepcopy(entry)
             for entry in base_payload["files"]
-            if entry["path"] in removed and entry["path"] not in preview_paths
+            if entry["path"] in removed_paths and entry["path"] not in preview_paths
         )
         preview_files.sort(key=lambda entry: entry["path"])
+
+    base_files = _overview_files_by_path(base_map)
+    preview_files = _overview_files_by_path(preview_map)
+    for change in diff.removed:
+        base_entry = base_files.get(change.path)
+        preview_entry = preview_files.get(change.path)
+        if base_entry is None or preview_entry is None:
+            continue
+        _restore_removed_symbol(base_entry, preview_entry, change)
     return preview_map
+
+
+def _overview_files_by_path(code_map: dict) -> dict[str, dict]:
+    return {
+        entry["path"]: entry
+        for payload in code_map["areas"].values()
+        for entry in payload["files"]
+    }
+
+
+def _restore_removed_symbol(base_entry: dict, preview_entry: dict, change: SymbolChange) -> None:
+    if change.kind == "method":
+        class_name, _, method_name = change.name.partition(".")
+        base_class = _named_symbol(base_entry.get("classes", []), class_name)
+        preview_class = _named_symbol(preview_entry.get("classes", []), class_name)
+        if base_class is not None and preview_class is not None:
+            _append_symbol_if_missing(
+                preview_class.setdefault("methods", []),
+                base_class.get("methods", []),
+                method_name,
+            )
+        return
+
+    collection_name = {
+        "function": "functions",
+        "component": "components",
+        "class": "classes",
+        "route": "routes",
+    }.get(change.kind)
+    if collection_name is None:
+        return
+    if change.kind == "route":
+        _append_route_if_missing(
+            preview_entry.setdefault(collection_name, []),
+            base_entry.get(collection_name, []),
+            change.name,
+        )
+        return
+    _append_symbol_if_missing(
+        preview_entry.setdefault(collection_name, []),
+        base_entry.get(collection_name, []),
+        change.name,
+    )
+
+
+def _named_symbol(symbols: list[dict], name: str) -> dict | None:
+    return next((symbol for symbol in symbols if symbol["name"] == name), None)
+
+
+def _append_symbol_if_missing(target: list[dict], source: list[dict], name: str) -> None:
+    if _named_symbol(target, name) is not None:
+        return
+    symbol = _named_symbol(source, name)
+    if symbol is not None:
+        target.append(copy.deepcopy(symbol))
+        target.sort(key=lambda item: item["name"])
+
+
+def _append_route_if_missing(target: list[dict], source: list[dict], name: str) -> None:
+    def route_name(route: dict) -> str:
+        return f"{route['method'].upper()} {route['path']}"
+
+    if any(route_name(route) == name for route in target):
+        return
+    route = next((route for route in source if route_name(route) == name), None)
+    if route is not None:
+        target.append(copy.deepcopy(route))
+        target.sort(key=lambda item: (item["path"], item["method"]))
 
 
 def _embed_json(payload: object) -> str:
@@ -1089,6 +1211,8 @@ _OVERVIEW_HTML_TEMPLATE = '''<!doctype html>
     background: var(--node-bg); border: 1px solid var(--stroke); border-left: 4px solid var(--accent);
     border-radius: 10px; padding: 8px 12px; cursor: pointer; transition: opacity .12s, border-color .12s; }
   .node .lab { font-weight: 500; word-break: break-word; }
+  .node-count { flex: 0 0 auto; min-width: 20px; padding: 2px 6px; margin-left: auto; border-radius: 999px;
+    background: var(--stroke); color: var(--node-fg); font-size: 10px; font-weight: 700; text-align: center; }
   .node:hover, .node.active { border-color: var(--accent); }
   .node.dim { opacity: .22; }
   .node.linked { border-color: var(--muted); }
@@ -1099,22 +1223,47 @@ _OVERVIEW_HTML_TEMPLATE = '''<!doctype html>
   path.edge { stroke: var(--stroke); stroke-width: 1.4; fill: none; opacity: .7; transition: opacity .12s, stroke .12s; }
   path.edge.edge-on { stroke: var(--accent); opacity: 1; }
   path.edge.edge-dim { opacity: .12; }
-  .panel { position: fixed; top: 64px; right: 16px; width: 320px; max-height: 76vh; overflow: auto;
+  .panel { position: fixed; top: 64px; right: 16px; width: min(460px, calc(100vw - 32px)); max-height: 82vh; overflow: auto;
     background: var(--col-bg); border: 1px solid var(--stroke); border-radius: 12px; padding: 16px; z-index: 8;
     box-shadow: 0 10px 30px rgba(0,0,0,.4); }
   .panel.hidden { display: none; }
   .panel-close { position: absolute; top: 8px; right: 10px; background: none; border: none; color: var(--muted);
     font-size: 20px; cursor: pointer; line-height: 1; }
   .panel-title { font-weight: 700; margin-bottom: 2px; word-break: break-word; }
-  .panel-sub { color: var(--muted); font-size: 12px; margin-bottom: 12px; word-break: break-word; }
-  ul.symbols { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 5px; }
-  ul.symbols li { font-size: 13px; }
-  .kind { display: inline-block; min-width: 62px; font-size: 10px; text-transform: uppercase; letter-spacing: .5px;
+  .panel-sub { color: var(--muted); font-size: 12px; margin-bottom: 10px; word-break: break-word; }
+  .panel-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 12px;
+    padding: 8px 0; border-top: 1px solid var(--stroke); border-bottom: 1px solid var(--stroke); }
+  .panel-tools .changed-toggle { color: var(--node-fg); }
+  .panel-count { color: var(--muted); font-size: 11px; white-space: nowrap; }
+  .panel-note { margin: 0 0 12px; color: var(--muted); font-size: 12px; }
+  ul.symbols, ul.methods { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  ul.symbols { margin-bottom: 12px; }
+  ul.methods { margin: 6px 0 0 20px; }
+  .symbol-row, .class-group { border-left: 3px solid transparent; border-radius: 6px; background: var(--node-bg); }
+  .symbol-row { display: flex; align-items: baseline; gap: 8px; min-width: 0; padding: 7px 9px; font-size: 13px; }
+  .symbol-row a, .class-summary a { color: var(--node-fg); text-decoration: none; overflow-wrap: anywhere; }
+  .symbol-row a:hover, .class-summary a:hover { color: var(--accent); text-decoration: underline; }
+  .class-group { padding: 0 9px 7px; }
+  .class-summary { display: flex; align-items: baseline; gap: 8px; min-width: 0; padding: 7px 0 0;
+    cursor: pointer; list-style: none; }
+  .class-summary::-webkit-details-marker { display: none; }
+  .class-summary::before { content: "\\25b8"; flex: 0 0 auto; color: var(--muted); }
+  .class-group[open] > .class-summary::before { content: "\\25be"; }
+  .kind { display: inline-block; flex: 0 0 70px; font-size: 10px; text-transform: uppercase; letter-spacing: .5px;
     color: var(--muted); }
   .kind-route { color: var(--accent); }
   .kind-class { color: var(--modified); }
   .kind-component { color: var(--added); }
-  .ln { color: var(--muted); font-size: 11px; }
+  .kind-method { color: #a78bfa; }
+  .symbol-status { flex: 0 0 auto; margin-left: auto; border: 1px solid currentColor; border-radius: 999px;
+    padding: 1px 6px; font-size: 9px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+  .symbol-added { border-left-color: var(--added); }
+  .symbol-modified { border-left-color: var(--modified); }
+  .symbol-removed { border-left-color: var(--removed); opacity: .78; }
+  .symbol-added .symbol-status { color: var(--added); }
+  .symbol-modified .symbol-status { color: var(--modified); }
+  .symbol-removed .symbol-status { color: var(--removed); }
+  .ln { flex: 0 0 auto; color: var(--muted); font-size: 11px; }
   .panel-open { display: inline-block; margin-top: 4px; font-size: 13px; }
 </style>
 </head>
@@ -1131,6 +1280,11 @@ _OVERVIEW_HTML_TEMPLATE = '''<!doctype html>
   <button class="panel-close" id="panelClose" aria-label="Close">&times;</button>
   <div class="panel-title" id="panelTitle"></div>
   <div class="panel-sub" id="panelSub"></div>
+  <div class="panel-tools hidden" id="panelTools">
+    <label class="changed-toggle"><input type="checkbox" id="symbolChangedOnly" checked> show only changed symbols</label>
+    <span class="panel-count" id="panelChangeCount"></span>
+  </div>
+  <p class="panel-note hidden" id="panelNote"></p>
   <ul class="symbols" id="panelSymbols"></ul>
   <a class="panel-open" id="panelOpen" target="_blank" rel="noopener">Open on GitHub &#8599;</a>
 </aside>
@@ -1144,8 +1298,10 @@ window.__CHANGE_MAP__ = __CHANGE_MAP_JSON__;
   var enabled = new Set();
   var areas = [];
   var chg = parseChg(window.__CHANGE_MAP__);
+  var currentPanelNode = null;
 
   function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+  function symbolKey(path, kind, name) { return path + "\\u0000" + kind + "\\u0000" + name; }
 
   function parseChg(obj) {
     if (!obj || typeof obj !== "object") { return null; }
@@ -1154,8 +1310,48 @@ window.__CHANGE_MAP__ = __CHANGE_MAP_JSON__;
       var added = mk(obj.added), modified = mk(obj.modified), removed = mk(obj.removed);
       var all = new Set();
       [added, modified, removed].forEach(function (set) { set.forEach(function (p) { all.add(p); }); });
-      return all.size ? { added: added, modified: modified, removed: removed, all: all } : null;
+      var symbolStatuses = new Map();
+      var symbolChanges = obj.symbols && typeof obj.symbols === "object" ? obj.symbols : {};
+      ["added", "modified", "removed"].forEach(function (status) {
+        var changes = Array.isArray(symbolChanges[status]) ? symbolChanges[status] : [];
+        changes.forEach(function (change) {
+          if (change && change.path && change.kind && change.name) {
+            symbolStatuses.set(symbolKey(change.path, change.kind, change.name), status);
+          }
+        });
+      });
+      return all.size || symbolStatuses.size
+        ? { added: added, modified: modified, removed: removed, all: all, symbolStatuses: symbolStatuses }
+        : null;
     } catch (e) { return null; }
+  }
+
+  function symbolName(symbol) { return symbol.qualified_name || symbol.name; }
+
+  function symbolStatus(path, symbol) {
+    if (!chg) { return ""; }
+    return chg.symbolStatuses.get(symbolKey(path, symbol.kind, symbolName(symbol))) || "";
+  }
+
+  function changedSymbolCount(node) {
+    var count = 0;
+    node.symbols.forEach(function (symbol) {
+      if (symbolStatus(node.path, symbol)) { count += 1; }
+      (symbol.methods || []).forEach(function (method) {
+        if (symbolStatus(node.path, method)) { count += 1; }
+      });
+    });
+    return count;
+  }
+
+  function symbolSourceBase(path, status) {
+    return chg && (status === "removed" || chg.removed.has(path))
+      ? data.removedBlobBase
+      : data.blobBase;
+  }
+
+  function symbolHref(path, line, status) {
+    return symbolSourceBase(path, status) + path + (line ? "#L" + line : "");
   }
 
   function buildFilters() {
@@ -1216,7 +1412,9 @@ window.__CHANGE_MAP__ = __CHANGE_MAP_JSON__;
       areaData.nodes.filter(function (n) { return n.layer === layer; }).forEach(function (node) {
         var el = document.createElement("div");
         el.className = "node " + chgClass(node.path);
-        el.innerHTML = '<span class="lab">' + esc(node.label) + "</span>";
+        var count = changedSymbolCount(node);
+        el.innerHTML = '<span class="lab">' + esc(node.label) + "</span>" +
+          (count ? '<span class="node-count" title="' + count + ' changed symbols">' + count + "</span>" : "");
         el.addEventListener("mouseenter", function () { highlight(area, node.path); });
         el.addEventListener("mouseleave", function () { clearHighlight(area); });
         el.addEventListener("click", function () { openPanel(node); });
@@ -1263,26 +1461,115 @@ window.__CHANGE_MAP__ = __CHANGE_MAP_JSON__;
     area.edges.forEach(function (e) { e.el.classList.remove("edge-on", "edge-dim"); });
   }
 
-  function openPanel(node) {
-    document.getElementById("panelTitle").textContent = node.label;
-    document.getElementById("panelSub").textContent = node.layer + " \\u00b7 " + node.path;
+  function appendStatusBadge(host, status) {
+    if (!status) { return; }
+    var badge = document.createElement("span");
+    badge.className = "symbol-status";
+    badge.textContent = status;
+    host.appendChild(badge);
+  }
+
+  function appendSymbolContents(host, node, symbol, status) {
+    var kind = document.createElement("span");
+    kind.className = "kind kind-" + symbol.kind;
+    kind.textContent = symbol.kind;
+    host.appendChild(kind);
+
+    var link = document.createElement("a");
+    link.href = symbolHref(node.path, symbol.line, status);
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = symbol.name;
+    link.addEventListener("click", function (event) { event.stopPropagation(); });
+    host.appendChild(link);
+
+    if (symbol.line) {
+      var line = document.createElement("span");
+      line.className = "ln";
+      line.textContent = "L" + symbol.line;
+      host.appendChild(line);
+    }
+    appendStatusBadge(host, status);
+  }
+
+  function appendSymbolRow(list, node, symbol, inheritedStatus) {
+    var status = symbolStatus(node.path, symbol) || inheritedStatus || "";
+    var row = document.createElement("li");
+    row.className = "symbol-row" + (status ? " symbol-" + status : "");
+    appendSymbolContents(row, node, symbol, status);
+    list.appendChild(row);
+  }
+
+  function appendClassGroup(list, node, symbol, changedOnly) {
+    var classStatus = symbolStatus(node.path, symbol);
+    var inheritedStatus = classStatus === "added" || classStatus === "removed" ? classStatus : "";
+    var methods = (symbol.methods || []).filter(function (method) {
+      return !changedOnly || Boolean(symbolStatus(node.path, method)) || Boolean(inheritedStatus);
+    });
+    if (changedOnly && !classStatus && !methods.length) { return; }
+    if (!methods.length) {
+      appendSymbolRow(list, node, symbol, "");
+      return;
+    }
+
+    var details = document.createElement("details");
+    details.className = "class-group" + (classStatus ? " symbol-" + classStatus : "");
+    details.open = Boolean(classStatus || methods.some(function (method) { return symbolStatus(node.path, method); }));
+    var summary = document.createElement("summary");
+    summary.className = "class-summary";
+    appendSymbolContents(summary, node, symbol, classStatus);
+    details.appendChild(summary);
+
+    if (methods.length) {
+      var methodList = document.createElement("ul");
+      methodList.className = "methods";
+      methods.forEach(function (method) {
+        appendSymbolRow(methodList, node, method, inheritedStatus);
+      });
+      details.appendChild(methodList);
+    }
+    list.appendChild(details);
+  }
+
+  function renderPanelSymbols() {
+    var node = currentPanelNode;
+    if (!node) { return; }
     var list = document.getElementById("panelSymbols");
     list.innerHTML = "";
-    if (!node.symbols.length) {
+    var changedOnly = !document.getElementById("panelTools").classList.contains("hidden") &&
+      document.getElementById("symbolChangedOnly").checked;
+    node.symbols.forEach(function (symbol) {
+      if (symbol.kind === "class") {
+        appendClassGroup(list, node, symbol, changedOnly);
+        return;
+      }
+      var status = symbolStatus(node.path, symbol);
+      if (!changedOnly || status) { appendSymbolRow(list, node, symbol, ""); }
+    });
+    if (!list.children.length) {
       var empty = document.createElement("li");
-      empty.className = "ln";
-      empty.textContent = "No top-level symbols.";
+      empty.className = "panel-note";
+      empty.textContent = changedOnly ? "No tracked symbol changes." : "No top-level symbols.";
       list.appendChild(empty);
     }
-    node.symbols.forEach(function (s) {
-      var li = document.createElement("li");
-      li.innerHTML = '<span class="kind kind-' + s.kind + '">' + s.kind + "</span> " + esc(s.name) +
-        (s.line ? ' <span class="ln">L' + s.line + "</span>" : "");
-      list.appendChild(li);
-    });
+  }
+
+  function openPanel(node) {
+    currentPanelNode = node;
+    document.getElementById("panelTitle").textContent = node.label;
+    document.getElementById("panelSub").textContent = node.layer + " \\u00b7 " + node.path;
+    var count = changedSymbolCount(node);
+    var tools = document.getElementById("panelTools");
+    tools.classList.toggle("hidden", !chg || !count);
+    document.getElementById("symbolChangedOnly").checked = true;
+    document.getElementById("panelChangeCount").textContent = count + (count === 1 ? " change" : " changes");
+    var note = document.getElementById("panelNote");
+    var fileOnlyChange = chg && chg.all.has(node.path) && !count;
+    note.textContent = fileOnlyChange ? "This file changed outside the tracked classes, methods, functions, components, and routes." : "";
+    note.classList.toggle("hidden", !fileOnlyChange);
+    renderPanelSymbols();
     var open = document.getElementById("panelOpen");
-    var sourceBase = chg && chg.removed.has(node.path) ? data.removedBlobBase : data.blobBase;
-    open.href = sourceBase + node.path + (node.line ? "#L" + node.line : "");
+    open.href = symbolHref(node.path, node.line, chg && chg.removed.has(node.path) ? "removed" : "");
     document.getElementById("panel").classList.remove("hidden");
   }
 
@@ -1339,7 +1626,9 @@ window.__CHANGE_MAP__ = __CHANGE_MAP_JSON__;
   initDiffMode();
   document.getElementById("panelClose").addEventListener("click", function () {
     document.getElementById("panel").classList.add("hidden");
+    currentPanelNode = null;
   });
+  document.getElementById("symbolChangedOnly").addEventListener("change", renderPanelSymbols);
   var raf;
   window.addEventListener("resize", function () { clearTimeout(raf); raf = setTimeout(drawEdges, 120); });
   requestAnimationFrame(function () { requestAnimationFrame(applyVisibility); });

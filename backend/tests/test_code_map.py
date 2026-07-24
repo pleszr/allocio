@@ -1,3 +1,4 @@
+import copy
 import shutil
 import subprocess
 import sys
@@ -325,6 +326,18 @@ def test_overview_diff_payload_marks_existing_file_with_added_symbol_as_modified
         "added": [],
         "modified": ["backend/app/n.py"],
         "removed": [],
+        "symbols": {
+            "added": [
+                {
+                    "path": "backend/app/n.py",
+                    "kind": "function",
+                    "name": "foo",
+                    "line": 1,
+                }
+            ],
+            "modified": [],
+            "removed": [],
+        },
     }
 
 
@@ -336,7 +349,43 @@ def test_overview_diff_payload_includes_file_only_product_modules():
         "added": [],
         "modified": ["frontend/src/api/types.ts"],
         "removed": [],
+        "symbols": {"added": [], "modified": [], "removed": []},
     }
+
+
+def test_overview_diff_payload_includes_method_changes():
+    before = {
+        "path": "backend/app/services/s.py",
+        "language": "python",
+        "imports": [],
+        "functions": [],
+        "classes": [
+            {
+                "name": "Service",
+                "line_start": 1,
+                "line_end": 3,
+                "hash": "class",
+                "methods": [
+                    {"name": "run", "line_start": 2, "line_end": 3, "hash": "before"},
+                ],
+            }
+        ],
+        "routes": [],
+    }
+    after = copy.deepcopy(before)
+    after["classes"][0]["methods"][0]["hash"] = "after"
+    diff = cm.diff_maps(_map(backend=[before]), _map(backend=[after]), [before["path"]])
+
+    payload = cm._overview_diff_payload(diff)
+
+    assert payload["symbols"]["modified"] == [
+        {
+            "path": "backend/app/services/s.py",
+            "kind": "method",
+            "name": "Service.run",
+            "line": 2,
+        }
+    ]
 
 
 # --------------------------------------------------------------------------- #
@@ -369,15 +418,30 @@ def test_overview_html_embeds_pr_changes_and_exact_head_links(tmp_path):
             "added": [],
             "modified": ["backend/app/services/s.py"],
             "removed": [],
+            "symbols": {
+                "added": [],
+                "modified": [
+                    {
+                        "path": "backend/app/services/s.py",
+                        "kind": "function",
+                        "name": "go",
+                        "line": 1,
+                    }
+                ],
+                "removed": [],
+            },
         },
         blob_base="https://github.com/pleszr/allocio/blob/abc123/",
     )
 
     assert '"modified": ["backend/app/services/s.py"]' in html
+    assert '"name": "go", "path": "backend/app/services/s.py"' in html
     assert '"blobBase": "https://github.com/pleszr/allocio/blob/abc123/"' in html
     assert '"removedBlobBase": "https://github.com/pleszr/allocio/blob/abc123/"' in html
     assert 'id="changedOnly" checked' in html
     assert "show only changes in this PR" in html
+    assert "show only changed symbols" in html
+    assert "symbolHref(node.path, symbol.line, status)" in html
     assert "location.hash" not in html
 
 
@@ -418,8 +482,31 @@ def test_overview_payload_frontend_component_not_duplicated_as_fn():
     app_node = next(node for node in frontend["nodes"] if node["path"] == "frontend/src/App.tsx")
     kinds = {(symbol["kind"], symbol["name"]) for symbol in app_node["symbols"]}
     assert ("component", "App") in kinds
-    assert ("fn", "App") not in kinds
+    assert ("function", "App") not in kinds
     assert ["frontend/src/main.tsx", "frontend/src/App.tsx"] in frontend["edges"]
+
+
+def test_overview_payload_nests_methods_under_their_class(tmp_path):
+    entry = _py_entry(
+        tmp_path,
+        "backend/app/services/s.py",
+        "class Service:\n    def run(self):\n        return 1\n",
+    )
+
+    payload = cm._overview_html_payload(_map(backend=[entry]))
+    backend = next(area for area in payload["areas"] if area["title"] == "Backend")
+    service = backend["nodes"][0]["symbols"][0]
+
+    assert service["kind"] == "class"
+    assert service["name"] == "Service"
+    assert service["methods"] == [
+        {
+            "kind": "method",
+            "name": "run",
+            "qualified_name": "Service.run",
+            "line": 2,
+        }
+    ]
 
 
 def test_overview_map_keeps_removed_modules_from_the_base():
@@ -432,13 +519,57 @@ def test_overview_map_keeps_removed_modules_from_the_base():
         "routes": [],
     }
 
-    preview = cm._overview_map_with_removed_files(
-        _map(backend=[removed]),
-        _map(),
-        ["backend/app/services/removed.py"],
-    )
+    base_map = _map(backend=[removed])
+    head_map = _map()
+    diff = cm.diff_maps(base_map, head_map, [removed["path"]])
+    preview = cm._overview_map_with_removed_structure(base_map, head_map, diff)
 
     assert preview["areas"]["backend"]["files"] == [removed]
+
+
+def test_overview_map_restores_removed_classes_and_methods():
+    path = "backend/app/services/s.py"
+    base = {
+        "path": path,
+        "language": "python",
+        "imports": [],
+        "functions": [],
+        "classes": [
+            {
+                "name": "OldService",
+                "line_start": 1,
+                "line_end": 3,
+                "hash": "old-class",
+                "methods": [
+                    {"name": "retire", "line_start": 2, "line_end": 3, "hash": "retire"},
+                ],
+            },
+            {
+                "name": "Service",
+                "line_start": 5,
+                "line_end": 10,
+                "hash": "service",
+                "methods": [
+                    {"name": "keep", "line_start": 6, "line_end": 7, "hash": "keep"},
+                    {"name": "remove", "line_start": 9, "line_end": 10, "hash": "remove"},
+                ],
+            },
+        ],
+        "routes": [],
+    }
+    head = copy.deepcopy(base)
+    head["classes"] = [copy.deepcopy(base["classes"][1])]
+    head["classes"][0]["methods"] = [copy.deepcopy(base["classes"][1]["methods"][0])]
+    base_map = _map(backend=[base])
+    head_map = _map(backend=[head])
+    diff = cm.diff_maps(base_map, head_map, [path])
+
+    preview = cm._overview_map_with_removed_structure(base_map, head_map, diff)
+    preview_classes = preview["areas"]["backend"]["files"][0]["classes"]
+
+    assert [cls["name"] for cls in preview_classes] == ["OldService", "Service"]
+    service = next(cls for cls in preview_classes if cls["name"] == "Service")
+    assert [method["name"] for method in service["methods"]] == ["keep", "remove"]
 
 
 @requires_frontend
