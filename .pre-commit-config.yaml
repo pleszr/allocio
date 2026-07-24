@@ -11,12 +11,6 @@ repos:
         language: system
         pass_filenames: false
         files: '^(backend/app/|backend/alembic/versions/|tools/.*\.py$|frontend/src/|docs/code-map\.json$)'
-      - id: code-map-overview-check
-        name: code map architecture overview check
-        entry: uv run --python 3.14 python tools/code_map.py --check-overview-html docs/code-map.html
-        language: system
-        pass_filenames: false
-        files: '^(backend/app/|backend/alembic/versions/|tools/.*\.py$|frontend/src/|docs/code-map\.html$)'
       - id: api-workflow-test
         name: api workflow smoke test
         entry: uv run --project backend pytest backend/tests/test_workflow_e2e.py -q

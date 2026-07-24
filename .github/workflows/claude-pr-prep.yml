@@ -37,8 +37,7 @@ jobs:
             - Only edit instruction/doc files: CLAUDE.md, backend/CLAUDE.md,
               frontend/CLAUDE.md, backend/alembic/CLAUDE.md, .claude/rules/*.md,
               .claude/memory-structure.md, and docs/*.md. Never edit application
-              source, tests, or generated files (docs/code-map.json,
-              docs/code-map.html).
+              source, tests, or the generated docs/code-map.json file.
             - Be conservative: add or correct guidance that the diff made stale.
               Do NOT delete existing guidance unless the diff plainly
               contradicts it.
