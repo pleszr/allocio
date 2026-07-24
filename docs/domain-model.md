@@ -367,6 +367,7 @@ Derived:
 - historical balances are reconstructed from posted events, not from current cost configuration
 - if a row has already contributed to posted history, it should not be hard-deleted from canonical storage
 - implementation may hard-delete an unused draft or template-cloned row only if it has never been referenced by posted data
+- posting a check-in may, as a side-effect, reset a maintenance item's `last_serviced_at_date`/`last_serviced_at_odometer` when the check-in includes an expense linked to it (see `docs/vehicle-rules.md`, "Maintenance service-baseline reset"). This mutates only the maintenance item's current editable row and changes future status/recommendation figures only — the posted `check_in`/`allocation_event`/`expense_event` rows for that period remain immutable, unchanged from the rest of this section's rules
 
 ## Built-In Templates
 

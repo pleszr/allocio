@@ -11,6 +11,7 @@ in `conftest.py`, so it stays fast and leaves no residue. The browser Playwright
 `frontend/e2e/` covers the same journey through a real browser and full stack.
 """
 
+from collections.abc import Callable
 from datetime import date, timedelta
 
 from fastapi.testclient import TestClient
@@ -29,10 +30,14 @@ VEHICLE_BODY = {
     ],
 }
 STARTING_ODOMETER = 120000
-FUTURE_END = str(date.today() + timedelta(days=30))
+# The asset is backdated 90 days below so this period can end in the past (the browser also lets
+# the user pick a past period_end; see docs/vehicle-rules.md).
+PERIOD_END = str(date.today() - timedelta(days=60))
 
 
-def test_create_bucket_and_check_in_workflow(client: TestClient) -> None:
+def test_create_bucket_and_check_in_workflow(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
     """Walk the full create-bucket -> add-cost -> check-in journey the browser performs."""
     # 1. Workspace overview loads (the app's first fetch on Home/Dashboard).
     overview = client.get("/api/assets")
@@ -57,6 +62,7 @@ def test_create_bucket_and_check_in_workflow(client: TestClient) -> None:
     assert created.status_code == 201
     asset_id = created.json()["asset"]["id"]
     assert created.headers["Location"] == f"/api/assets/{asset_id}"
+    backdate_asset_creation(asset_id)
 
     # 4. The frontend navigates to the new bucket's detail — the step most likely to 404 if the
     #    read route or id contract is broken (the reported "not found" symptom lands here).
@@ -77,7 +83,7 @@ def test_create_bucket_and_check_in_workflow(client: TestClient) -> None:
     assert custom_cost.status_code == 201
 
     # 7. Check-in preview (deterministic, writes nothing) then commit — the Check-In screen flow.
-    check_in_body = {"period_end": FUTURE_END, "usage_end": STARTING_ODOMETER + 900, "expenses": []}
+    check_in_body = {"period_end": PERIOD_END, "usage_end": STARTING_ODOMETER + 900, "expenses": []}
     preview = client.post(f"/api/assets/{asset_id}/check-ins/preview", json=check_in_body)
     assert preview.status_code == 200
     assert preview.json()["usage_amount"] == 900
