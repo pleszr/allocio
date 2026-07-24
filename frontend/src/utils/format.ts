@@ -1,14 +1,8 @@
 // Formatting + small domain helpers shared across screens.
-
-export function fmtMoney(n: number, opts: { sign?: boolean; decimals?: number } = {}): string {
-  const { sign = false, decimals = 2 } = opts;
-  const abs = Math.abs(n).toLocaleString("en-US", {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
-  const s = n < 0 ? "−" : sign ? "+" : "";
-  return `${s}$${abs}`;
-}
+//
+// Money rendering lives in `utils/currency.tsx` (the `useCurrency()` hook), which owns the
+// currency symbol and its placement. This module keeps only currency-agnostic number/date helpers;
+// there is intentionally no `fmtMoney` here so a second, divergent money formatter can't drift.
 
 export function fmtNumber(n: number, decimals = 0): string {
   return n.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });

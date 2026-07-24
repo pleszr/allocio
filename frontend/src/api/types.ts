@@ -9,6 +9,16 @@ export interface CurrentUser {
   name: string;
 }
 
+// ── User settings (GET/PUT /api/users/me/settings) ────────────────────
+// Closed unions mirroring the backend Literals; keep the string values identical.
+export type CurrencyCode = "HUF" | "EUR" | "USD";
+export type LanguageCode = "en" | "hu" | "en_hu_alloc";
+
+export interface UserSettings {
+  default_currency: CurrencyCode;
+  language: LanguageCode;
+}
+
 export type Health = "underfunded" | "healthy" | "overflowing";
 export type MaintenanceStatus = "ok" | "soon" | "due" | "overdue";
 export type IntervalUnit = "months" | "years";

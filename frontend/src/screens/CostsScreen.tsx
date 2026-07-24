@@ -3,6 +3,7 @@ import { api, ApiError } from "../api/client";
 import type { IntervalUnit, MaintenanceItem, TimeBasedCost, UsageBasedCost } from "../api/types";
 import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
+import { useCurrency } from "../utils/currency";
 import { fmtDate, fmtNumber, intervalDays } from "../utils/format";
 import { maintenancePill } from "../utils/health";
 import { useAsync } from "../utils/useAsync";
@@ -15,6 +16,7 @@ interface CostsScreenProps {
 type CostTab = "time" | "usage" | "maint";
 
 export function CostsScreen({ assetId, onChanged }: CostsScreenProps) {
+  const fmt = useCurrency();
   const [tab, setTab] = useState<CostTab>("time");
   const asset = useAsync(() => api.getAsset(assetId), [assetId]);
   const time = useAsync(() => api.listTimeBasedCosts(assetId), [assetId]);
@@ -78,17 +80,17 @@ export function CostsScreen({ assetId, onChanged }: CostsScreenProps) {
         <div className="kpi">
           <div className="kpi-label">Time-based total</div>
           <div className="num-lg">
-            ${fmtNumber(timePerDay * 365)}
+            {fmt(timePerDay * 365, { decimals: 0 })}
             <span className="muted" style={{ fontSize: 14 }}>
               /yr
             </span>
           </div>
-          <div className="kpi-sub">${fmtNumber(timePerDay, 2)}/day equivalent</div>
+          <div className="kpi-sub">{fmt(timePerDay, { decimals: 2 })}/day equivalent</div>
         </div>
         <div className="kpi">
           <div className="kpi-label">Usage-based rate</div>
           <div className="num-lg">
-            ${usageRate.toFixed(3)}
+            {fmt(usageRate, { decimals: 3 })}
             <span className="muted" style={{ fontSize: 14 }}>
               /unit
             </span>
@@ -101,7 +103,7 @@ export function CostsScreen({ assetId, onChanged }: CostsScreenProps) {
         <div className="kpi">
           <div className="kpi-label">Recommended allocation</div>
           <div className="num-lg">
-            ${fmtNumber(recommendedMonthly)}
+            {fmt(recommendedMonthly, { decimals: 0 })}
             <span className="muted" style={{ fontSize: 14 }}>
               /mo
             </span>
@@ -139,6 +141,7 @@ function useMutation(onChanged: () => void) {
 
 // ── Time-based ─────────────────────────────────────────────────────────
 function TimeTable({ assetId, rows, onChanged }: { assetId: string; rows: TimeBasedCost[]; onChanged: () => void }) {
+  const fmt = useCurrency();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
@@ -171,11 +174,11 @@ function TimeTable({ assetId, rows, onChanged }: { assetId: string; rows: TimeBa
                   {t.label}
                   {!t.is_active && <span className="pill" style={{ marginLeft: 8 }}>inactive</span>}
                 </td>
-                <td className="col-num">${fmtNumber(t.amount)}</td>
+                <td className="col-num">{fmt(t.amount, { decimals: 0 })}</td>
                 <td className="row-meta">
                   every {t.interval_value} {t.interval_unit}
                 </td>
-                <td className="col-num">${(t.amount / intervalDays(t.interval_value, t.interval_unit)).toFixed(2)}</td>
+                <td className="col-num">{fmt(t.amount / intervalDays(t.interval_value, t.interval_unit), { decimals: 2 })}</td>
                 <td className="row-meta">{t.next_due_date ? fmtDate(t.next_due_date) : "—"}</td>
                 <td>
                   <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(t.id)}>
@@ -300,6 +303,7 @@ function TimeCreateRow({ assetId, onClose, onChanged }: { assetId: string; onClo
 
 // ── Usage-based ────────────────────────────────────────────────────────
 function UsageTable({ assetId, rows, onChanged }: { assetId: string; rows: UsageBasedCost[]; onChanged: () => void }) {
+  const fmt = useCurrency();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
@@ -325,9 +329,9 @@ function UsageTable({ assetId, rows, onChanged }: { assetId: string; rows: Usage
                   {!u.is_active && <span className="pill" style={{ marginLeft: 8 }}>inactive</span>}
                 </td>
                 <td className="col-num">
-                  ${u.amount_per_unit.toFixed(3)}/{u.usage_unit}
+                  {fmt(u.amount_per_unit, { decimals: 3 })}/{u.usage_unit}
                 </td>
-                <td className="col-num">${(u.amount_per_unit * 100).toFixed(2)}</td>
+                <td className="col-num">{fmt(u.amount_per_unit * 100, { decimals: 2 })}</td>
                 <td>
                   <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(u.id)}>
                     <Icon name="edit" size={12} />

@@ -10,9 +10,8 @@ from app.domain.asset import Asset, Bucket, VehicleProfile
 from app.domain.asset_templates import ASSET_TEMPLATES, AssetTemplate
 from app.domain.cost import MaintenanceItem, TimeBasedCost, UsageBasedCost
 from app.domain.vehicle_defaults import build_selected_rows, vehicle_catalog_keys
+from app.repository import user_repository
 from app.repository.asset_repository import insert_asset_dependents, persist_asset
-
-BUCKET_CURRENCY = "HUF"
 
 
 @dataclass(frozen=True)
@@ -69,15 +68,16 @@ class AssetService:
         template = self._resolve_template(template_key)
         resolved_type = template.asset_type if template is not None else self._require_type(asset_type)
         selected_keys = self._validate_selected_keys(template, selected_cost_keys)
+        currency = self._resolve_owner_currency(user_id)
         try:
             asset = Asset(
                 type=resolved_type, user_id=user_id, name=name, subtitle=subtitle, attributes=attributes
             )
             persist_asset(self._session, asset)
 
-            bucket = Bucket(asset_id=asset.id, currency=BUCKET_CURRENCY)
+            bucket = Bucket(asset_id=asset.id, currency=currency)
             profile, time_based, usage_based, maintenance = self._build_template_dependents(
-                asset.id, template, vehicle_details, selected_keys
+                asset.id, template, vehicle_details, selected_keys, currency
             )
 
             insert_asset_dependents(self._session, bucket, profile, time_based, usage_based, maintenance)
@@ -94,6 +94,16 @@ class AssetService:
             usage_based_costs=usage_based,
             maintenance_items=maintenance,
         )
+
+    def _resolve_owner_currency(self, user_id: uuid.UUID) -> str:
+        """Return the owner's default currency so the new bucket and seeded rows adopt it.
+
+        The caller is authenticated, so a missing row is an integrity fault rather than user error.
+        """
+        user = user_repository.get_by_id(self._session, user_id)
+        if user is None:
+            raise ValidationError(f"Owner '{user_id}' not found.")
+        return user.default_currency
 
     def _resolve_template(self, template_key: str | None) -> AssetTemplate | None:
         """Look up a template by key, or return None for a bare asset; reject an unknown key."""
@@ -130,11 +140,12 @@ class AssetService:
         template: AssetTemplate | None,
         vehicle_details: VehicleDetails | None,
         selected_keys: set[str],
+        currency: str,
     ) -> tuple[VehicleProfile | None, list[TimeBasedCost], list[UsageBasedCost], list[MaintenanceItem]]:
         """Build the profile and selected cost rows for a template, or empty results for a bare asset."""
         if template is None:
             return None, [], [], []
-        time_based, usage_based, maintenance = build_selected_rows(asset_id, selected_keys)
+        time_based, usage_based, maintenance = build_selected_rows(asset_id, selected_keys, currency)
         profile = self._build_vehicle_profile(asset_id, vehicle_details) if template.has_vehicle_profile else None
         return profile, time_based, usage_based, maintenance
 

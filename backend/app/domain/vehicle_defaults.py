@@ -93,13 +93,15 @@ def vehicle_catalog_keys() -> frozenset[str]:
 
 
 def build_selected_rows(
-    asset_id: uuid.UUID, selected_keys: set[str]
+    asset_id: uuid.UUID, selected_keys: set[str], currency: str
 ) -> tuple[list[TimeBasedCost], list[UsageBasedCost], list[MaintenanceItem]]:
     """Clone only the selected default templates into unsaved ORM rows for one asset.
 
     A template row is cloned only when its `technical_key` is in `selected_keys`, preserving
-    template order within each group. An empty `selected_keys` returns three empty lists. Field
-    mapping is deterministic; does not open a session or persist anything.
+    template order within each group. An empty `selected_keys` returns three empty lists. The
+    seeded usage-based reserve carries the passed-in `currency` (the asset owner's default) rather
+    than the template's hardcoded default. Field mapping is deterministic; does not open a session
+    or persist anything.
     """
     time_based = [
         TimeBasedCost(
@@ -123,7 +125,7 @@ def build_selected_rows(
                 technical_key=DEFAULT_USAGE_BASED_COST.technical_key,
                 amount_per_unit=DEFAULT_USAGE_BASED_COST.amount_per_unit,
                 usage_unit=DEFAULT_USAGE_BASED_COST.usage_unit,
-                currency=DEFAULT_USAGE_BASED_COST.currency,
+                currency=currency,
                 is_active=True,
             )
         )

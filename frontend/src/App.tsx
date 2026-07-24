@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "./api/client";
-import type { CurrentUser, WorkspaceOverview } from "./api/types";
+import type { CurrentUser, UserSettings, WorkspaceOverview } from "./api/types";
 import { Sidebar } from "./components/Sidebar";
 import { ErrorState, LoadingState } from "./components/StateView";
 import { Tabs } from "./components/Tabs";
 import { TopBar } from "./components/TopBar";
+import { CurrencyProvider } from "./utils/currency";
 import { useAsync, type AsyncState } from "./utils/useAsync";
 import type { AssetTab, Route } from "./routes";
 import { CheckInScreen } from "./screens/CheckInScreen";
@@ -34,6 +35,15 @@ function Workspace({ user }: { user: CurrentUser }) {
   const workspace = useAsync(() => api.listAssets(), []);
   const assets = workspace.data?.assets ?? [];
 
+  // Load the user's settings once and own them as local state, so the display formatter and the
+  // popover share one source of truth. The popover updates `prefs` on save, which relabels all
+  // money immediately (via CurrencyProvider) with no refetch flash.
+  const settings = useAsync(() => api.getSettings(), []);
+  const [prefs, setPrefs] = useState<UserSettings | null>(null);
+  useEffect(() => {
+    if (settings.data) setPrefs(settings.data);
+  }, [settings.data]);
+
   // Keep routing valid if the active asset disappears from the workspace. Only act on a
   // settled load: during a reload (e.g. right after creating a bucket and navigating to it)
   // `workspace.data` still holds the pre-refetch list, which would otherwise bounce a
@@ -46,25 +56,41 @@ function Workspace({ user }: { user: CurrentUser }) {
 
   const crumbs = buildCrumbs(route, assets);
 
+  // Gate the workspace on the initial settings load so money never flashes the wrong currency in
+  // the sidebar/home before settings arrive.
+  if (settings.error && !prefs) {
+    return <ErrorState message={settings.error} onRetry={settings.reload} />;
+  }
+  if (!prefs) return <LoadingState label="Loading your preferences…" />;
+
   return (
-    <div className="app">
-      <Sidebar assets={assets} route={route} onNavigate={setRoute} user={user} />
-      <main className="main">
-        <TopBar crumbs={crumbs} />
-        {route.kind === "asset" && (
-          <Tabs
-            value={route.tab}
-            onChange={(tab) => setRoute({ ...route, tab })}
-            items={[
-              { value: "dashboard", label: "Dashboard" },
-              { value: "costs", label: "Costs" },
-              { value: "checkin", label: "Check-in" },
-            ]}
-          />
-        )}
-        <Content route={route} setRoute={setRoute} workspace={workspace} />
-      </main>
-    </div>
+    <CurrencyProvider currency={prefs.default_currency}>
+      <div className="app">
+        <Sidebar
+          assets={assets}
+          route={route}
+          onNavigate={setRoute}
+          user={user}
+          settings={prefs}
+          onSettingsSaved={setPrefs}
+        />
+        <main className="main">
+          <TopBar crumbs={crumbs} />
+          {route.kind === "asset" && (
+            <Tabs
+              value={route.tab}
+              onChange={(tab) => setRoute({ ...route, tab })}
+              items={[
+                { value: "dashboard", label: "Dashboard" },
+                { value: "costs", label: "Costs" },
+                { value: "checkin", label: "Check-in" },
+              ]}
+            />
+          )}
+          <Content route={route} setRoute={setRoute} workspace={workspace} />
+        </main>
+      </div>
+    </CurrencyProvider>
   );
 }
 

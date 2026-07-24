@@ -21,6 +21,19 @@ class CurrentUserResponse(BaseModel):
     name: str = Field(description="The user's Google display name; may be empty.", examples=["Ada Lovelace"])
 
 
+class UserSettingsResponse(BaseModel):
+    """The caller's persisted workspace-wide settings, as returned by the settings read/replace routes."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    default_currency: str = Field(
+        description="Workspace-wide display currency (relabel only, no FX).", examples=["HUF"]
+    )
+    language: str = Field(
+        description="Persisted language preference; stored only for now (no UI translation yet).", examples=["en"]
+    )
+
+
 class AssetResponse(BaseModel):
     """The tracked asset record created for the request."""
 

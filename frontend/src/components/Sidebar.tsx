@@ -1,18 +1,21 @@
-import { api } from "../api/client";
-import type { AssetSummary, CurrentUser } from "../api/types";
+import type { AssetSummary, CurrentUser, UserSettings } from "../api/types";
 import { illoKind } from "../utils/assetType";
-import { fmtNumber } from "../utils/format";
+import { useCurrency } from "../utils/currency";
 import type { Route } from "../routes";
 import { Icon } from "./Icon";
+import { UserMenu } from "./UserMenu";
 
 interface SidebarProps {
   assets: AssetSummary[];
   route: Route;
   onNavigate: (route: Route) => void;
   user: CurrentUser;
+  settings: UserSettings;
+  onSettingsSaved: (next: UserSettings) => void;
 }
 
-export function Sidebar({ assets, route, onNavigate, user }: SidebarProps) {
+export function Sidebar({ assets, route, onNavigate, user, settings, onSettingsSaved }: SidebarProps) {
+  const fmt = useCurrency();
   const activeAssetId = route.kind === "asset" ? route.assetId : null;
   const onOverview = route.kind === "home";
   const onCheckin = route.kind === "asset" && route.tab === "checkin";
@@ -59,7 +62,7 @@ export function Sidebar({ assets, route, onNavigate, user }: SidebarProps) {
               <span>
                 <span className="entity-name">{a.name}</span>
               </span>
-              <span className="entity-balance">${fmtNumber(a.balance)}</span>
+              <span className="entity-balance">{fmt(a.balance, { decimals: 0 })}</span>
             </button>
           ))}
           <button className="side-item" onClick={() => onNavigate({ kind: "new" })}>
@@ -70,26 +73,10 @@ export function Sidebar({ assets, route, onNavigate, user }: SidebarProps) {
 
       <div className="sidebar-footer">
         <div className="avatar">{initials(user)}</div>
-        <div className="sidebar-user">
-          <div className="user-name">{user.name || user.email}</div>
-          <div className="user-email">{user.email}</div>
-        </div>
-        <button className="logout-btn" title="Sign out" onClick={logout}>
-          Sign out
-        </button>
+        <UserMenu user={user} settings={settings} onSettingsSaved={onSettingsSaved} />
       </div>
     </aside>
   );
-}
-
-// Best-effort logout: clear the session server-side, then reload so the auth gate re-checks and
-// shows the sign-in screen. Reload even if the call fails — a failed logout must not trap the user.
-async function logout(): Promise<void> {
-  try {
-    await api.logout();
-  } finally {
-    window.location.reload();
-  }
 }
 
 // Initials from the first letters of the first two name words, uppercased; falls back to the first

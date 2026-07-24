@@ -6,6 +6,7 @@ import { Illo } from "../components/Illustrations";
 import { Sparkline } from "../components/Sparkline";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { illoBg, illoKind } from "../utils/assetType";
+import { useCurrency } from "../utils/currency";
 import { fmtDateShort, fmtMonthYear, fmtNumber, mockNextAllocation } from "../utils/format";
 import { healthPill, maintenancePill } from "../utils/health";
 import { useAsync } from "../utils/useAsync";
@@ -22,6 +23,7 @@ const RANGES: { label: string; months: number }[] = [
 ];
 
 export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
+  const fmt = useCurrency();
   const detail = useAsync(() => api.getAsset(assetId), [assetId]);
   const [months, setMonths] = useState(12);
   const history = useAsync(() => api.getBalanceHistory(assetId, months), [assetId, months]);
@@ -60,10 +62,10 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           <div className="muted" style={{ fontSize: 13.5, marginBottom: 4 }}>
             Bucket balance
           </div>
-          <div className="num-xl">${fmtNumber(e.balance, 2)}</div>
+          <div className="num-xl">{fmt(e.balance, { decimals: 2 })}</div>
           <div style={{ marginTop: 10, fontSize: 13.5, color: "var(--muted)" }}>
             <span className={delta >= 0 ? "delta-up" : "delta-down"} style={{ fontWeight: 600 }}>
-              {delta >= 0 ? "↑" : "↓"} ${fmtNumber(Math.abs(delta))}
+              {delta >= 0 ? "↑" : "↓"} {fmt(Math.abs(delta), { decimals: 0 })}
             </span>{" "}
             this month
           </div>
@@ -72,12 +74,12 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           <div>
             <div className="hero-stat-label">{e.current_usage !== null ? "Current usage" : "Daily accrual"}</div>
             <div className="hero-stat-val">
-              {e.current_usage !== null ? `${fmtNumber(e.current_usage)} km` : `$${fmtNumber(e.daily_accrual, 2)}`}
+              {e.current_usage !== null ? `${fmtNumber(e.current_usage)} km` : fmt(e.daily_accrual, { decimals: 2 })}
             </div>
           </div>
           <div>
             <div className="hero-stat-label">Next allocation</div>
-            <div className="hero-stat-val">${fmtNumber(e.recommended_monthly_allocation)}</div>
+            <div className="hero-stat-val">{fmt(e.recommended_monthly_allocation, { decimals: 0 })}</div>
             <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
               on {nextLabel} · in {next.daysUntil} days
             </div>
@@ -124,8 +126,8 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
       <div className="kpi-grid" style={{ marginBottom: 24 }}>
         <div className="kpi">
           <div className="kpi-label">Daily accrual</div>
-          <div className="num-lg">${fmtNumber(e.daily_accrual, 2)}</div>
-          <div className="kpi-sub">${fmtNumber(e.recommended_monthly_allocation)}/mo recommended</div>
+          <div className="num-lg">{fmt(e.daily_accrual, { decimals: 2 })}</div>
+          <div className="kpi-sub">{fmt(e.recommended_monthly_allocation, { decimals: 0 })}/mo recommended</div>
         </div>
         {e.current_usage !== null ? (
           <div className="kpi">
@@ -150,7 +152,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           <div className="kpi-label">Next allocation</div>
           <div className="num-lg">{nextLabel}</div>
           <div className="kpi-sub">
-            {next.daysUntil} days · ${fmtNumber(pending)} pending
+            {next.daysUntil} days · {fmt(pending, { decimals: 0 })} pending
           </div>
         </div>
       </div>
@@ -240,6 +242,7 @@ function MaintRow({ item }: { item: MaintenanceItem }) {
 }
 
 function TxRow({ tx }: { tx: ActivityItem }) {
+  const fmt = useCurrency();
   const pos = tx.amount >= 0;
   return (
     <div
@@ -265,7 +268,7 @@ function TxRow({ tx }: { tx: ActivityItem }) {
           color: pos ? "var(--good)" : "var(--ink)",
         }}
       >
-        {pos ? "+" : "−"}${fmtNumber(Math.abs(tx.amount), 2)}
+        {fmt(tx.amount, { decimals: 2, sign: true })}
       </div>
     </div>
   );

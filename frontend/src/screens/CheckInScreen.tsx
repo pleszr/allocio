@@ -4,6 +4,7 @@ import type { CheckInPreview, MaintenanceItem } from "../api/types";
 import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { tracksUsage } from "../utils/assetType";
+import { useCurrency } from "../utils/currency";
 import { daysBetween, fmtDate, fmtNumber, todayIso } from "../utils/format";
 import { maintenancePill } from "../utils/health";
 import { useAsync } from "../utils/useAsync";
@@ -14,6 +15,7 @@ interface CheckInScreenProps {
 }
 
 export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
+  const fmt = useCurrency();
   const detail = useAsync(() => api.getAsset(assetId), [assetId]);
 
   const [usageEnd, setUsageEnd] = useState<string>("");
@@ -177,7 +179,7 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
                   </div>
                   <span></span>
                   <span className="checkin-line-amt" style={{ color: "var(--good)" }}>
-                    +${fmtNumber(preview.total_allocation, 2)}
+                    {fmt(preview.total_allocation, { decimals: 2, sign: true })}
                   </span>
                 </div>
                 <div className="checkin-line">
@@ -189,18 +191,18 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
                   </div>
                   <span></span>
                   <span className="checkin-line-amt" style={{ color: "var(--bad)" }}>
-                    −${fmtNumber(preview.total_expense, 2)}
+                    {fmt(-preview.total_expense, { decimals: 2 })}
                   </span>
                 </div>
                 <div className="totals-row">
                   <div>
                     <div className="label">Net change to bucket</div>
                     <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
-                      From ${fmtNumber(preview.balance_before, 2)} to ${fmtNumber(preview.balance_after, 2)}
+                      From {fmt(preview.balance_before, { decimals: 2 })} to {fmt(preview.balance_after, { decimals: 2 })}
                     </div>
                   </div>
                   <div className="num-lg" style={{ color: preview.net_bucket_change >= 0 ? "var(--good)" : "var(--bad)" }}>
-                    {preview.net_bucket_change >= 0 ? "+" : "−"}${fmtNumber(Math.abs(preview.net_bucket_change), 2)}
+                    {fmt(preview.net_bucket_change, { decimals: 2, sign: true })}
                   </div>
                 </div>
               </div>
@@ -234,19 +236,17 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
               className="num-xl"
               style={{ marginTop: 12, color: preview && preview.net_bucket_change < 0 ? "var(--bad)" : "var(--good)" }}
             >
-              {preview
-                ? `${preview.net_bucket_change >= 0 ? "+" : "−"}$${fmtNumber(Math.abs(preview.net_bucket_change), 2)}`
-                : "—"}
+              {preview ? fmt(preview.net_bucket_change, { decimals: 2, sign: true }) : "—"}
             </div>
             <div className="muted" style={{ fontSize: 13, marginTop: 8 }}>
               Net change to the bucket for this period.
             </div>
             <hr className="hr" />
             <div className="stack" style={{ gap: 8 }}>
-              <RowKV k="Allocations" v={preview ? `+$${fmtNumber(preview.total_allocation, 2)}` : "—"} />
-              <RowKV k="Expenses" v={preview ? `−$${fmtNumber(preview.total_expense, 2)}` : "—"} />
-              <RowKV k="Bucket before" v={preview ? `$${fmtNumber(preview.balance_before, 2)}` : "—"} />
-              <RowKV k="Bucket after" v={preview ? `$${fmtNumber(preview.balance_after, 2)}` : "—"} bold />
+              <RowKV k="Allocations" v={preview ? fmt(preview.total_allocation, { decimals: 2, sign: true }) : "—"} />
+              <RowKV k="Expenses" v={preview ? fmt(-preview.total_expense, { decimals: 2 }) : "—"} />
+              <RowKV k="Bucket before" v={preview ? fmt(preview.balance_before, { decimals: 2 }) : "—"} />
+              <RowKV k="Bucket after" v={preview ? fmt(preview.balance_after, { decimals: 2 }) : "—"} bold />
             </div>
             <hr className="hr" />
             <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>

@@ -84,7 +84,7 @@ def test_vehicle_catalog_keys_is_frozenset_of_all_keys():
 
 def test_build_selected_rows_clones_only_selected_across_groups():
     selected = {"mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"}
-    time_based, usage_based, maintenance = build_selected_rows(uuid.uuid4(), selected)
+    time_based, usage_based, maintenance = build_selected_rows(uuid.uuid4(), selected, "HUF")
 
     assert [r.technical_key for r in time_based] == ["mandatory_liability_insurance"]
     assert [r.technical_key for r in usage_based] == ["usage_based_reserve"]
@@ -92,22 +92,27 @@ def test_build_selected_rows_clones_only_selected_across_groups():
 
 
 def test_build_selected_rows_empty_selection_returns_three_empty_lists():
-    time_based, usage_based, maintenance = build_selected_rows(uuid.uuid4(), set())
+    time_based, usage_based, maintenance = build_selected_rows(uuid.uuid4(), set(), "HUF")
     assert (time_based, usage_based, maintenance) == ([], [], [])
 
 
 def test_build_selected_rows_sets_asset_id_and_is_active():
     asset_id = uuid.uuid4()
     selected = {"mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"}
-    time_based, usage_based, maintenance = build_selected_rows(asset_id, selected)
+    time_based, usage_based, maintenance = build_selected_rows(asset_id, selected, "HUF")
     for row in (*time_based, *usage_based, *maintenance):
         assert row.asset_id == asset_id
         assert row.is_active is True
 
 
+def test_build_selected_rows_usage_reserve_adopts_passed_currency():
+    time_based, usage_based, maintenance = build_selected_rows(uuid.uuid4(), {"usage_based_reserve"}, "EUR")
+    assert usage_based[0].currency == "EUR"
+
+
 def test_build_selected_rows_preserves_template_order():
     selected = {"comprehensive_insurance", "seasonal_tire_change", "vehicle_tax"}
-    time_based, _, _ = build_selected_rows(uuid.uuid4(), selected)
+    time_based, _, _ = build_selected_rows(uuid.uuid4(), selected, "HUF")
     # Template order is seasonal_tire_change, ..., comprehensive_insurance, vehicle_tax.
     assert [r.technical_key for r in time_based] == [
         "seasonal_tire_change",
@@ -119,8 +124,8 @@ def test_build_selected_rows_preserves_template_order():
 def test_build_selected_rows_is_deterministic():
     asset_id = uuid.uuid4()
     selected = {"mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"}
-    first = build_selected_rows(asset_id, selected)
-    second = build_selected_rows(asset_id, selected)
+    first = build_selected_rows(asset_id, selected, "HUF")
+    second = build_selected_rows(asset_id, selected, "HUF")
 
     def snapshot(groups):
         time_based, usage_based, maintenance = groups
@@ -138,7 +143,7 @@ def test_build_selected_rows_is_deterministic():
 
 def test_build_selected_rows_field_mapping_spot_checks():
     selected = {"mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"}
-    time_based, usage_based, maintenance = build_selected_rows(uuid.uuid4(), selected)
+    time_based, usage_based, maintenance = build_selected_rows(uuid.uuid4(), selected, "HUF")
 
     liability = next(r for r in time_based if r.technical_key == "mandatory_liability_insurance")
     assert liability.amount == Decimal("50119")
