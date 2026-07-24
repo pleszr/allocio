@@ -14,7 +14,9 @@ React 18 + TypeScript + Vite product app for Allocio. Built as static assets, no
 - `src/components/` — presentational + chrome components (Icon, Sparkline, Illustrations, Sidebar, TopBar, Tabs, StateView)
 - `src/screens/` — one file per screen (Home, Dashboard, Costs, CheckIn, NewBucket)
 - `src/utils/` — pure helpers: `format.ts` (currency-agnostic number/date helpers), `assetType.ts`, `health.ts`, and the `useAsync` fetch hook, plus `currency.tsx` — the `CurrencyProvider` React context and `useCurrency()` hook that own money rendering (the display currency symbol and its placement). Money must be rendered through `useCurrency()`'s `fmt`, not a hardcoded symbol. Do NOT name this `lib/` — the repo `.gitignore` ignores `lib/`.
-- `vite.config.ts` — Vite config, dev server, and `/api` proxy to the backend (proxy target defaults to `http://localhost:8000`, overridable via `VITE_API_TARGET`)
+- `vite.config.ts` — Vite config, dev server, and `/api` proxy to the backend (port defaults to
+  `5173`, overridable via `VITE_DEV_PORT`; proxy target defaults to `http://localhost:8000`,
+  overridable via `VITE_API_TARGET`)
 - `e2e/` — Playwright browser end-to-end tests (`*.spec.ts`) plus `global-teardown.ts` and the shared throwaway-DB identity in `db.ts`; config is `playwright.config.ts`. The throwaway DB is provisioned (dropped, recreated, migrated) inside the backend `webServer` command — not `globalSetup` — because Playwright starts the webServer before global setup, and the backend's startup hook needs a migrated DB at boot
 - `dist/` — production build output
 
@@ -32,6 +34,9 @@ npm run e2e   # Playwright browser e2e; needs Postgres up (docker compose up -d)
 ### End-to-end tests
 
 - `npm run e2e` runs the Playwright suite in `e2e/`. It boots its own isolated stack — the FastAPI backend on port 8001 and the Vite dev server on port 5174 (off the default dev ports, so it runs alongside a running dev stack) — and drives real Chromium against them.
+- Parallel checkouts can override the e2e PostgreSQL container/host port/database and both web
+  ports with `E2E_PG_CONTAINER`, `E2E_PG_PORT`, `E2E_DB_NAME`, `E2E_BACKEND_PORT`, and
+  `E2E_FRONTEND_PORT` in `frontend/.env.local`.
 - The suite requires the always-on local Postgres container (`docker compose up -d`); it creates and drops a throwaway `allocio_e2e` database per run and never touches the `allocio` dev database. If Postgres is down, the backend command fails fast with the command to start it. The e2e backend runs with `AUTH_DISABLED=true` so the app renders past the auth gate without Google.
 - Not run in CI. The fast API-level counterpart (`backend/tests/test_workflow_e2e.py`) runs as a pre-commit hook.
 - Selectors prefer user-facing roles and text; add a `data-testid` only where no good role/text handle exists (currently just the bucket-name input).

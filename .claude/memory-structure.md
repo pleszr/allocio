@@ -13,6 +13,18 @@ This repo uses `.claude/` for Claude-facing memory, `.claude/skills/` for specia
 
 ## Existing Memory Targets
 
+### Codex-specific collaboration guidance
+
+Target:
+
+- `AGENTS.md`
+
+Use for:
+
+- lightweight Codex and other non-Claude entrypoint guidance
+- narrowly scoped overrides that differ from the shared `CLAUDE.md` workflow, such as the
+  isolated local stack used by a parallel `allocio-codex` checkout
+
 ### Repo-wide collaboration guidance
 
 Target:

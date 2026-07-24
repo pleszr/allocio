@@ -23,6 +23,9 @@ docker compose down -v
 
 - Local default database URL: `postgresql+psycopg://allocio:allocio@localhost:5432/allocio`
 - Local Postgres container name: `allocio-postgres`
+- Parallel checkouts may override the Compose container, host port, and database with
+  `POSTGRES_CONTAINER_NAME`, `POSTGRES_PORT`, and `POSTGRES_DB`; point `DATABASE_URL` at the same
+  isolated database before running migrations.
 - Alembic reads the database URL from `app.config.settings`.
 - Alembic uses `app.db.Base.metadata` and currently imports model modules in `env.py` so their tables are registered.
 

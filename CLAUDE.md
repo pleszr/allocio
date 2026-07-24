@@ -91,6 +91,8 @@ Do not paste a `Structural Changes` section into the PR body. The `structural-di
 
 ## Agent Guidance
 
-- `AGENTS.md` exists only as a lightweight pointer file for non-Claude agents.
+- `AGENTS.md` is the lightweight entrypoint for Codex and other non-Claude agents. Keep shared
+  guidance in the `CLAUDE.md` files, but allow narrow agent-specific overrides there when required,
+  such as isolated ports for a parallel checkout.
 - Use `.claude/memory-structure.md` for explicit memory routing and long-lived instruction updates.
 - Specialized workflows such as issue planning, code review, feedback routing, and PR prep live under `.claude/skills/`.
