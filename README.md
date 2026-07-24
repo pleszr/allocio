@@ -51,6 +51,16 @@ npm run dev
 
 Open http://localhost:5173 — the Vite dev server proxies `/api/*` requests to the backend on :8000.
 
+### Running parallel checkouts
+
+`docker-compose.yml` accepts clone-local `POSTGRES_CONTAINER_NAME`, `POSTGRES_PORT`, and
+`POSTGRES_DB` overrides while keeping the defaults above. The frontend likewise accepts
+`VITE_DEV_PORT` and `VITE_API_TARGET` from `frontend/.env.local`.
+
+For a parallel checkout, give each stack its own Compose project, container, PostgreSQL host
+port, database, backend port, and frontend port. Keep those machine-specific values in ignored
+`.env` files; do not commit them.
+
 ### Tearing down
 
 ```sh
