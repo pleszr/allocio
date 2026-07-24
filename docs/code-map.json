@@ -4431,6 +4431,18 @@
           ],
           "functions": [
             {
+              "name": "_append_route_if_missing",
+              "line_start": 954,
+              "line_end": 963,
+              "hash": "d0912ca890603457"
+            },
+            {
+              "name": "_append_symbol_if_missing",
+              "line_start": 945,
+              "line_end": 951,
+              "hash": "bd3a351525768a78"
+            },
+            {
               "name": "_badge_line",
               "line_start": 669,
               "line_end": 671,
@@ -4444,8 +4456,8 @@
             },
             {
               "name": "_changed_files",
-              "line_start": 972,
-              "line_end": 974,
+              "line_start": 1094,
+              "line_end": 1096,
               "hash": "f5ae1084879556d3"
             },
             {
@@ -4512,7 +4524,7 @@
               "name": "_command_write_overview_html_diff",
               "line_start": 208,
               "line_end": 227,
-              "hash": "57c7650dd301d237"
+              "hash": "ad409dbfe14627f4"
             },
             {
               "name": "_dispatch",
@@ -4522,8 +4534,8 @@
             },
             {
               "name": "_embed_json",
-              "line_start": 844,
-              "line_end": 846,
+              "line_start": 966,
+              "line_end": 968,
               "hash": "6d7c81a7a856e079"
             },
             {
@@ -4558,20 +4570,20 @@
             },
             {
               "name": "_git",
-              "line_start": 991,
-              "line_end": 1000,
+              "line_start": 1113,
+              "line_end": 1122,
               "hash": "ddb77edec745c95a"
             },
             {
               "name": "_git_show",
-              "line_start": 1003,
-              "line_end": 1012,
+              "line_start": 1125,
+              "line_end": 1134,
               "hash": "da282d9a924d6eda"
             },
             {
               "name": "_git_show_bytes",
-              "line_start": 1015,
-              "line_end": 1023,
+              "line_start": 1137,
+              "line_end": 1145,
               "hash": "8ddf0313e28a0c84"
             },
             {
@@ -4612,8 +4624,8 @@
             },
             {
               "name": "_is_mapped_source",
-              "line_start": 952,
-              "line_end": 961,
+              "line_start": 1074,
+              "line_end": 1083,
               "hash": "dab8055e1319a75c"
             },
             {
@@ -4630,8 +4642,8 @@
             },
             {
               "name": "_layer_of",
-              "line_start": 849,
-              "line_end": 859,
+              "line_start": 971,
+              "line_end": 981,
               "hash": "0e0b5e72d613420e"
             },
             {
@@ -4642,39 +4654,45 @@
             },
             {
               "name": "_list_index",
-              "line_start": 968,
-              "line_end": 969,
+              "line_start": 1090,
+              "line_end": 1091,
               "hash": "3810eab24318eb3e"
             },
             {
               "name": "_list_tree",
-              "line_start": 964,
-              "line_end": 965,
+              "line_start": 1086,
+              "line_end": 1087,
               "hash": "477774a47270b196"
             },
             {
               "name": "_map_at_ref",
-              "line_start": 931,
-              "line_end": 933,
+              "line_start": 1053,
+              "line_end": 1055,
               "hash": "dc44396bed0724f7"
             },
             {
               "name": "_materialize_index",
-              "line_start": 944,
-              "line_end": 949,
+              "line_start": 1066,
+              "line_end": 1071,
               "hash": "0a170f5eb45e444c"
             },
             {
               "name": "_materialize_ref",
-              "line_start": 936,
-              "line_end": 941,
+              "line_start": 1058,
+              "line_end": 1063,
               "hash": "233d56cfeeaf4e7f"
             },
             {
               "name": "_merge_base",
-              "line_start": 983,
-              "line_end": 984,
+              "line_start": 1105,
+              "line_end": 1106,
               "hash": "e282a4d7c6d43617"
+            },
+            {
+              "name": "_named_symbol",
+              "line_start": 941,
+              "line_end": 942,
+              "hash": "b3df0cc765e218ca"
             },
             {
               "name": "_node_hash",
@@ -4690,15 +4708,21 @@
             },
             {
               "name": "_overview_diff_payload",
-              "line_start": 797,
-              "line_end": 815,
-              "hash": "9537e1284e87ebd8"
+              "line_start": 818,
+              "line_end": 856,
+              "hash": "7212c54dd7c3f8a1"
             },
             {
               "name": "_overview_edges",
-              "line_start": 785,
-              "line_end": 794,
+              "line_start": 806,
+              "line_end": 815,
               "hash": "9b4a564615f8731c"
+            },
+            {
+              "name": "_overview_files_by_path",
+              "line_start": 898,
+              "line_end": 903,
+              "hash": "948a14f93133c890"
             },
             {
               "name": "_overview_html_payload",
@@ -4713,10 +4737,10 @@
               "hash": "db6ff58c6b748c5d"
             },
             {
-              "name": "_overview_map_with_removed_files",
-              "line_start": 828,
-              "line_end": 841,
-              "hash": "544eaa0c9020f487"
+              "name": "_overview_map_with_removed_structure",
+              "line_start": 869,
+              "line_end": 895,
+              "hash": "29dd945db6a3a899"
             },
             {
               "name": "_overview_node",
@@ -4726,15 +4750,15 @@
             },
             {
               "name": "_overview_source_file",
-              "line_start": 818,
-              "line_end": 825,
+              "line_start": 859,
+              "line_end": 866,
               "hash": "531ce66c187166c4"
             },
             {
               "name": "_overview_symbols",
               "line_start": 765,
-              "line_end": 782,
-              "hash": "124eb0a8f23da01a"
+              "line_end": 803,
+              "hash": "f60cd2661505e198"
             },
             {
               "name": "_parse_args",
@@ -4762,20 +4786,20 @@
             },
             {
               "name": "_python_module_index",
-              "line_start": 862,
-              "line_end": 874,
+              "line_start": 984,
+              "line_end": 996,
               "hash": "c7485348c39ae84e"
             },
             {
               "name": "_read_text_or_empty",
-              "line_start": 1031,
-              "line_end": 1035,
+              "line_start": 1153,
+              "line_end": 1157,
               "hash": "bd49a91f226ac5c2"
             },
             {
               "name": "_repo_relative",
-              "line_start": 1026,
-              "line_end": 1028,
+              "line_start": 1148,
+              "line_end": 1150,
               "hash": "cb498daa5f1e1132"
             },
             {
@@ -4786,20 +4810,26 @@
             },
             {
               "name": "_resolve_import",
-              "line_start": 877,
-              "line_end": 880,
+              "line_start": 999,
+              "line_end": 1002,
               "hash": "86aa8d424dd07374"
             },
             {
               "name": "_resolve_relative_import",
-              "line_start": 883,
-              "line_end": 898,
+              "line_start": 1005,
+              "line_end": 1020,
               "hash": "94f15aac299e2b07"
             },
             {
+              "name": "_restore_removed_symbol",
+              "line_start": 906,
+              "line_end": 938,
+              "hash": "c2011c8f5e3bd860"
+            },
+            {
               "name": "_rev_parse",
-              "line_start": 987,
-              "line_end": 988,
+              "line_start": 1109,
+              "line_end": 1110,
               "hash": "7c0d76b2adb80692"
             },
             {
@@ -4822,14 +4852,14 @@
             },
             {
               "name": "_split_range",
-              "line_start": 977,
-              "line_end": 980,
+              "line_start": 1099,
+              "line_end": 1102,
               "hash": "105d3e1ac08209dd"
             },
             {
               "name": "_strip_prefix",
-              "line_start": 901,
-              "line_end": 902,
+              "line_start": 1023,
+              "line_end": 1024,
               "hash": "874dc06d87900e95"
             },
             {
@@ -4926,26 +4956,26 @@
             },
             {
               "name": "_Materialized",
-              "line_start": 910,
-              "line_end": 928,
+              "line_start": 1032,
+              "line_end": 1050,
               "hash": "42914242f0116e18",
               "methods": [
                 {
                   "name": "__enter__",
-                  "line_start": 917,
-                  "line_end": 924,
+                  "line_start": 1039,
+                  "line_end": 1046,
                   "hash": "814758e87429b1f1"
                 },
                 {
                   "name": "__exit__",
-                  "line_start": 926,
-                  "line_end": 928,
+                  "line_start": 1048,
+                  "line_end": 1050,
                   "hash": "1b1bfe7803cd853a"
                 },
                 {
                   "name": "__init__",
-                  "line_start": 913,
-                  "line_end": 915,
+                  "line_start": 1035,
+                  "line_end": 1037,
                   "hash": "9cc9b465ca5b9f63"
                 }
               ]
