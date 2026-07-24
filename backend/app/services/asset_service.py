@@ -2,6 +2,7 @@
 
 import uuid
 from dataclasses import dataclass
+from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
@@ -9,7 +10,7 @@ from app.common.exceptions import ValidationError
 from app.domain.asset import Asset, Bucket, VehicleProfile
 from app.domain.asset_templates import ASSET_TEMPLATES, AssetTemplate
 from app.domain.cost import MaintenanceItem, TimeBasedCost, UsageBasedCost
-from app.domain.vehicle_defaults import build_selected_rows, vehicle_catalog_keys
+from app.domain.vehicle_defaults import build_selected_rows, overridable_catalog_keys, vehicle_catalog_keys
 from app.repository import user_repository
 from app.repository.asset_repository import insert_asset_dependents, persist_asset
 
@@ -22,6 +23,20 @@ class VehicleDetails:
     make: str | None = None
     model: str | None = None
     starting_odometer: int = 0
+
+
+@dataclass(frozen=True)
+class CostOverride:
+    """One user-edited template row, mapped from the request by the router before it reaches the service.
+
+    `interval_value`/`interval_unit` apply to time-based rows only; they are `None` for the
+    usage-based reserve row.
+    """
+
+    technical_key: str
+    amount: Decimal
+    interval_value: int | None = None
+    interval_unit: str | None = None
 
 
 @dataclass(frozen=True)
@@ -55,19 +70,22 @@ class AssetService:
         subtitle: str | None = None,
         attributes: dict | None = None,
         selected_cost_keys: list[str] | None = None,
+        cost_overrides: list[CostOverride] | None = None,
     ) -> CreatedAsset:
         """Create an asset, its bucket, and any template-supplied profile and selected cost rows atomically.
 
         A template-less asset gets only a bucket. Selecting a template resolves the stored type and
         attaches a vehicle profile when the template carries one; only the template cost rows whose
-        `technical_key` is in `selected_cost_keys` are cloned (omitted/empty clones none). `subtitle`
-        and `attributes` are opaque, type-agnostic detail the caller supplies for any asset. Persists
-        the asset first for its id, inserts every dependent, and commits exactly once; any failure
-        rolls back the whole set.
+        `technical_key` is in `selected_cost_keys` are cloned (omitted/empty clones none). Each cloned
+        row uses the template's default for the owner's currency unless `cost_overrides` supplies a
+        caller-edited value for that row's `technical_key`. `subtitle` and `attributes` are opaque,
+        type-agnostic detail the caller supplies for any asset. Persists the asset first for its id,
+        inserts every dependent, and commits exactly once; any failure rolls back the whole set.
         """
         template = self._resolve_template(template_key)
         resolved_type = template.asset_type if template is not None else self._require_type(asset_type)
         selected_keys = self._validate_selected_keys(template, selected_cost_keys)
+        self._validate_cost_overrides(selected_keys, cost_overrides)
         currency = self._resolve_owner_currency(user_id)
         try:
             asset = Asset(
@@ -77,7 +95,7 @@ class AssetService:
 
             bucket = Bucket(asset_id=asset.id, currency=currency)
             profile, time_based, usage_based, maintenance = self._build_template_dependents(
-                asset.id, template, vehicle_details, selected_keys, currency
+                asset.id, template, vehicle_details, selected_keys, currency, cost_overrides
             )
 
             insert_asset_dependents(self._session, bucket, profile, time_based, usage_based, maintenance)
@@ -134,6 +152,18 @@ class AssetService:
             raise ValidationError(f"Unknown cost keys: {sorted(unknown)}.")
         return selected
 
+    def _validate_cost_overrides(self, selected_keys: set[str], cost_overrides: list[CostOverride] | None) -> None:
+        """Reject an override for a key that isn't selected or doesn't accept an override.
+
+        Only time-based costs and the usage-based reserve accept an override; a maintenance-item
+        key has no curated amount to override.
+        """
+        for override in cost_overrides or ():
+            if override.technical_key not in selected_keys:
+                raise ValidationError(f"Cost override for unselected key '{override.technical_key}'.")
+            if override.technical_key not in overridable_catalog_keys():
+                raise ValidationError(f"Cost key '{override.technical_key}' does not accept an override.")
+
     def _build_template_dependents(
         self,
         asset_id: uuid.UUID,
@@ -141,13 +171,29 @@ class AssetService:
         vehicle_details: VehicleDetails | None,
         selected_keys: set[str],
         currency: str,
+        cost_overrides: list[CostOverride] | None,
     ) -> tuple[VehicleProfile | None, list[TimeBasedCost], list[UsageBasedCost], list[MaintenanceItem]]:
         """Build the profile and selected cost rows for a template, or empty results for a bare asset."""
         if template is None:
             return None, [], [], []
-        time_based, usage_based, maintenance = build_selected_rows(asset_id, selected_keys, currency)
+        amount_overrides, interval_overrides = self._split_cost_overrides(cost_overrides)
+        time_based, usage_based, maintenance = build_selected_rows(
+            asset_id, selected_keys, currency, amount_overrides, interval_overrides
+        )
         profile = self._build_vehicle_profile(asset_id, vehicle_details) if template.has_vehicle_profile else None
         return profile, time_based, usage_based, maintenance
+
+    def _split_cost_overrides(
+        self, cost_overrides: list[CostOverride] | None
+    ) -> tuple[dict[str, Decimal], dict[str, tuple[int, str]]]:
+        """Split the flat override list into the amount/interval maps `build_selected_rows` expects."""
+        amount_overrides = {override.technical_key: override.amount for override in cost_overrides or ()}
+        interval_overrides = {
+            override.technical_key: (override.interval_value, override.interval_unit)
+            for override in cost_overrides or ()
+            if override.interval_value is not None and override.interval_unit is not None
+        }
+        return amount_overrides, interval_overrides
 
     def _build_vehicle_profile(self, asset_id: uuid.UUID, vehicle_details: VehicleDetails | None) -> VehicleProfile:
         """Build a vehicle profile from the supplied details, defaulting every field when omitted."""

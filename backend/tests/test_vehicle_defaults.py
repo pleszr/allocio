@@ -12,8 +12,11 @@ from app.domain.vehicle_defaults import (  # noqa: E402
     DEFAULT_TIME_BASED_COSTS,
     DEFAULT_USAGE_BASED_COST,
     build_selected_rows,
+    overridable_catalog_keys,
     vehicle_catalog_keys,
 )
+
+SUPPORTED_CURRENCIES = {"HUF", "EUR", "USD"}
 
 
 def test_template_counts():
@@ -39,9 +42,28 @@ def test_time_based_rows_use_months_unit():
 
 
 def test_usage_based_reserve_shape():
-    assert DEFAULT_USAGE_BASED_COST.currency == "HUF"
-    assert DEFAULT_USAGE_BASED_COST.amount_per_unit == Decimal("10")
+    assert DEFAULT_USAGE_BASED_COST.amounts_per_unit == {
+        "HUF": Decimal("10"),
+        "USD": Decimal("0.03"),
+        "EUR": Decimal("0.025"),
+    }
     assert DEFAULT_USAGE_BASED_COST.usage_unit == "km"
+
+
+def test_every_time_based_and_usage_based_row_has_all_supported_currencies():
+    for template in DEFAULT_TIME_BASED_COSTS:
+        assert set(template.amounts.keys()) == SUPPORTED_CURRENCIES
+    assert set(DEFAULT_USAGE_BASED_COST.amounts_per_unit.keys()) == SUPPORTED_CURRENCIES
+
+
+def test_maintenance_items_have_no_curated_estimated_cost_yet():
+    assert all(template.estimated_costs is None for template in DEFAULT_MAINTENANCE_ITEMS)
+
+
+def test_overridable_catalog_keys_excludes_maintenance():
+    keys = overridable_catalog_keys()
+    assert keys == {t.technical_key for t in DEFAULT_TIME_BASED_COSTS} | {DEFAULT_USAGE_BASED_COST.technical_key}
+    assert not any(m.technical_key in keys for m in DEFAULT_MAINTENANCE_ITEMS)
 
 
 def test_comprehensive_insurance_present_as_single_key():
@@ -160,3 +182,48 @@ def test_build_selected_rows_field_mapping_spot_checks():
     assert all_season.tire_type == "all_season"
     assert all_season.interval_km == 50000
     assert all_season.interval_months == 36
+
+
+def test_build_selected_rows_picks_amount_for_requested_currency():
+    selected = {"comprehensive_insurance", "usage_based_reserve"}
+    for currency, expected_time_based, expected_usage in (
+        ("HUF", Decimal("11650"), Decimal("10")),
+        ("EUR", Decimal("29"), Decimal("0.025")),
+        ("USD", Decimal("32"), Decimal("0.03")),
+    ):
+        time_based, usage_based, _ = build_selected_rows(uuid.uuid4(), selected, currency)
+        assert time_based[0].amount == expected_time_based
+        assert usage_based[0].amount_per_unit == expected_usage
+
+
+def test_build_selected_rows_amount_override_wins_over_template_default():
+    selected = {"comprehensive_insurance", "usage_based_reserve"}
+    time_based, usage_based, _ = build_selected_rows(
+        uuid.uuid4(),
+        selected,
+        "HUF",
+        amount_overrides={"comprehensive_insurance": Decimal("99999"), "usage_based_reserve": Decimal("42")},
+    )
+    assert time_based[0].amount == Decimal("99999")
+    assert usage_based[0].amount_per_unit == Decimal("42")
+
+
+def test_build_selected_rows_interval_override_wins_over_template_default():
+    selected = {"comprehensive_insurance"}
+    time_based, _, _ = build_selected_rows(
+        uuid.uuid4(),
+        selected,
+        "HUF",
+        interval_overrides={"comprehensive_insurance": (24, "months")},
+    )
+    assert time_based[0].interval_value == 24
+    assert time_based[0].interval_unit == "months"
+
+
+def test_build_selected_rows_unspecified_key_keeps_template_default():
+    selected = {"comprehensive_insurance", "vehicle_tax"}
+    time_based, _, _ = build_selected_rows(
+        uuid.uuid4(), selected, "HUF", amount_overrides={"comprehensive_insurance": Decimal("99999")}
+    )
+    vehicle_tax = next(r for r in time_based if r.technical_key == "vehicle_tax")
+    assert vehicle_tax.amount == Decimal("9570")

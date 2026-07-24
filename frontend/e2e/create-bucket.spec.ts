@@ -66,3 +66,36 @@ test("Back from Step 2 preserves the selected type and re-advances on a new pick
   await page.getByRole("button", { name: /Property/ }).click();
   await expect(page.getByText("Tell us about it")).toBeVisible();
 });
+
+test("editing a template row's amount and interval on Step 3 persists the edited value", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Your buckets" })).toBeVisible();
+
+  await page.getByRole("button", { name: "New bucket", exact: true }).click();
+  const catalogFetched = page.waitForResponse(
+    (r) => r.url().includes("/api/asset-templates/vehicle/catalog") && r.ok(),
+  );
+  await page.getByRole("button", { name: /Vehicle/ }).click();
+  await catalogFetched;
+
+  await page.getByTestId("bucket-name-input").fill("E2E Edited Car");
+  await page.getByRole("button", { name: /Continue/ }).click();
+
+  // Step 3 — the mandatory liability insurance row is pre-filled from the template default;
+  // edit both its amount and its interval before creating the bucket.
+  await page.getByTestId("catalog-amount-mandatory_liability_insurance").fill("60000");
+  await page.getByTestId("catalog-interval-value-mandatory_liability_insurance").fill("6");
+  await page.getByRole("button", { name: /Continue/ }).click();
+
+  const created = page.waitForResponse((r) => r.url().endsWith("/api/assets") && r.request().method() === "POST");
+  await page.getByRole("button", { name: /Create bucket/ }).click();
+  await created;
+  await expect(page.getByRole("heading", { name: "E2E Edited Car" })).toBeVisible();
+
+  // The Costs screen reads the persisted row back from the API — confirms the override reached
+  // the backend and was cloned instead of the template default (50119/12 months).
+  await page.getByRole("tab", { name: "Costs" }).click();
+  const liabilityRow = page.getByRole("row", { name: /Mandatory liability insurance/ });
+  await expect(liabilityRow).toContainText("60,000");
+  await expect(liabilityRow).toContainText("6");
+});
