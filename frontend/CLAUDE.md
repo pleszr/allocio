@@ -4,8 +4,10 @@ React 18 + TypeScript + Vite product app for Allocio. Built as static assets, no
 
 ## Structure
 
-- `src/main.tsx` — React bootstrap; imports the global stylesheet
-- `src/App.tsx` — app root: local-state routing, workspace fetch, sidebar/topbar/tabs shell, OS light/dark theming
+- `src/main.tsx` — React bootstrap; side-effect-imports `./i18n` (once, before render) and the global stylesheet
+- `src/i18n.ts` — react-i18next init module (default-exports the configured `i18n` instance) plus `resolveLanguage(code)`, the single choke point mapping a persisted `LanguageCode` onto a real UI locale (`hu` → `hu`, everything else incl. `en_hu_alloc` → `en`)
+- `src/locales/en.json`, `src/locales/hu.json` — per-locale UI copy, namespaced by screen/component; the two files must have identical key sets
+- `src/App.tsx` — app root: local-state routing, workspace fetch, sidebar/topbar/tabs shell, OS light/dark theming; applies the persisted language via `i18n.changeLanguage(resolveLanguage(prefs.language))` once settings resolve
 - `src/routes.ts` — the `Route` union used for local-state navigation (no React Router)
 - `src/styles.css` — global stylesheet ported from the design; theming keys off `data-theme` / `data-density` on `<html>`
 - `src/api/` — `types.ts` (TS mirrors of backend response/request shapes) and `client.ts` (typed `fetch` wrapper over `/api/*`)
@@ -41,6 +43,7 @@ npm run e2e   # Playwright browser e2e; needs Postgres up (docker compose up -d)
 - Fetch backend data through the typed client in `src/api/client.ts` (which hits `/api/*`); Vite proxies those requests to `http://localhost:8000` in local development (override with `VITE_API_TARGET`, as the e2e suite does). Add new endpoints there, not with ad-hoc `fetch`.
 - Money/ratio fields are `Decimal` on the backend and Pydantic v2 serializes them as JSON **strings** (e.g. `"11341.58"`), while integers arrive as numbers. `client.ts` coerces the known Decimal keys back to numbers via a JSON reviver (`DECIMAL_KEYS`) so the app treats them as `number`. When you add a response with a new Decimal field, add its key to `DECIMAL_KEYS`.
 - Auth is a Google Sign-In flow gated at the app root (`App.tsx`): `api.getMe()` decides between a spinner, `SignInScreen`, or the workspace. A `401` from any call means "not signed in"; login is a full-page navigation to `/api/auth/login` (not a `fetch`), and logout calls `api.logout()` then reloads. Under `AUTH_DISABLED` the backend returns a synthetic dev user so the app renders past the gate without Google.
+- All user-facing UI copy is localized with react-i18next: call `const { t } = useTranslation()` and render `t('<namespace>.<key>')` — never hardcode display strings in JSX. Adding a string means adding one key to BOTH `src/locales/en.json` and `hu.json` (identical key sets) and calling `t()`; never branch on the language in a component (`if (language === ...)`), and never bake English pluralization (`? "s" : ""`) into a string — use i18next's native `_one`/`_other` plural keys. Dynamic API/domain data (asset names, cost/maintenance labels, currency amounts) is NOT translated; only static UI chrome is. The only language switch points are `resolveLanguage` and `i18n.changeLanguage`.
 - Make loading, success, empty, and error states explicit in user-facing flows (see `src/components/StateView.tsx` and `src/utils/useAsync.ts`).
 - Prefer straightforward component and state ownership over premature abstraction.
 - If frontend behavior depends on business rules, validate it against `docs/domain-model.md` and `docs/vehicle-rules.md`.

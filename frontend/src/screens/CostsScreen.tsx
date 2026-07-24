@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api, ApiError } from "../api/client";
 import type { IntervalUnit, MaintenanceItem, TimeBasedCost, UsageBasedCost } from "../api/types";
 import { Icon } from "../components/Icon";
@@ -16,6 +17,7 @@ interface CostsScreenProps {
 type CostTab = "time" | "usage" | "maint";
 
 export function CostsScreen({ assetId, onChanged }: CostsScreenProps) {
+  const { t } = useTranslation();
   const fmt = useCurrency();
   const [tab, setTab] = useState<CostTab>("time");
   const asset = useAsync(() => api.getAsset(assetId), [assetId]);
@@ -31,11 +33,11 @@ export function CostsScreen({ assetId, onChanged }: CostsScreenProps) {
     onChanged();
   };
 
-  if (asset.loading || time.loading || usage.loading || maint.loading) return <LoadingState label="Loading costs…" />;
+  if (asset.loading || time.loading || usage.loading || maint.loading) return <LoadingState label={t("costs.loading")} />;
   if (asset.error || time.error || usage.error || maint.error || !asset.data) {
     return (
       <ErrorState
-        message={asset.error ?? time.error ?? usage.error ?? maint.error ?? "Failed to load."}
+        message={asset.error ?? time.error ?? usage.error ?? maint.error ?? t("costs.failed_load")}
         onRetry={reloadAll}
       />
     );
@@ -58,57 +60,56 @@ export function CostsScreen({ assetId, onChanged }: CostsScreenProps) {
     <div className="content fade-in">
       <div className="section-head">
         <div>
-          <div className="eyebrow">Cost editor · {assetName}</div>
+          <div className="eyebrow">{t("costs.cost_editor", { name: assetName })}</div>
           <h1 className="h1" style={{ marginTop: 4 }}>
-            Define what this {assetType} costs
+            {t("costs.define_costs", { type: assetType })}
           </h1>
         </div>
         <div className="seg">
           <button className="seg-btn" aria-pressed={tab === "time"} onClick={() => setTab("time")}>
-            Time-based
+            {t("costs.tab_time")}
           </button>
           <button className="seg-btn" aria-pressed={tab === "usage"} onClick={() => setTab("usage")}>
-            Usage-based
+            {t("costs.tab_usage")}
           </button>
           <button className="seg-btn" aria-pressed={tab === "maint"} onClick={() => setTab("maint")}>
-            Maintenance
+            {t("costs.tab_maint")}
           </button>
         </div>
       </div>
 
       <div className="kpi-grid" style={{ marginBottom: 24 }}>
         <div className="kpi">
-          <div className="kpi-label">Time-based total</div>
+          <div className="kpi-label">{t("costs.time_total")}</div>
           <div className="num-lg">
             {fmt(timePerDay * 365, { decimals: 0 })}
             <span className="muted" style={{ fontSize: 14 }}>
-              /yr
+              {t("costs.per_yr")}
             </span>
           </div>
-          <div className="kpi-sub">{fmt(timePerDay, { decimals: 2 })}/day equivalent</div>
+          <div className="kpi-sub">{t("costs.per_day_equivalent", { amount: fmt(timePerDay, { decimals: 2 }) })}</div>
         </div>
         <div className="kpi">
-          <div className="kpi-label">Usage-based rate</div>
+          <div className="kpi-label">{t("costs.usage_rate")}</div>
           <div className="num-lg">
             {fmt(usageRate, { decimals: 3 })}
             <span className="muted" style={{ fontSize: 14 }}>
-              /unit
+              {t("costs.per_unit")}
             </span>
           </div>
           <div className="kpi-sub">
-            {usageRows.filter((u) => u.is_active).length} active component
-            {usageRows.filter((u) => u.is_active).length === 1 ? "" : "s"}
+            {t("costs.active_components", { count: usageRows.filter((u) => u.is_active).length })}
           </div>
         </div>
         <div className="kpi">
-          <div className="kpi-label">Recommended allocation</div>
+          <div className="kpi-label">{t("costs.recommended_allocation")}</div>
           <div className="num-lg">
             {fmt(recommendedMonthly, { decimals: 0 })}
             <span className="muted" style={{ fontSize: 14 }}>
-              /mo
+              {t("costs.per_mo")}
             </span>
           </div>
-          <div className="kpi-sub">time-based + average usage</div>
+          <div className="kpi-sub">{t("costs.time_plus_usage")}</div>
         </div>
       </div>
 
@@ -121,6 +122,7 @@ export function CostsScreen({ assetId, onChanged }: CostsScreenProps) {
 
 // ── Shared inline error + numeric parsing ──────────────────────────────
 function useMutation(onChanged: () => void) {
+  const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const run = async (fn: () => Promise<unknown>, done: () => void) => {
@@ -131,7 +133,7 @@ function useMutation(onChanged: () => void) {
       done();
       onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Save failed.");
+      setError(err instanceof ApiError ? err.message : t("costs.save_failed"));
     } finally {
       setBusy(false);
     }
@@ -141,6 +143,7 @@ function useMutation(onChanged: () => void) {
 
 // ── Time-based ─────────────────────────────────────────────────────────
 function TimeTable({ assetId, rows, onChanged }: { assetId: string; rows: TimeBasedCost[]; onChanged: () => void }) {
+  const { t } = useTranslation();
   const fmt = useCurrency();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -150,38 +153,38 @@ function TimeTable({ assetId, rows, onChanged }: { assetId: string; rows: TimeBa
       <table className="table">
         <thead>
           <tr>
-            <th style={{ width: "32%" }}>Cost</th>
-            <th>Amount</th>
-            <th>Every</th>
-            <th>Per day</th>
-            <th>Next due</th>
+            <th style={{ width: "32%" }}>{t("costs.th_cost")}</th>
+            <th>{t("costs.th_amount")}</th>
+            <th>{t("costs.th_every")}</th>
+            <th>{t("costs.th_per_day")}</th>
+            <th>{t("costs.th_next_due")}</th>
             <th style={{ width: 1 }}></th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((t) =>
-            editingId === t.id ? (
+          {rows.map((row) =>
+            editingId === row.id ? (
               <TimeEditRow
-                key={t.id}
+                key={row.id}
                 assetId={assetId}
-                row={t}
+                row={row}
                 onClose={() => setEditingId(null)}
                 onChanged={onChanged}
               />
             ) : (
-              <tr key={t.id} style={{ opacity: t.is_active ? 1 : 0.5 }}>
+              <tr key={row.id} style={{ opacity: row.is_active ? 1 : 0.5 }}>
                 <td className="col-name">
-                  {t.label}
-                  {!t.is_active && <span className="pill" style={{ marginLeft: 8 }}>inactive</span>}
+                  {row.label}
+                  {!row.is_active && <span className="pill" style={{ marginLeft: 8 }}>{t("costs.inactive")}</span>}
                 </td>
-                <td className="col-num">{fmt(t.amount, { decimals: 0 })}</td>
+                <td className="col-num">{fmt(row.amount, { decimals: 0 })}</td>
                 <td className="row-meta">
-                  every {t.interval_value} {t.interval_unit}
+                  {t("costs.every_interval", { value: row.interval_value, unit: t(`costs.unit_${row.interval_unit}`) })}
                 </td>
-                <td className="col-num">{fmt(t.amount / intervalDays(t.interval_value, t.interval_unit), { decimals: 2 })}</td>
-                <td className="row-meta">{t.next_due_date ? fmtDate(t.next_due_date) : "—"}</td>
+                <td className="col-num">{fmt(row.amount / intervalDays(row.interval_value, row.interval_unit), { decimals: 2 })}</td>
+                <td className="row-meta">{row.next_due_date ? fmtDate(row.next_due_date) : "—"}</td>
                 <td>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(t.id)}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(row.id)}>
                     <Icon name="edit" size={12} />
                   </button>
                 </td>
@@ -193,7 +196,7 @@ function TimeTable({ assetId, rows, onChanged }: { assetId: string; rows: TimeBa
       </table>
       {!adding && (
         <div className="add-row" onClick={() => setAdding(true)}>
-          <Icon name="plus" size={14} /> Add a time-based cost…
+          <Icon name="plus" size={14} /> {t("costs.add_time")}
         </div>
       )}
     </div>
@@ -216,6 +219,7 @@ function TimeEditRow({
   const [value, setValue] = useState(String(row.interval_value));
   const [unit, setUnit] = useState<IntervalUnit>(row.interval_unit);
   const [active, setActive] = useState(row.is_active);
+  const { t } = useTranslation();
   const { error, busy, run } = useMutation(onChanged);
 
   const save = () =>
@@ -235,17 +239,17 @@ function TimeEditRow({
     <tr style={{ background: "var(--surface-sunk)" }}>
       <td colSpan={6} style={{ padding: "20px var(--pad)" }}>
         <div className="eyebrow" style={{ marginBottom: 14 }}>
-          Editing · {row.label}
+          {t("costs.editing", { name: row.label })}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 12, alignItems: "end" }}>
-          <LabeledInput label="Name" value={label} onChange={setLabel} />
-          <LabeledMoney label="Amount" value={amount} onChange={setAmount} />
-          <LabeledInput label="Every (n)" value={value} onChange={setValue} type="number" />
+          <LabeledInput label={t("costs.field_name")} value={label} onChange={setLabel} />
+          <LabeledMoney label={t("costs.field_amount")} value={amount} onChange={setAmount} />
+          <LabeledInput label={t("costs.field_every_n")} value={value} onChange={setValue} type="number" />
           <div className="field">
-            <label className="field-label">Unit</label>
+            <label className="field-label">{t("costs.field_unit")}</label>
             <select className="input" value={unit} onChange={(e) => setUnit(e.target.value as IntervalUnit)}>
-              <option value="months">months</option>
-              <option value="years">years</option>
+              <option value="months">{t("costs.unit_months")}</option>
+              <option value="years">{t("costs.unit_years")}</option>
             </select>
           </div>
           <EditActions busy={busy} onCancel={onClose} onSave={save} />
@@ -262,6 +266,7 @@ function TimeCreateRow({ assetId, onClose, onChanged }: { assetId: string; onClo
   const [amount, setAmount] = useState("");
   const [value, setValue] = useState("1");
   const [unit, setUnit] = useState<IntervalUnit>("years");
+  const { t } = useTranslation();
   const { error, busy, run } = useMutation(onChanged);
 
   const create = () =>
@@ -280,20 +285,20 @@ function TimeCreateRow({ assetId, onClose, onChanged }: { assetId: string; onClo
     <tr style={{ background: "var(--surface-sunk)" }}>
       <td colSpan={6} style={{ padding: "20px var(--pad)" }}>
         <div className="eyebrow" style={{ marginBottom: 14 }}>
-          New time-based cost
+          {t("costs.new_time")}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 12, alignItems: "end" }}>
-          <LabeledInput label="Name" value={label} onChange={setLabel} placeholder="Insurance" />
-          <LabeledMoney label="Amount" value={amount} onChange={setAmount} />
-          <LabeledInput label="Every (n)" value={value} onChange={setValue} type="number" />
+          <LabeledInput label={t("costs.field_name")} value={label} onChange={setLabel} placeholder={t("costs.ph_insurance")} />
+          <LabeledMoney label={t("costs.field_amount")} value={amount} onChange={setAmount} />
+          <LabeledInput label={t("costs.field_every_n")} value={value} onChange={setValue} type="number" />
           <div className="field">
-            <label className="field-label">Unit</label>
+            <label className="field-label">{t("costs.field_unit")}</label>
             <select className="input" value={unit} onChange={(e) => setUnit(e.target.value as IntervalUnit)}>
-              <option value="months">months</option>
-              <option value="years">years</option>
+              <option value="months">{t("costs.unit_months")}</option>
+              <option value="years">{t("costs.unit_years")}</option>
             </select>
           </div>
-          <EditActions busy={busy} disabled={!label.trim() || !amount} onCancel={onClose} onSave={create} saveLabel="Add" />
+          <EditActions busy={busy} disabled={!label.trim() || !amount} onCancel={onClose} onSave={create} saveLabel={t("costs.add")} />
         </div>
         {error && <div className="error-banner" style={{ marginTop: 12 }}>{error}</div>}
       </td>
@@ -303,6 +308,7 @@ function TimeCreateRow({ assetId, onClose, onChanged }: { assetId: string; onClo
 
 // ── Usage-based ────────────────────────────────────────────────────────
 function UsageTable({ assetId, rows, onChanged }: { assetId: string; rows: UsageBasedCost[]; onChanged: () => void }) {
+  const { t } = useTranslation();
   const fmt = useCurrency();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -312,9 +318,9 @@ function UsageTable({ assetId, rows, onChanged }: { assetId: string; rows: Usage
       <table className="table">
         <thead>
           <tr>
-            <th style={{ width: "40%" }}>Component</th>
-            <th>Rate</th>
-            <th>Per 100</th>
+            <th style={{ width: "40%" }}>{t("costs.th_component")}</th>
+            <th>{t("costs.th_rate")}</th>
+            <th>{t("costs.th_per_100")}</th>
             <th style={{ width: 1 }}></th>
           </tr>
         </thead>
@@ -326,7 +332,7 @@ function UsageTable({ assetId, rows, onChanged }: { assetId: string; rows: Usage
               <tr key={u.id} style={{ opacity: u.is_active ? 1 : 0.5 }}>
                 <td className="col-name">
                   {u.label}
-                  {!u.is_active && <span className="pill" style={{ marginLeft: 8 }}>inactive</span>}
+                  {!u.is_active && <span className="pill" style={{ marginLeft: 8 }}>{t("costs.inactive")}</span>}
                 </td>
                 <td className="col-num">
                   {fmt(u.amount_per_unit, { decimals: 3 })}/{u.usage_unit}
@@ -345,7 +351,7 @@ function UsageTable({ assetId, rows, onChanged }: { assetId: string; rows: Usage
       </table>
       {!adding && (
         <div className="add-row" onClick={() => setAdding(true)}>
-          <Icon name="plus" size={14} /> Add a usage-based cost…
+          <Icon name="plus" size={14} /> {t("costs.add_usage")}
         </div>
       )}
     </div>
@@ -357,6 +363,7 @@ function UsageEditRow({ assetId, row, onClose, onChanged }: { assetId: string; r
   const [rate, setRate] = useState(String(row.amount_per_unit));
   const [unit, setUnit] = useState(row.usage_unit);
   const [active, setActive] = useState(row.is_active);
+  const { t } = useTranslation();
   const { error, busy, run } = useMutation(onChanged);
 
   const save = () =>
@@ -369,12 +376,12 @@ function UsageEditRow({ assetId, row, onClose, onChanged }: { assetId: string; r
     <tr style={{ background: "var(--surface-sunk)" }}>
       <td colSpan={4} style={{ padding: "20px var(--pad)" }}>
         <div className="eyebrow" style={{ marginBottom: 14 }}>
-          Editing · {row.label}
+          {t("costs.editing", { name: row.label })}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 12, alignItems: "end" }}>
-          <LabeledInput label="Name" value={label} onChange={setLabel} />
-          <LabeledMoney label="Per unit" value={rate} onChange={setRate} step="0.001" />
-          <LabeledInput label="Unit" value={unit} onChange={setUnit} />
+          <LabeledInput label={t("costs.field_name")} value={label} onChange={setLabel} />
+          <LabeledMoney label={t("costs.field_per_unit")} value={rate} onChange={setRate} step="0.001" />
+          <LabeledInput label={t("costs.field_unit")} value={unit} onChange={setUnit} />
           <EditActions busy={busy} onCancel={onClose} onSave={save} />
         </div>
         <ActiveToggle active={active} onToggle={setActive} />
@@ -388,6 +395,7 @@ function UsageCreateRow({ assetId, onClose, onChanged }: { assetId: string; onCl
   const [label, setLabel] = useState("");
   const [rate, setRate] = useState("");
   const [unit, setUnit] = useState("km");
+  const { t } = useTranslation();
   const { error, busy, run } = useMutation(onChanged);
 
   const create = () =>
@@ -397,13 +405,13 @@ function UsageCreateRow({ assetId, onClose, onChanged }: { assetId: string; onCl
     <tr style={{ background: "var(--surface-sunk)" }}>
       <td colSpan={4} style={{ padding: "20px var(--pad)" }}>
         <div className="eyebrow" style={{ marginBottom: 14 }}>
-          New usage-based cost
+          {t("costs.new_usage")}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 12, alignItems: "end" }}>
-          <LabeledInput label="Name" value={label} onChange={setLabel} placeholder="Fuel" />
-          <LabeledMoney label="Per unit" value={rate} onChange={setRate} step="0.001" />
-          <LabeledInput label="Unit" value={unit} onChange={setUnit} />
-          <EditActions busy={busy} disabled={!label.trim() || !rate} onCancel={onClose} onSave={create} saveLabel="Add" />
+          <LabeledInput label={t("costs.field_name")} value={label} onChange={setLabel} placeholder={t("costs.ph_fuel")} />
+          <LabeledMoney label={t("costs.field_per_unit")} value={rate} onChange={setRate} step="0.001" />
+          <LabeledInput label={t("costs.field_unit")} value={unit} onChange={setUnit} />
+          <EditActions busy={busy} disabled={!label.trim() || !rate} onCancel={onClose} onSave={create} saveLabel={t("costs.add")} />
         </div>
         {error && <div className="error-banner" style={{ marginTop: 12 }}>{error}</div>}
       </td>
@@ -413,6 +421,7 @@ function UsageCreateRow({ assetId, onClose, onChanged }: { assetId: string; onCl
 
 // ── Maintenance ────────────────────────────────────────────────────────
 function MaintTable({ assetId, rows, onChanged }: { assetId: string; rows: MaintenanceItem[]; onChanged: () => void }) {
+  const { t } = useTranslation();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
@@ -421,10 +430,10 @@ function MaintTable({ assetId, rows, onChanged }: { assetId: string; rows: Maint
       <table className="table">
         <thead>
           <tr>
-            <th style={{ width: "32%" }}>Item</th>
-            <th>Replace every</th>
-            <th>Last serviced</th>
-            <th>Status</th>
+            <th style={{ width: "32%" }}>{t("costs.th_item")}</th>
+            <th>{t("costs.th_replace_every")}</th>
+            <th>{t("costs.th_last_serviced")}</th>
+            <th>{t("costs.th_status")}</th>
             <th style={{ width: 1 }}></th>
           </tr>
         </thead>
@@ -436,7 +445,7 @@ function MaintTable({ assetId, rows, onChanged }: { assetId: string; rows: Maint
               <tr key={m.id} style={{ opacity: m.is_active ? 1 : 0.5 }}>
                 <td className="col-name">
                   {m.label}
-                  {!m.is_active && <span className="pill" style={{ marginLeft: 8 }}>inactive</span>}
+                  {!m.is_active && <span className="pill" style={{ marginLeft: 8 }}>{t("costs.inactive")}</span>}
                 </td>
                 <td className="col-num">
                   {m.interval_km ? `${fmtNumber(m.interval_km)} km` : ""}
@@ -467,7 +476,7 @@ function MaintTable({ assetId, rows, onChanged }: { assetId: string; rows: Maint
       </table>
       {!adding && (
         <div className="add-row" onClick={() => setAdding(true)}>
-          <Icon name="plus" size={14} /> Add a maintenance item…
+          <Icon name="plus" size={14} /> {t("costs.add_maint")}
         </div>
       )}
     </div>
@@ -480,6 +489,7 @@ function MaintEditRow({ assetId, row, onClose, onChanged }: { assetId: string; r
   const [mo, setMo] = useState(row.interval_months !== null ? String(row.interval_months) : "");
   const [lastKm, setLastKm] = useState(row.last_serviced_at_odometer !== null ? String(row.last_serviced_at_odometer) : "");
   const [active, setActive] = useState(row.is_active);
+  const { t } = useTranslation();
   const { error, busy, run } = useMutation(onChanged);
 
   const save = () =>
@@ -499,13 +509,13 @@ function MaintEditRow({ assetId, row, onClose, onChanged }: { assetId: string; r
     <tr style={{ background: "var(--surface-sunk)" }}>
       <td colSpan={5} style={{ padding: "20px var(--pad)" }}>
         <div className="eyebrow" style={{ marginBottom: 14 }}>
-          Editing · {row.label}
+          {t("costs.editing", { name: row.label })}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 12, alignItems: "end" }}>
-          <LabeledInput label="Name" value={label} onChange={setLabel} />
-          <LabeledInput label="Every (km)" value={km} onChange={setKm} type="number" />
-          <LabeledInput label="Every (months)" value={mo} onChange={setMo} type="number" />
-          <LabeledInput label="Last serviced (km)" value={lastKm} onChange={setLastKm} type="number" />
+          <LabeledInput label={t("costs.field_name")} value={label} onChange={setLabel} />
+          <LabeledInput label={t("costs.field_every_km")} value={km} onChange={setKm} type="number" />
+          <LabeledInput label={t("costs.field_every_months")} value={mo} onChange={setMo} type="number" />
+          <LabeledInput label={t("costs.field_last_serviced_km")} value={lastKm} onChange={setLastKm} type="number" />
           <EditActions busy={busy} onCancel={onClose} onSave={save} />
         </div>
         <ActiveToggle active={active} onToggle={setActive} />
@@ -520,6 +530,7 @@ function MaintCreateRow({ assetId, onClose, onChanged }: { assetId: string; onCl
   const [km, setKm] = useState("");
   const [mo, setMo] = useState("");
   const [lastKm, setLastKm] = useState("");
+  const { t } = useTranslation();
   const { error, busy, run } = useMutation(onChanged);
 
   const doCreate = () =>
@@ -538,14 +549,14 @@ function MaintCreateRow({ assetId, onClose, onChanged }: { assetId: string; onCl
     <tr style={{ background: "var(--surface-sunk)" }}>
       <td colSpan={5} style={{ padding: "20px var(--pad)" }}>
         <div className="eyebrow" style={{ marginBottom: 14 }}>
-          New maintenance item
+          {t("costs.new_maint")}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: 12, alignItems: "end" }}>
-          <LabeledInput label="Name" value={label} onChange={setLabel} placeholder="Brake pads" />
-          <LabeledInput label="Every (km)" value={km} onChange={setKm} type="number" />
-          <LabeledInput label="Every (months)" value={mo} onChange={setMo} type="number" />
-          <LabeledInput label="Last serviced (km)" value={lastKm} onChange={setLastKm} type="number" />
-          <EditActions busy={busy} disabled={!label.trim() || (!km && !mo)} onCancel={onClose} onSave={doCreate} saveLabel="Add" />
+          <LabeledInput label={t("costs.field_name")} value={label} onChange={setLabel} placeholder={t("costs.ph_brake_pads")} />
+          <LabeledInput label={t("costs.field_every_km")} value={km} onChange={setKm} type="number" />
+          <LabeledInput label={t("costs.field_every_months")} value={mo} onChange={setMo} type="number" />
+          <LabeledInput label={t("costs.field_last_serviced_km")} value={lastKm} onChange={setLastKm} type="number" />
+          <EditActions busy={busy} disabled={!label.trim() || (!km && !mo)} onCancel={onClose} onSave={doCreate} saveLabel={t("costs.add")} />
         </div>
         {error && <div className="error-banner" style={{ marginTop: 12 }}>{error}</div>}
       </td>
@@ -592,7 +603,7 @@ function EditActions({
   disabled,
   onCancel,
   onSave,
-  saveLabel = "Save",
+  saveLabel,
 }: {
   busy: boolean;
   disabled?: boolean;
@@ -600,23 +611,25 @@ function EditActions({
   onSave: () => void;
   saveLabel?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div style={{ display: "flex", gap: 8 }}>
       <button className="btn btn-sm" onClick={onCancel}>
-        Cancel
+        {t("costs.cancel")}
       </button>
       <button className="btn btn-primary btn-sm" disabled={busy || disabled} onClick={onSave}>
-        {busy ? "…" : saveLabel}
+        {busy ? "…" : (saveLabel ?? t("costs.save"))}
       </button>
     </div>
   );
 }
 
 function ActiveToggle({ active, onToggle }: { active: boolean; onToggle: (v: boolean) => void }) {
+  const { t } = useTranslation();
   return (
     <label style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 12.5, color: "var(--muted)" }}>
       <input type="checkbox" checked={active} onChange={(e) => onToggle(e.target.checked)} />
-      Active (drives future allocations)
+      {t("costs.active_toggle")}
     </label>
   );
 }

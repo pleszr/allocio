@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api, ApiError } from "../api/client";
 import type { CurrencyCode, CurrentUser, LanguageCode, UserSettings } from "../api/types";
+import { resolveLanguage } from "../i18n";
 
 interface UserMenuProps {
   user: CurrentUser;
@@ -8,22 +10,26 @@ interface UserMenuProps {
   onSettingsSaved: (next: UserSettings) => void;
 }
 
-const CURRENCIES: { value: CurrencyCode; label: string }[] = [
-  { value: "HUF", label: "HUF · Forint" },
-  { value: "EUR", label: "EUR · Euro" },
-  { value: "USD", label: "USD · Dollar" },
+// The `value`s are the API contract in `src/api/types.ts` and must stay byte-identical; only the
+// display label is translated (via `labelKey`) so the option text switches language live.
+const CURRENCIES: { value: CurrencyCode; labelKey: string }[] = [
+  { value: "HUF", labelKey: "userMenu.currency_huf" },
+  { value: "EUR", labelKey: "userMenu.currency_eur" },
+  { value: "USD", labelKey: "userMenu.currency_usd" },
 ];
 
-const LANGUAGES: { value: LanguageCode; label: string }[] = [
-  { value: "en", label: "English" },
-  { value: "hu", label: "Hungarian" },
-  { value: "en_hu_alloc", label: "English + Hungarian allocation names" },
+// `en_hu_alloc` is intentionally omitted — it is not yet a real locale, so it is hidden from the
+// selector. A row that already persists it renders as English via `resolveLanguage`.
+const LANGUAGES: { value: LanguageCode; labelKey: string }[] = [
+  { value: "en", labelKey: "userMenu.language_en" },
+  { value: "hu", labelKey: "userMenu.language_hu" },
 ];
 
 // The sidebar-footer user menu: the name row is a button that toggles a popover holding the
 // currency + language selectors and Sign out. No routing and no modal — the popover is an
 // absolutely-positioned element anchored to the footer.
 export function UserMenu({ user, settings, onSettingsSaved }: UserMenuProps) {
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +63,7 @@ export function UserMenu({ user, settings, onSettingsSaved }: UserMenuProps) {
       const saved = await api.updateSettings(next);
       onSettingsSaved(saved);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not save settings.");
+      setError(err instanceof ApiError ? err.message : t("userMenu.save_error"));
     } finally {
       setSaving(false);
     }
@@ -74,7 +80,7 @@ export function UserMenu({ user, settings, onSettingsSaved }: UserMenuProps) {
 
           <div className="field user-popover-field">
             <label className="field-label" htmlFor="currency-select">
-              Default currency
+              {t("userMenu.default_currency")}
             </label>
             <select
               id="currency-select"
@@ -85,7 +91,7 @@ export function UserMenu({ user, settings, onSettingsSaved }: UserMenuProps) {
             >
               {CURRENCIES.map((c) => (
                 <option key={c.value} value={c.value}>
-                  {c.label}
+                  {t(c.labelKey)}
                 </option>
               ))}
             </select>
@@ -93,28 +99,34 @@ export function UserMenu({ user, settings, onSettingsSaved }: UserMenuProps) {
 
           <div className="field user-popover-field">
             <label className="field-label" htmlFor="language-select">
-              Language
+              {t("userMenu.language")}
             </label>
             <select
               id="language-select"
               className="input"
               value={settings.language}
               disabled={saving}
-              onChange={(e) => save({ ...settings, language: e.target.value as LanguageCode })}
+              onChange={(e) => {
+                const language = e.target.value as LanguageCode;
+                // Switch the UI language immediately (fire-and-forget for display), independent of
+                // the persistence PUT below. If the PUT fails, the display may be ahead of the
+                // saved value until retry — acceptable per the settings flow.
+                void i18n.changeLanguage(resolveLanguage(language));
+                save({ ...settings, language });
+              }}
             >
               {LANGUAGES.map((l) => (
                 <option key={l.value} value={l.value}>
-                  {l.label}
+                  {t(l.labelKey)}
                 </option>
               ))}
             </select>
-            {/* Language is persist-only for now; UI translation lands in a later issue. */}
           </div>
 
           {error && <div className="error-banner user-popover-error">{error}</div>}
 
           <button className="logout-btn user-popover-signout" onClick={logout}>
-            Sign out
+            {t("userMenu.sign_out")}
           </button>
         </div>
       )}

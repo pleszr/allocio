@@ -2951,6 +2951,7 @@
             "./components/StateView",
             "./components/Tabs",
             "./components/TopBar",
+            "./i18n",
             "./routes",
             "./screens/CheckInScreen",
             "./screens/CostsScreen",
@@ -2960,7 +2961,9 @@
             "./screens/SignInScreen",
             "./utils/currency",
             "./utils/useAsync",
-            "react"
+            "i18next",
+            "react",
+            "react-i18next"
           ],
           "exports": [
             "App",
@@ -2969,32 +2972,32 @@
           "functions": [
             {
               "name": "App",
-              "line_start": 22,
-              "line_end": 31,
-              "hash": "5189cde957766a41"
+              "line_start": 23,
+              "line_end": 33,
+              "hash": "07e7613d0bd12d59"
             },
             {
               "name": "Content",
-              "line_start": 97,
-              "line_end": 147,
-              "hash": "d918b469f8c71932"
+              "line_start": 106,
+              "line_end": 157,
+              "hash": "192aec9b1ebc7c95"
             },
             {
               "name": "Workspace",
-              "line_start": 33,
-              "line_end": 95,
-              "hash": "afcc9fcb645b0248"
+              "line_start": 35,
+              "line_end": 104,
+              "hash": "cef6a58aa4e65e94"
             },
             {
               "name": "buildCrumbs",
-              "line_start": 149,
-              "line_end": 154,
-              "hash": "23663b0877b8dadb"
+              "line_start": 159,
+              "line_end": 164,
+              "hash": "88208ecc2c765102"
             },
             {
               "name": "useOsTheme",
-              "line_start": 158,
-              "line_end": 168,
+              "line_start": 168,
+              "line_end": 178,
               "hash": "650066bfe2459e51"
             }
           ],
@@ -3002,23 +3005,23 @@
           "components": [
             {
               "name": "App",
-              "line_start": 22,
-              "line_end": 31,
-              "hash": "5189cde957766a41",
+              "line_start": 23,
+              "line_end": 33,
+              "hash": "07e7613d0bd12d59",
               "kind": "function"
             },
             {
               "name": "Content",
-              "line_start": 97,
-              "line_end": 147,
-              "hash": "d918b469f8c71932",
+              "line_start": 106,
+              "line_end": 157,
+              "hash": "192aec9b1ebc7c95",
               "kind": "function"
             },
             {
               "name": "Workspace",
-              "line_start": 33,
-              "line_end": 95,
-              "hash": "afcc9fcb645b0248",
+              "line_start": 35,
+              "line_end": 104,
+              "hash": "cef6a58aa4e65e94",
               "kind": "function"
             }
           ]
@@ -3215,7 +3218,8 @@
             "../utils/assetType",
             "../utils/currency",
             "./Icon",
-            "./UserMenu"
+            "./UserMenu",
+            "react-i18next"
           ],
           "exports": [
             "Sidebar"
@@ -3223,14 +3227,14 @@
           "functions": [
             {
               "name": "Sidebar",
-              "line_start": 17,
-              "line_end": 80,
-              "hash": "a15bf30c4ead1dc7"
+              "line_start": 18,
+              "line_end": 82,
+              "hash": "c54a4b90a101e237"
             },
             {
               "name": "initials",
-              "line_start": 84,
-              "line_end": 90,
+              "line_start": 86,
+              "line_end": 92,
               "hash": "db31cd02d558a74c"
             }
           ],
@@ -3238,9 +3242,9 @@
           "components": [
             {
               "name": "Sidebar",
-              "line_start": 17,
-              "line_end": 80,
-              "hash": "a15bf30c4ead1dc7",
+              "line_start": 18,
+              "line_end": 82,
+              "hash": "c54a4b90a101e237",
               "kind": "function"
             }
           ]
@@ -3275,7 +3279,8 @@
           "path": "frontend/src/components/StateView.tsx",
           "language": "typescript",
           "imports": [
-            "react"
+            "react",
+            "react-i18next"
           ],
           "exports": [
             "EmptyState",
@@ -3285,44 +3290,44 @@
           "functions": [
             {
               "name": "EmptyState",
-              "line_start": 29,
-              "line_end": 37,
+              "line_start": 32,
+              "line_end": 40,
               "hash": "61f322c64bd76467"
             },
             {
               "name": "ErrorState",
-              "line_start": 15,
-              "line_end": 27,
-              "hash": "5c6a945790fb5dca"
+              "line_start": 17,
+              "line_end": 30,
+              "hash": "78420f6f2e5450a5"
             },
             {
               "name": "LoadingState",
-              "line_start": 6,
-              "line_end": 13,
-              "hash": "1610c5904f7b366c"
+              "line_start": 7,
+              "line_end": 15,
+              "hash": "81c8f56e8734254e"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "EmptyState",
-              "line_start": 29,
-              "line_end": 37,
+              "line_start": 32,
+              "line_end": 40,
               "hash": "61f322c64bd76467",
               "kind": "function"
             },
             {
               "name": "ErrorState",
-              "line_start": 15,
-              "line_end": 27,
-              "hash": "5c6a945790fb5dca",
+              "line_start": 17,
+              "line_end": 30,
+              "hash": "78420f6f2e5450a5",
               "kind": "function"
             },
             {
               "name": "LoadingState",
-              "line_start": 6,
-              "line_end": 13,
-              "hash": "1610c5904f7b366c",
+              "line_start": 7,
+              "line_end": 15,
+              "hash": "81c8f56e8734254e",
               "kind": "function"
             }
           ]
@@ -3389,7 +3394,9 @@
           "imports": [
             "../api/client",
             "../api/types",
-            "react"
+            "../i18n",
+            "react",
+            "react-i18next"
           ],
           "exports": [
             "UserMenu"
@@ -3397,14 +3404,14 @@
           "functions": [
             {
               "name": "UserMenu",
-              "line_start": 26,
-              "line_end": 135,
-              "hash": "df785745a0725180"
+              "line_start": 31,
+              "line_end": 147,
+              "hash": "fba1b9ac3886ee77"
             },
             {
               "name": "logout",
-              "line_start": 139,
-              "line_end": 145,
+              "line_start": 151,
+              "line_end": 157,
               "hash": "7e1c353741f09af7"
             }
           ],
@@ -3412,18 +3419,44 @@
           "components": [
             {
               "name": "UserMenu",
-              "line_start": 26,
-              "line_end": 135,
-              "hash": "df785745a0725180",
+              "line_start": 31,
+              "line_end": 147,
+              "hash": "fba1b9ac3886ee77",
               "kind": "function"
             }
           ]
+        },
+        {
+          "path": "frontend/src/i18n.ts",
+          "language": "typescript",
+          "imports": [
+            "./api/types",
+            "./locales/en.json",
+            "./locales/hu.json",
+            "i18next",
+            "react-i18next"
+          ],
+          "exports": [
+            "default",
+            "resolveLanguage"
+          ],
+          "functions": [
+            {
+              "name": "resolveLanguage",
+              "line_start": 28,
+              "line_end": 30,
+              "hash": "4c0c4e027991715d"
+            }
+          ],
+          "classes": [],
+          "components": []
         },
         {
           "path": "frontend/src/main.tsx",
           "language": "typescript",
           "imports": [
             "./App",
+            "./i18n",
             "./styles.css",
             "react",
             "react-dom/client"
@@ -3458,7 +3491,8 @@
             "../utils/format",
             "../utils/health",
             "../utils/useAsync",
-            "react"
+            "react",
+            "react-i18next"
           ],
           "exports": [
             "CheckInScreen"
@@ -3466,20 +3500,20 @@
           "functions": [
             {
               "name": "CheckInScreen",
-              "line_start": 17,
-              "line_end": 278,
-              "hash": "f941d7e75a4e84b8"
+              "line_start": 18,
+              "line_end": 287,
+              "hash": "8c6174309ad6fe66"
             },
             {
               "name": "FlagRow",
-              "line_start": 280,
-              "line_end": 314,
-              "hash": "b625656bfcd1e8ad"
+              "line_start": 289,
+              "line_end": 324,
+              "hash": "04697ac8287eb9e9"
             },
             {
               "name": "RowKV",
-              "line_start": 316,
-              "line_end": 327,
+              "line_start": 326,
+              "line_end": 337,
               "hash": "5b2cd9af20e61b05"
             }
           ],
@@ -3487,22 +3521,22 @@
           "components": [
             {
               "name": "CheckInScreen",
-              "line_start": 17,
-              "line_end": 278,
-              "hash": "f941d7e75a4e84b8",
+              "line_start": 18,
+              "line_end": 287,
+              "hash": "8c6174309ad6fe66",
               "kind": "function"
             },
             {
               "name": "FlagRow",
-              "line_start": 280,
-              "line_end": 314,
-              "hash": "b625656bfcd1e8ad",
+              "line_start": 289,
+              "line_end": 324,
+              "hash": "04697ac8287eb9e9",
               "kind": "function"
             },
             {
               "name": "RowKV",
-              "line_start": 316,
-              "line_end": 327,
+              "line_start": 326,
+              "line_end": 337,
               "hash": "5b2cd9af20e61b05",
               "kind": "function"
             }
@@ -3520,7 +3554,8 @@
             "../utils/format",
             "../utils/health",
             "../utils/useAsync",
-            "react"
+            "react",
+            "react-i18next"
           ],
           "exports": [
             "CostsScreen"
@@ -3528,193 +3563,193 @@
           "functions": [
             {
               "name": "ActiveToggle",
-              "line_start": 615,
-              "line_end": 622,
-              "hash": "224a99abecc2bb37"
+              "line_start": 627,
+              "line_end": 635,
+              "hash": "ef34fd4f7587900c"
             },
             {
               "name": "CostsScreen",
-              "line_start": 18,
-              "line_end": 120,
-              "hash": "0332cf698acd5ff4"
+              "line_start": 19,
+              "line_end": 121,
+              "hash": "6ab459080fb209e9"
             },
             {
               "name": "EditActions",
-              "line_start": 590,
-              "line_end": 613,
-              "hash": "80b11c488766f2f9"
+              "line_start": 601,
+              "line_end": 625,
+              "hash": "2aca5443da9c1705"
             },
             {
               "name": "LabeledInput",
-              "line_start": 557,
-              "line_end": 576,
+              "line_start": 568,
+              "line_end": 587,
               "hash": "7f8fe7d5b0379745"
             },
             {
               "name": "LabeledMoney",
-              "line_start": 578,
-              "line_end": 588,
+              "line_start": 589,
+              "line_end": 599,
               "hash": "2fd6ac9280c6f385"
             },
             {
               "name": "MaintCreateRow",
-              "line_start": 518,
-              "line_end": 554,
-              "hash": "fe5e20e991bfec62"
+              "line_start": 528,
+              "line_end": 565,
+              "hash": "f0659bcbc4840995"
             },
             {
               "name": "MaintEditRow",
-              "line_start": 477,
-              "line_end": 516,
-              "hash": "8d69cd34acd7cb68"
+              "line_start": 486,
+              "line_end": 526,
+              "hash": "e7b61db02754f407"
             },
             {
               "name": "MaintTable",
-              "line_start": 415,
-              "line_end": 475,
-              "hash": "b24812710ef53370"
+              "line_start": 423,
+              "line_end": 484,
+              "hash": "09039ed524d3dda3"
             },
             {
               "name": "TimeCreateRow",
-              "line_start": 260,
-              "line_end": 302,
-              "hash": "f924ba158248ab57"
+              "line_start": 264,
+              "line_end": 307,
+              "hash": "581cdd817ab1deb0"
             },
             {
               "name": "TimeEditRow",
-              "line_start": 203,
-              "line_end": 258,
-              "hash": "8d2af21d0bb672a5"
+              "line_start": 206,
+              "line_end": 262,
+              "hash": "094d860b453d0cea"
             },
             {
               "name": "TimeTable",
-              "line_start": 143,
-              "line_end": 201,
-              "hash": "cf94434a2f7aac01"
+              "line_start": 145,
+              "line_end": 204,
+              "hash": "ab50318137f924a6"
             },
             {
               "name": "UsageCreateRow",
-              "line_start": 387,
-              "line_end": 412,
-              "hash": "e1fef820bfe9e939"
+              "line_start": 394,
+              "line_end": 420,
+              "hash": "aa3946f85e7372f2"
             },
             {
               "name": "UsageEditRow",
-              "line_start": 355,
-              "line_end": 385,
-              "hash": "1f7b8faf9250e665"
+              "line_start": 361,
+              "line_end": 392,
+              "hash": "48a385c2b3ecbad4"
             },
             {
               "name": "UsageTable",
-              "line_start": 305,
-              "line_end": 353,
-              "hash": "a4e9cc27cc586d83"
+              "line_start": 310,
+              "line_end": 359,
+              "hash": "666caaf0fa9f22ea"
             },
             {
               "name": "useMutation",
-              "line_start": 123,
-              "line_end": 140,
-              "hash": "55446c98ea91f0cb"
+              "line_start": 124,
+              "line_end": 142,
+              "hash": "d5ef544cd4cf10e0"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "ActiveToggle",
-              "line_start": 615,
-              "line_end": 622,
-              "hash": "224a99abecc2bb37",
+              "line_start": 627,
+              "line_end": 635,
+              "hash": "ef34fd4f7587900c",
               "kind": "function"
             },
             {
               "name": "CostsScreen",
-              "line_start": 18,
-              "line_end": 120,
-              "hash": "0332cf698acd5ff4",
+              "line_start": 19,
+              "line_end": 121,
+              "hash": "6ab459080fb209e9",
               "kind": "function"
             },
             {
               "name": "EditActions",
-              "line_start": 590,
-              "line_end": 613,
-              "hash": "80b11c488766f2f9",
+              "line_start": 601,
+              "line_end": 625,
+              "hash": "2aca5443da9c1705",
               "kind": "function"
             },
             {
               "name": "LabeledInput",
-              "line_start": 557,
-              "line_end": 576,
+              "line_start": 568,
+              "line_end": 587,
               "hash": "7f8fe7d5b0379745",
               "kind": "function"
             },
             {
               "name": "LabeledMoney",
-              "line_start": 578,
-              "line_end": 588,
+              "line_start": 589,
+              "line_end": 599,
               "hash": "2fd6ac9280c6f385",
               "kind": "function"
             },
             {
               "name": "MaintCreateRow",
-              "line_start": 518,
-              "line_end": 554,
-              "hash": "fe5e20e991bfec62",
+              "line_start": 528,
+              "line_end": 565,
+              "hash": "f0659bcbc4840995",
               "kind": "function"
             },
             {
               "name": "MaintEditRow",
-              "line_start": 477,
-              "line_end": 516,
-              "hash": "8d69cd34acd7cb68",
+              "line_start": 486,
+              "line_end": 526,
+              "hash": "e7b61db02754f407",
               "kind": "function"
             },
             {
               "name": "MaintTable",
-              "line_start": 415,
-              "line_end": 475,
-              "hash": "b24812710ef53370",
+              "line_start": 423,
+              "line_end": 484,
+              "hash": "09039ed524d3dda3",
               "kind": "function"
             },
             {
               "name": "TimeCreateRow",
-              "line_start": 260,
-              "line_end": 302,
-              "hash": "f924ba158248ab57",
+              "line_start": 264,
+              "line_end": 307,
+              "hash": "581cdd817ab1deb0",
               "kind": "function"
             },
             {
               "name": "TimeEditRow",
-              "line_start": 203,
-              "line_end": 258,
-              "hash": "8d2af21d0bb672a5",
+              "line_start": 206,
+              "line_end": 262,
+              "hash": "094d860b453d0cea",
               "kind": "function"
             },
             {
               "name": "TimeTable",
-              "line_start": 143,
-              "line_end": 201,
-              "hash": "cf94434a2f7aac01",
+              "line_start": 145,
+              "line_end": 204,
+              "hash": "ab50318137f924a6",
               "kind": "function"
             },
             {
               "name": "UsageCreateRow",
-              "line_start": 387,
-              "line_end": 412,
-              "hash": "e1fef820bfe9e939",
+              "line_start": 394,
+              "line_end": 420,
+              "hash": "aa3946f85e7372f2",
               "kind": "function"
             },
             {
               "name": "UsageEditRow",
-              "line_start": 355,
-              "line_end": 385,
-              "hash": "1f7b8faf9250e665",
+              "line_start": 361,
+              "line_end": 392,
+              "hash": "48a385c2b3ecbad4",
               "kind": "function"
             },
             {
               "name": "UsageTable",
-              "line_start": 305,
-              "line_end": 353,
-              "hash": "a4e9cc27cc586d83",
+              "line_start": 310,
+              "line_end": 359,
+              "hash": "666caaf0fa9f22ea",
               "kind": "function"
             }
           ]
@@ -3734,7 +3769,8 @@
             "../utils/format",
             "../utils/health",
             "../utils/useAsync",
-            "react"
+            "react",
+            "react-i18next"
           ],
           "exports": [
             "DashboardScreen"
@@ -3742,44 +3778,44 @@
           "functions": [
             {
               "name": "DashboardScreen",
-              "line_start": 25,
-              "line_end": 211,
-              "hash": "2dc4364e5c3b2e21"
+              "line_start": 26,
+              "line_end": 219,
+              "hash": "0e61149365779038"
             },
             {
               "name": "MaintRow",
-              "line_start": 213,
-              "line_end": 242,
-              "hash": "7c53fdec4e689bb4"
+              "line_start": 221,
+              "line_end": 251,
+              "hash": "bf0da473a040cb56"
             },
             {
               "name": "TxRow",
-              "line_start": 244,
-              "line_end": 275,
-              "hash": "3c65fc38869df600"
+              "line_start": 253,
+              "line_end": 285,
+              "hash": "4264fb29c6820e5b"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "DashboardScreen",
-              "line_start": 25,
-              "line_end": 211,
-              "hash": "2dc4364e5c3b2e21",
+              "line_start": 26,
+              "line_end": 219,
+              "hash": "0e61149365779038",
               "kind": "function"
             },
             {
               "name": "MaintRow",
-              "line_start": 213,
-              "line_end": 242,
-              "hash": "7c53fdec4e689bb4",
+              "line_start": 221,
+              "line_end": 251,
+              "hash": "bf0da473a040cb56",
               "kind": "function"
             },
             {
               "name": "TxRow",
-              "line_start": 244,
-              "line_end": 275,
-              "hash": "3c65fc38869df600",
+              "line_start": 253,
+              "line_end": 285,
+              "hash": "4264fb29c6820e5b",
               "kind": "function"
             }
           ]
@@ -3793,7 +3829,8 @@
             "../components/Illustrations",
             "../utils/assetType",
             "../utils/currency",
-            "../utils/health"
+            "../utils/health",
+            "react-i18next"
           ],
           "exports": [
             "HomeScreen"
@@ -3801,31 +3838,31 @@
           "functions": [
             {
               "name": "BucketCard",
-              "line_start": 108,
-              "line_end": 143,
-              "hash": "2b49c0da023d329f"
+              "line_start": 110,
+              "line_end": 146,
+              "hash": "eb26199d63ec96cc"
             },
             {
               "name": "HomeScreen",
-              "line_start": 14,
-              "line_end": 106,
-              "hash": "e10d49ef5a529e7f"
+              "line_start": 15,
+              "line_end": 108,
+              "hash": "b0d5aab16aee1c11"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "BucketCard",
-              "line_start": 108,
-              "line_end": 143,
-              "hash": "2b49c0da023d329f",
+              "line_start": 110,
+              "line_end": 146,
+              "hash": "eb26199d63ec96cc",
               "kind": "function"
             },
             {
               "name": "HomeScreen",
-              "line_start": 14,
-              "line_end": 106,
-              "hash": "e10d49ef5a529e7f",
+              "line_start": 15,
+              "line_end": 108,
+              "hash": "b0d5aab16aee1c11",
               "kind": "function"
             }
           ]
@@ -3841,7 +3878,9 @@
             "../utils/assetType",
             "../utils/currency",
             "../utils/format",
-            "react"
+            "i18next",
+            "react",
+            "react-i18next"
           ],
           "exports": [
             "NewBucketScreen"
@@ -3849,104 +3888,104 @@
           "functions": [
             {
               "name": "CatalogGroup",
-              "line_start": 635,
-              "line_end": 668,
-              "hash": "af288f7acd299657"
+              "line_start": 653,
+              "line_end": 687,
+              "hash": "afaf5514e0286cb3"
             },
             {
               "name": "CatalogRow",
-              "line_start": 670,
-              "line_end": 682,
+              "line_start": 689,
+              "line_end": 701,
               "hash": "cb732551ac051385"
             },
             {
               "name": "CostRow",
-              "line_start": 684,
-              "line_end": 720,
-              "hash": "f120e75e57f6a03f"
+              "line_start": 703,
+              "line_end": 740,
+              "hash": "f29c85eef65751a8"
             },
             {
               "name": "NewBucketScreen",
-              "line_start": 93,
-              "line_end": 318,
-              "hash": "ba62341345314ed7"
+              "line_start": 95,
+              "line_end": 335,
+              "hash": "9337b44b587a16d0"
             },
             {
               "name": "Step1",
-              "line_start": 370,
-              "line_end": 394,
-              "hash": "49ab12fc7d0f3473"
+              "line_start": 387,
+              "line_end": 412,
+              "hash": "5c75c5c2931798c4"
             },
             {
               "name": "Step2",
-              "line_start": 404,
-              "line_end": 476,
-              "hash": "634ecc48f1b33e43"
+              "line_start": 422,
+              "line_end": 495,
+              "hash": "c66aae8a8dc04514"
             },
             {
               "name": "Step3",
-              "line_start": 493,
-              "line_end": 549,
-              "hash": "f50220368927e0a4"
+              "line_start": 512,
+              "line_end": 566,
+              "hash": "bb5c8db884e4d0c9"
             },
             {
               "name": "Step4",
-              "line_start": 722,
-              "line_end": 840,
-              "hash": "291d6ab5c25100e5"
+              "line_start": 742,
+              "line_end": 860,
+              "hash": "ca331633781e9b81"
             },
             {
               "name": "VehicleCatalogPicker",
-              "line_start": 551,
-              "line_end": 633,
-              "hash": "83e16dd2e96c1a21"
+              "line_start": 568,
+              "line_end": 651,
+              "hash": "d6d4758047ff8586"
             },
             {
               "name": "WizardSteps",
-              "line_start": 350,
-              "line_end": 368,
+              "line_start": 367,
+              "line_end": 385,
               "hash": "6f243b2ca17d5fd9"
             },
             {
               "name": "allCatalogKeys",
-              "line_start": 69,
-              "line_end": 75,
+              "line_start": 71,
+              "line_end": 77,
               "hash": "4fb39deab4f58f38"
             },
             {
               "name": "buildCreateRequest",
-              "line_start": 320,
-              "line_end": 342,
+              "line_start": 337,
+              "line_end": 359,
               "hash": "113dda01b1753637"
             },
             {
               "name": "draft",
-              "line_start": 61,
-              "line_end": 63,
+              "line_start": 63,
+              "line_end": 65,
               "hash": "deedf4693bb5e619"
             },
             {
               "name": "intervalLabel",
-              "line_start": 78,
-              "line_end": 83,
+              "line_start": 80,
+              "line_end": 85,
               "hash": "80a0ea50adb5981d"
             },
             {
               "name": "maintenanceDetail",
-              "line_start": 86,
-              "line_end": 91,
-              "hash": "77973e2cd0298fb8"
+              "line_start": 88,
+              "line_end": 93,
+              "hash": "2418ff75e0e35d9b"
             },
             {
               "name": "periodDays",
-              "line_start": 65,
-              "line_end": 67,
+              "line_start": 67,
+              "line_end": 69,
               "hash": "59a638544d32173e"
             },
             {
               "name": "subtitleFromMeta",
-              "line_start": 344,
-              "line_end": 348,
+              "line_start": 361,
+              "line_end": 365,
               "hash": "c96ccc23945292b7"
             }
           ],
@@ -3954,71 +3993,71 @@
           "components": [
             {
               "name": "CatalogGroup",
-              "line_start": 635,
-              "line_end": 668,
-              "hash": "af288f7acd299657",
+              "line_start": 653,
+              "line_end": 687,
+              "hash": "afaf5514e0286cb3",
               "kind": "function"
             },
             {
               "name": "CatalogRow",
-              "line_start": 670,
-              "line_end": 682,
+              "line_start": 689,
+              "line_end": 701,
               "hash": "cb732551ac051385",
               "kind": "function"
             },
             {
               "name": "CostRow",
-              "line_start": 684,
-              "line_end": 720,
-              "hash": "f120e75e57f6a03f",
+              "line_start": 703,
+              "line_end": 740,
+              "hash": "f29c85eef65751a8",
               "kind": "function"
             },
             {
               "name": "NewBucketScreen",
-              "line_start": 93,
-              "line_end": 318,
-              "hash": "ba62341345314ed7",
+              "line_start": 95,
+              "line_end": 335,
+              "hash": "9337b44b587a16d0",
               "kind": "function"
             },
             {
               "name": "Step1",
-              "line_start": 370,
-              "line_end": 394,
-              "hash": "49ab12fc7d0f3473",
+              "line_start": 387,
+              "line_end": 412,
+              "hash": "5c75c5c2931798c4",
               "kind": "function"
             },
             {
               "name": "Step2",
-              "line_start": 404,
-              "line_end": 476,
-              "hash": "634ecc48f1b33e43",
+              "line_start": 422,
+              "line_end": 495,
+              "hash": "c66aae8a8dc04514",
               "kind": "function"
             },
             {
               "name": "Step3",
-              "line_start": 493,
-              "line_end": 549,
-              "hash": "f50220368927e0a4",
+              "line_start": 512,
+              "line_end": 566,
+              "hash": "bb5c8db884e4d0c9",
               "kind": "function"
             },
             {
               "name": "Step4",
-              "line_start": 722,
-              "line_end": 840,
-              "hash": "291d6ab5c25100e5",
+              "line_start": 742,
+              "line_end": 860,
+              "hash": "ca331633781e9b81",
               "kind": "function"
             },
             {
               "name": "VehicleCatalogPicker",
-              "line_start": 551,
-              "line_end": 633,
-              "hash": "83e16dd2e96c1a21",
+              "line_start": 568,
+              "line_end": 651,
+              "hash": "d6d4758047ff8586",
               "kind": "function"
             },
             {
               "name": "WizardSteps",
-              "line_start": 350,
-              "line_end": 368,
+              "line_start": 367,
+              "line_end": 385,
               "hash": "6f243b2ca17d5fd9",
               "kind": "function"
             }
@@ -4027,25 +4066,27 @@
         {
           "path": "frontend/src/screens/SignInScreen.tsx",
           "language": "typescript",
-          "imports": [],
+          "imports": [
+            "react-i18next"
+          ],
           "exports": [
             "SignInScreen"
           ],
           "functions": [
             {
               "name": "SignInScreen",
-              "line_start": 8,
-              "line_end": 24,
-              "hash": "52a55ebb4378f26d"
+              "line_start": 10,
+              "line_end": 27,
+              "hash": "499c4a7b59944b15"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "SignInScreen",
-              "line_start": 8,
-              "line_end": 24,
-              "hash": "52a55ebb4378f26d",
+              "line_start": 10,
+              "line_end": 27,
+              "hash": "499c4a7b59944b15",
               "kind": "function"
             }
           ]

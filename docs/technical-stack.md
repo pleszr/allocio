@@ -32,6 +32,7 @@ This is the source of truth for:
 - Public marketing site: server-rendered HTML templates from the Python app
 - Product app: React + TypeScript
 - Build tool for the product app: Vite
+- UI localization: `react-i18next` + `i18next`, with per-locale JSON resource files (`en`, `hu`) bundled by Vite; the active language is driven solely by the persisted `User.language` preference (no browser language detector). Pure client libraries — no runtime/hosting impact.
 
 Reasoning:
 

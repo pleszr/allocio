@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
 import type { ActivityItem, MaintenanceItem } from "../api/types";
 import { Icon } from "../components/Icon";
@@ -23,14 +24,15 @@ const RANGES: { label: string; months: number }[] = [
 ];
 
 export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
+  const { t } = useTranslation();
   const fmt = useCurrency();
   const detail = useAsync(() => api.getAsset(assetId), [assetId]);
   const [months, setMonths] = useState(12);
   const history = useAsync(() => api.getBalanceHistory(assetId, months), [assetId, months]);
 
-  if (detail.loading) return <LoadingState label="Loading dashboard…" />;
+  if (detail.loading) return <LoadingState label={t("dashboard.loading")} />;
   if (detail.error || !detail.data) {
-    return <ErrorState message={detail.error ?? "Asset not found."} onRetry={detail.reload} />;
+    return <ErrorState message={detail.error ?? t("dashboard.not_found")} onRetry={detail.reload} />;
   }
 
   const e = detail.data;
@@ -60,32 +62,34 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
             <span className={`pill ${pill.cls}`}>{pill.label}</span>
           </div>
           <div className="muted" style={{ fontSize: 13.5, marginBottom: 4 }}>
-            Bucket balance
+            {t("dashboard.bucket_balance")}
           </div>
           <div className="num-xl">{fmt(e.balance, { decimals: 2 })}</div>
           <div style={{ marginTop: 10, fontSize: 13.5, color: "var(--muted)" }}>
             <span className={delta >= 0 ? "delta-up" : "delta-down"} style={{ fontWeight: 600 }}>
               {delta >= 0 ? "↑" : "↓"} {fmt(Math.abs(delta), { decimals: 0 })}
             </span>{" "}
-            this month
+            {t("dashboard.this_month")}
           </div>
         </div>
         <div className="hero-stats">
           <div>
-            <div className="hero-stat-label">{e.current_usage !== null ? "Current usage" : "Daily accrual"}</div>
+            <div className="hero-stat-label">
+              {e.current_usage !== null ? t("dashboard.current_usage") : t("dashboard.daily_accrual")}
+            </div>
             <div className="hero-stat-val">
               {e.current_usage !== null ? `${fmtNumber(e.current_usage)} km` : fmt(e.daily_accrual, { decimals: 2 })}
             </div>
           </div>
           <div>
-            <div className="hero-stat-label">Next allocation</div>
+            <div className="hero-stat-label">{t("dashboard.next_allocation")}</div>
             <div className="hero-stat-val">{fmt(e.recommended_monthly_allocation, { decimals: 0 })}</div>
             <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
-              on {nextLabel} · in {next.daysUntil} days
+              {t("dashboard.next_allocation_meta", { date: nextLabel, days: next.daysUntil })}
             </div>
           </div>
           <button className="btn btn-primary btn-sm" onClick={() => onTab("checkin")} style={{ alignSelf: "flex-start" }}>
-            Run check-in <Icon name="arrowRight" size={12} />
+            {t("dashboard.run_checkin")} <Icon name="arrowRight" size={12} />
           </button>
         </div>
       </div>
@@ -94,22 +98,22 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
       <div className="card" style={{ marginBottom: 24 }}>
         <div className="card-hd">
           <div>
-            <div className="card-title">Balance history</div>
-            <div className="card-sub">How {e.name}'s bucket has tracked over time</div>
+            <div className="card-title">{t("dashboard.balance_history")}</div>
+            <div className="card-sub">{t("dashboard.balance_history_sub", { name: e.name })}</div>
           </div>
           <div className="seg">
             {RANGES.map((r) => (
               <button key={r.months} className="seg-btn" aria-pressed={months === r.months} onClick={() => setMonths(r.months)}>
-                {r.label}
+                {r.months === 60 ? t("dashboard.range_all") : r.label}
               </button>
             ))}
           </div>
         </div>
         <div style={{ padding: "20px var(--pad) var(--pad)" }}>
           {history.loading ? (
-            <div className="row-meta">Loading…</div>
+            <div className="row-meta">{t("common.loading")}</div>
           ) : points.length === 0 ? (
-            <div className="row-meta">No history yet.</div>
+            <div className="row-meta">{t("dashboard.no_history")}</div>
           ) : (
             <>
               <Sparkline data={balances} width={900} height={130} padding={12} />
@@ -125,34 +129,38 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
       {/* KPI grid */}
       <div className="kpi-grid" style={{ marginBottom: 24 }}>
         <div className="kpi">
-          <div className="kpi-label">Daily accrual</div>
+          <div className="kpi-label">{t("dashboard.daily_accrual")}</div>
           <div className="num-lg">{fmt(e.daily_accrual, { decimals: 2 })}</div>
-          <div className="kpi-sub">{fmt(e.recommended_monthly_allocation, { decimals: 0 })}/mo recommended</div>
+          <div className="kpi-sub">
+            {t("dashboard.per_mo_recommended", { amount: fmt(e.recommended_monthly_allocation, { decimals: 0 }) })}
+          </div>
         </div>
         {e.current_usage !== null ? (
           <div className="kpi">
-            <div className="kpi-label">Current usage</div>
+            <div className="kpi-label">{t("dashboard.current_usage")}</div>
             <div className="num-lg">
               {fmtNumber(e.current_usage)} <span className="muted" style={{ fontSize: 14 }}>km</span>
             </div>
             <div className="kpi-sub">
               {e.usage_since_last_check_in !== null
-                ? `+${fmtNumber(e.usage_since_last_check_in)} km since last check-in`
-                : "No check-in yet"}
+                ? t("dashboard.usage_since_checkin", { km: fmtNumber(e.usage_since_last_check_in) })
+                : t("dashboard.no_checkin_yet")}
             </div>
           </div>
         ) : (
           <div className="kpi">
-            <div className="kpi-label">Maintenance items</div>
+            <div className="kpi-label">{t("dashboard.maintenance_items")}</div>
             <div className="num-lg">{costCount}</div>
-            <div className="kpi-sub">{dueSoon.length > 0 ? `${dueSoon.length} need attention` : "all current"}</div>
+            <div className="kpi-sub">
+              {dueSoon.length > 0 ? t("dashboard.need_attention", { n: dueSoon.length }) : t("dashboard.all_current")}
+            </div>
           </div>
         )}
         <div className="kpi">
-          <div className="kpi-label">Next allocation</div>
+          <div className="kpi-label">{t("dashboard.next_allocation")}</div>
           <div className="num-lg">{nextLabel}</div>
           <div className="kpi-sub">
-            {next.daysUntil} days · {fmt(pending, { decimals: 0 })} pending
+            {t("dashboard.next_allocation_pending", { days: next.daysUntil, amount: fmt(pending, { decimals: 0 }) })}
           </div>
         </div>
       </div>
@@ -162,17 +170,17 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
         <div className="card">
           <div className="card-hd">
             <div>
-              <div className="card-title">Maintenance</div>
+              <div className="card-title">{t("dashboard.maintenance")}</div>
               <div className="card-sub">
                 {dueSoon.length > 0
-                  ? `${dueSoon.length} item${dueSoon.length > 1 ? "s" : ""} need attention`
+                  ? t("dashboard.items_need_attention", { count: dueSoon.length })
                   : e.maintenance_items.length > 0
-                    ? "Everything is current"
-                    : "No maintenance items"}
+                    ? t("dashboard.everything_current")
+                    : t("dashboard.no_maintenance_items")}
               </div>
             </div>
             <button className="btn btn-ghost btn-sm" onClick={() => onTab("costs")}>
-              Manage <Icon name="chevronRight" size={12} />
+              {t("dashboard.manage")} <Icon name="chevronRight" size={12} />
             </button>
           </div>
           <div style={{ marginTop: 14, paddingBottom: 6 }}>
@@ -181,7 +189,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
             ))}
             {e.maintenance_items.length === 0 && (
               <div className="row-meta" style={{ padding: "12px var(--pad)" }}>
-                Add maintenance items on the Costs tab.
+                {t("dashboard.add_maintenance_costs_tab")}
               </div>
             )}
           </div>
@@ -190,8 +198,8 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
         <div className="card">
           <div className="card-hd">
             <div>
-              <div className="card-title">Recent activity</div>
-              <div className="card-sub">Latest bucket movements</div>
+              <div className="card-title">{t("dashboard.recent_activity")}</div>
+              <div className="card-sub">{t("dashboard.recent_activity_sub")}</div>
             </div>
           </div>
           <div style={{ marginTop: 14, paddingBottom: 6 }}>
@@ -200,7 +208,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
             ))}
             {e.recent_activity.length === 0 && (
               <div className="row-meta" style={{ padding: "12px var(--pad)" }}>
-                No activity yet — run a check-in to record allocations.
+                {t("dashboard.no_activity")}
               </div>
             )}
           </div>
@@ -211,18 +219,19 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
 }
 
 function MaintRow({ item }: { item: MaintenanceItem }) {
+  const { t } = useTranslation();
   const pill = maintenancePill(item.status);
   const progress = Math.min(1, Math.max(item.km_progress ?? 0, item.month_progress ?? 0));
   const byKm = item.interval_km !== null;
   const currentText = byKm
-    ? `${fmtNumber(item.km_since_service ?? 0)} / ${fmtNumber(item.interval_km ?? 0)} km`
-    : `${item.months_since_service ?? 0} / ${item.interval_months ?? 0} mo`;
+    ? t("dashboard.maint_current_km", { current: fmtNumber(item.km_since_service ?? 0), total: fmtNumber(item.interval_km ?? 0) })
+    : t("dashboard.maint_current_mo", { current: item.months_since_service ?? 0, total: item.interval_months ?? 0 });
   const remainingText =
     item.status === "overdue"
-      ? "overdue"
+      ? t("dashboard.overdue")
       : byKm
-        ? `${fmtNumber(item.remaining_km ?? 0)} km left`
-        : `${item.remaining_months ?? 0} mo left`;
+        ? t("dashboard.maint_remaining_km", { km: fmtNumber(item.remaining_km ?? 0) })
+        : t("dashboard.maint_remaining_mo", { months: item.remaining_months ?? 0 });
 
   return (
     <div style={{ padding: "12px var(--pad)", borderTop: "1px solid var(--line-soft)" }}>
@@ -242,6 +251,7 @@ function MaintRow({ item }: { item: MaintenanceItem }) {
 }
 
 function TxRow({ tx }: { tx: ActivityItem }) {
+  const { t } = useTranslation();
   const fmt = useCurrency();
   const pos = tx.amount >= 0;
   return (
@@ -257,7 +267,7 @@ function TxRow({ tx }: { tx: ActivityItem }) {
       <div>
         <div style={{ fontSize: 14 }}>{tx.label}</div>
         <div className="row-meta" style={{ marginTop: 2 }}>
-          {fmtDateShort(tx.event_date)} · {tx.kind === "allocation" ? "into bucket" : "from bucket"}
+          {fmtDateShort(tx.event_date)} · {tx.kind === "allocation" ? t("dashboard.into_bucket") : t("dashboard.from_bucket")}
         </div>
       </div>
       <div

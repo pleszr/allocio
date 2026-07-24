@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api, ApiError } from "../api/client";
 import type { CheckInPreview, MaintenanceItem } from "../api/types";
 import { Icon } from "../components/Icon";
@@ -15,6 +16,7 @@ interface CheckInScreenProps {
 }
 
 export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
+  const { t } = useTranslation();
   const fmt = useCurrency();
   const detail = useAsync(() => api.getAsset(assetId), [assetId]);
 
@@ -37,7 +39,7 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
         setPreview(result);
       } catch (err) {
         setPreview(null);
-        setPreviewError(err instanceof ApiError ? err.message : "Preview failed.");
+        setPreviewError(err instanceof ApiError ? err.message : t("checkin.preview_failed"));
       } finally {
         setLoadingPreview(false);
       }
@@ -53,9 +55,9 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
     void runPreview(seed, todayIso());
   }, [detail.data, runPreview]);
 
-  if (detail.loading) return <LoadingState label="Loading check-in…" />;
+  if (detail.loading) return <LoadingState label={t("checkin.loading")} />;
   if (detail.error || !detail.data) {
-    return <ErrorState message={detail.error ?? "Asset not found."} onRetry={detail.reload} />;
+    return <ErrorState message={detail.error ?? t("checkin.not_found")} onRetry={detail.reload} />;
   }
 
   const e = detail.data;
@@ -72,7 +74,7 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
       setPosted(true);
       onPosted();
     } catch (err) {
-      setPreviewError(err instanceof ApiError ? err.message : "Posting failed.");
+      setPreviewError(err instanceof ApiError ? err.message : t("checkin.posting_failed"));
     } finally {
       setPosting(false);
     }
@@ -83,14 +85,16 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
       <div className="section-head">
         <div>
           <div className="eyebrow">
-            Check-in · {e.last_check_in_date ? `last on ${fmtDate(e.last_check_in_date)}` : "first check-in"}
+            {e.last_check_in_date
+              ? t("checkin.eyebrow_last", { date: fmtDate(e.last_check_in_date) })
+              : t("checkin.eyebrow_first")}
           </div>
           <h1 className="h1" style={{ marginTop: 4 }}>
             {daysSince !== null
-              ? `What's owed over the last ${daysSince} days?`
+              ? t("checkin.heading_days", { days: daysSince })
               : e.last_check_in_date
-                ? "What's owed for this period?"
-                : "Record your first check-in"}
+                ? t("checkin.heading_period")
+                : t("checkin.heading_first")}
           </h1>
         </div>
         <span className="month-pill" style={{ height: 32 }}>
@@ -105,15 +109,15 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
           <div className="card">
             <div className="card-hd">
               <div>
-                <span className="card-title">Step 1</span>{" "}
-                <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}>Log the period</span>
+                <span className="card-title">{t("checkin.step1")}</span>{" "}
+                <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}>{t("checkin.step1_title")}</span>
               </div>
-              <span className="pill pill-accent">required</span>
+              <span className="pill pill-accent">{t("checkin.required")}</span>
             </div>
             <div style={{ padding: "16px var(--pad) 20px" }}>
               <div style={{ display: "grid", gridTemplateColumns: usageTracked ? "1fr 1fr" : "1fr", gap: 16 }}>
                 <div className="field">
-                  <label className="field-label">Period end</label>
+                  <label className="field-label">{t("checkin.period_end")}</label>
                   <input
                     className="input"
                     type="date"
@@ -123,7 +127,7 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
                 </div>
                 {usageTracked && (
                   <div className="field">
-                    <label className="field-label">Current usage</label>
+                    <label className="field-label">{t("checkin.current_usage")}</label>
                     <div className="input-prefix-wrap">
                       <input
                         className="input mono"
@@ -142,10 +146,10 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
                   disabled={loadingPreview}
                   onClick={() => runPreview(Number(usageEnd || 0), periodEnd)}
                 >
-                  {loadingPreview ? "Calculating…" : "Update preview"}
+                  {loadingPreview ? t("checkin.calculating") : t("checkin.update_preview")}
                 </button>
                 {usageTracked && e.current_usage !== null && (
-                  <span className="row-meta">Last recorded usage: {fmtNumber(e.current_usage)} km</span>
+                  <span className="row-meta">{t("checkin.last_recorded", { usage: fmtNumber(e.current_usage) })}</span>
                 )}
               </div>
             </div>
@@ -155,8 +159,8 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
           <div className="card">
             <div className="card-hd">
               <div>
-                <span className="card-title">Step 2</span>{" "}
-                <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}>Review what's owed</span>
+                <span className="card-title">{t("checkin.step2")}</span>{" "}
+                <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}>{t("checkin.step2_title")}</span>
               </div>
             </div>
             {previewError ? (
@@ -165,16 +169,18 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
               </div>
             ) : !preview ? (
               <div style={{ padding: "16px var(--pad)" }} className="row-meta">
-                Set a period and update the preview to see accruals.
+                {t("checkin.review_hint")}
               </div>
             ) : (
               <div style={{ marginTop: 8 }}>
                 <div className="checkin-line">
                   <div>
-                    <div>Allocations</div>
+                    <div>{t("checkin.allocations")}</div>
                     <div className="checkin-line-detail">
-                      {preview.elapsed_days} days · {preview.allocation_lines.length} cost
-                      {preview.allocation_lines.length === 1 ? "" : "s"}
+                      {t("checkin.allocations_detail", {
+                        days: preview.elapsed_days,
+                        count: preview.allocation_lines.length,
+                      })}
                     </div>
                   </div>
                   <span></span>
@@ -184,9 +190,9 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
                 </div>
                 <div className="checkin-line">
                   <div>
-                    <div>Expenses</div>
+                    <div>{t("checkin.expenses")}</div>
                     <div className="checkin-line-detail">
-                      {preview.expense_lines.length} expense{preview.expense_lines.length === 1 ? "" : "s"} charged
+                      {t("checkin.expenses_detail", { count: preview.expense_lines.length })}
                     </div>
                   </div>
                   <span></span>
@@ -196,9 +202,12 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
                 </div>
                 <div className="totals-row">
                   <div>
-                    <div className="label">Net change to bucket</div>
+                    <div className="label">{t("checkin.net_change")}</div>
                     <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
-                      From {fmt(preview.balance_before, { decimals: 2 })} to {fmt(preview.balance_after, { decimals: 2 })}
+                      {t("checkin.from_to", {
+                        from: fmt(preview.balance_before, { decimals: 2 }),
+                        to: fmt(preview.balance_after, { decimals: 2 }),
+                      })}
                     </div>
                   </div>
                   <div className="num-lg" style={{ color: preview.net_bucket_change >= 0 ? "var(--good)" : "var(--bad)" }}>
@@ -213,14 +222,14 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
           <div className="card">
             <div className="card-hd">
               <div>
-                <span className="card-title">Step 3</span>{" "}
-                <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}>Maintenance flags</span>
+                <span className="card-title">{t("checkin.step3")}</span>{" "}
+                <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}>{t("checkin.step3_title")}</span>
               </div>
-              {flags.length > 0 && <span className="pill pill-warn">{flags.length} attention</span>}
+              {flags.length > 0 && <span className="pill pill-warn">{t("checkin.attention", { n: flags.length })}</span>}
             </div>
             <div style={{ padding: "14px var(--pad) 18px" }}>
               {flags.length === 0 ? (
-                <div className="row-meta">Nothing flagged — all maintenance items are current.</div>
+                <div className="row-meta">{t("checkin.nothing_flagged")}</div>
               ) : (
                 flags.map((m, i) => <FlagRow key={m.id} item={m} last={i === flags.length - 1} />)
               )}
@@ -231,7 +240,7 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
         {/* Right — confirm panel */}
         <div className="card" style={{ position: "sticky", top: 120, alignSelf: "start" }}>
           <div className="card-pad">
-            <div className="eyebrow">Confirm allocation</div>
+            <div className="eyebrow">{t("checkin.confirm_allocation")}</div>
             <div
               className="num-xl"
               style={{ marginTop: 12, color: preview && preview.net_bucket_change < 0 ? "var(--bad)" : "var(--good)" }}
@@ -239,18 +248,18 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
               {preview ? fmt(preview.net_bucket_change, { decimals: 2, sign: true }) : "—"}
             </div>
             <div className="muted" style={{ fontSize: 13, marginTop: 8 }}>
-              Net change to the bucket for this period.
+              {t("checkin.net_change_desc")}
             </div>
             <hr className="hr" />
             <div className="stack" style={{ gap: 8 }}>
-              <RowKV k="Allocations" v={preview ? fmt(preview.total_allocation, { decimals: 2, sign: true }) : "—"} />
-              <RowKV k="Expenses" v={preview ? fmt(-preview.total_expense, { decimals: 2 }) : "—"} />
-              <RowKV k="Bucket before" v={preview ? fmt(preview.balance_before, { decimals: 2 }) : "—"} />
-              <RowKV k="Bucket after" v={preview ? fmt(preview.balance_after, { decimals: 2 }) : "—"} bold />
+              <RowKV k={t("checkin.allocations")} v={preview ? fmt(preview.total_allocation, { decimals: 2, sign: true }) : "—"} />
+              <RowKV k={t("checkin.expenses")} v={preview ? fmt(-preview.total_expense, { decimals: 2 }) : "—"} />
+              <RowKV k={t("checkin.bucket_before")} v={preview ? fmt(preview.balance_before, { decimals: 2 }) : "—"} />
+              <RowKV k={t("checkin.bucket_after")} v={preview ? fmt(preview.balance_after, { decimals: 2 }) : "—"} bold />
             </div>
             <hr className="hr" />
             <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-              Confirming records this allocation against {e.name} and starts the next check-in cycle.
+              {t("checkin.confirm_desc", { name: e.name })}
             </div>
             <button
               className="btn btn-primary"
@@ -260,13 +269,13 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
             >
               {posted ? (
                 <>
-                  <Icon name="check" size={14} /> Posted
+                  <Icon name="check" size={14} /> {t("checkin.posted")}
                 </>
               ) : posting ? (
-                "Posting…"
+                t("checkin.posting")
               ) : (
                 <>
-                  Confirm and post <Icon name="arrowRight" size={13} />
+                  {t("checkin.confirm_post")} <Icon name="arrowRight" size={13} />
                 </>
               )}
             </button>
@@ -278,16 +287,17 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
 }
 
 function FlagRow({ item, last }: { item: MaintenanceItem; last: boolean }) {
+  const { t } = useTranslation();
   const pill = maintenancePill(item.status);
   const iconColor = item.status === "overdue" ? "var(--bad)" : "var(--warn)";
   const detail =
     item.status === "overdue"
-      ? "Past the recommended interval — schedule soon."
+      ? t("checkin.flag_overdue")
       : item.remaining_km !== null
-        ? `~${fmtNumber(item.remaining_km)} km until next service`
+        ? t("checkin.flag_km", { km: fmtNumber(item.remaining_km) })
         : item.remaining_months !== null
-          ? `~${item.remaining_months} months until next service`
-          : "Approaching its service interval";
+          ? t("checkin.flag_months", { months: item.remaining_months })
+          : t("checkin.flag_approaching");
   return (
     <div
       style={{

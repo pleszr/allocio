@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { api } from "./api/client";
 import type { CurrentUser, UserSettings, WorkspaceOverview } from "./api/types";
 import { Sidebar } from "./components/Sidebar";
 import { ErrorState, LoadingState } from "./components/StateView";
 import { Tabs } from "./components/Tabs";
 import { TopBar } from "./components/TopBar";
+import i18n, { resolveLanguage } from "./i18n";
 import { CurrencyProvider } from "./utils/currency";
 import { useAsync, type AsyncState } from "./utils/useAsync";
-import type { AssetTab, Route } from "./routes";
+import type { Route } from "./routes";
 import { CheckInScreen } from "./screens/CheckInScreen";
 import { CostsScreen } from "./screens/CostsScreen";
 import { DashboardScreen } from "./screens/DashboardScreen";
@@ -15,15 +18,14 @@ import { HomeScreen } from "./screens/HomeScreen";
 import { NewBucketScreen } from "./screens/NewBucketScreen";
 import { SignInScreen } from "./screens/SignInScreen";
 
-const TAB_LABEL: Record<AssetTab, string> = { dashboard: "Dashboard", costs: "Costs", checkin: "Check-in" };
-
 // Auth gate: before the workspace can render, find out whether the user is signed in.
 // Three outcomes — checking (spinner), not signed in (sign-in screen), signed in (the app).
 export default function App() {
   useOsTheme();
+  const { t } = useTranslation();
   const auth = useAsync(() => api.getMe(), []);
 
-  if (auth.loading && !auth.data) return <LoadingState label="Checking sign-in…" />;
+  if (auth.loading && !auth.data) return <LoadingState label={t("common.checking_sign_in")} />;
   // Any error here means "can't proceed authenticated": a 401 is the normal unauthenticated
   // case, and a network error still can't reach the workspace — both route to sign-in.
   if (auth.error || !auth.data) return <SignInScreen />;
@@ -31,6 +33,7 @@ export default function App() {
 }
 
 function Workspace({ user }: { user: CurrentUser }) {
+  const { t } = useTranslation();
   const [route, setRoute] = useState<Route>({ kind: "home" });
   const workspace = useAsync(() => api.listAssets(), []);
   const assets = workspace.data?.assets ?? [];
@@ -44,6 +47,12 @@ function Workspace({ user }: { user: CurrentUser }) {
     if (settings.data) setPrefs(settings.data);
   }, [settings.data]);
 
+  // Apply the persisted language once settings resolve, and re-apply if it changes (e.g. after a
+  // save). Before `prefs` resolves the app already renders English via the init `lng: 'en'`.
+  useEffect(() => {
+    if (prefs) void i18n.changeLanguage(resolveLanguage(prefs.language));
+  }, [prefs?.language]);
+
   // Keep routing valid if the active asset disappears from the workspace. Only act on a
   // settled load: during a reload (e.g. right after creating a bucket and navigating to it)
   // `workspace.data` still holds the pre-refetch list, which would otherwise bounce a
@@ -54,14 +63,14 @@ function Workspace({ user }: { user: CurrentUser }) {
     }
   }, [route, workspace.data, workspace.loading, assets]);
 
-  const crumbs = buildCrumbs(route, assets);
+  const crumbs = buildCrumbs(route, assets, t);
 
   // Gate the workspace on the initial settings load so money never flashes the wrong currency in
   // the sidebar/home before settings arrive.
   if (settings.error && !prefs) {
     return <ErrorState message={settings.error} onRetry={settings.reload} />;
   }
-  if (!prefs) return <LoadingState label="Loading your preferences…" />;
+  if (!prefs) return <LoadingState label={t("common.loading_preferences")} />;
 
   return (
     <CurrencyProvider currency={prefs.default_currency}>
@@ -81,9 +90,9 @@ function Workspace({ user }: { user: CurrentUser }) {
               value={route.tab}
               onChange={(tab) => setRoute({ ...route, tab })}
               items={[
-                { value: "dashboard", label: "Dashboard" },
-                { value: "costs", label: "Costs" },
-                { value: "checkin", label: "Check-in" },
+                { value: "dashboard", label: t("tabs.dashboard") },
+                { value: "costs", label: t("tabs.costs") },
+                { value: "checkin", label: t("tabs.checkin") },
               ]}
             />
           )}
@@ -103,6 +112,7 @@ function Content({
   setRoute: (r: Route) => void;
   workspace: AsyncState<WorkspaceOverview>;
 }) {
+  const { t } = useTranslation();
   if (route.kind === "new") {
     return (
       <NewBucketScreen
@@ -133,9 +143,9 @@ function Content({
   }
 
   // Home
-  if (workspace.loading) return <LoadingState label="Loading your workspace…" />;
+  if (workspace.loading) return <LoadingState label={t("common.loading_workspace")} />;
   if (workspace.error || !workspace.data) {
-    return <ErrorState message={workspace.error ?? "Could not load workspace."} onRetry={workspace.reload} />;
+    return <ErrorState message={workspace.error ?? t("states.could_not_load_workspace")} onRetry={workspace.reload} />;
   }
   return (
     <HomeScreen
@@ -146,11 +156,11 @@ function Content({
   );
 }
 
-function buildCrumbs(route: Route, assets: { id: string; name: string }[]): string[] {
-  if (route.kind === "home") return ["Workspace", "Overview"];
-  if (route.kind === "new") return ["Workspace", "New bucket"];
-  const name = assets.find((a) => a.id === route.assetId)?.name ?? "Asset";
-  return ["Workspace", name, TAB_LABEL[route.tab]];
+function buildCrumbs(route: Route, assets: { id: string; name: string }[], t: TFunction): string[] {
+  if (route.kind === "home") return [t("breadcrumbs.workspace"), t("breadcrumbs.overview")];
+  if (route.kind === "new") return [t("breadcrumbs.workspace"), t("breadcrumbs.new_bucket")];
+  const name = assets.find((a) => a.id === route.assetId)?.name ?? t("breadcrumbs.asset");
+  return [t("breadcrumbs.workspace"), name, t(`tabs.${route.tab}`)];
 }
 
 // Mirrors the OS light/dark preference onto <html data-theme>, which the
