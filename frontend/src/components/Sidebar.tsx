@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { AssetSummary, CurrentUser, UserSettings } from "../api/types";
 import { illoKind } from "../utils/assetType";
 import { useCurrency } from "../utils/currency";
@@ -15,6 +16,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ assets, route, onNavigate, user, settings, onSettingsSaved }: SidebarProps) {
+  const { t } = useTranslation();
   const fmt = useCurrency();
   const activeAssetId = route.kind === "asset" ? route.assetId : null;
   const onOverview = route.kind === "home";
@@ -30,10 +32,10 @@ export function Sidebar({ assets, route, onNavigate, user, settings, onSettingsS
       </div>
 
       <div>
-        <div className="side-section-label">Workspace</div>
+        <div className="side-section-label">{t("sidebar.workspace")}</div>
         <div className="side-nav">
           <button className="side-item" aria-current={onOverview} onClick={() => onNavigate({ kind: "home" })}>
-            <Icon name="home" className="side-item-icon" /> Overview
+            <Icon name="home" className="side-item-icon" /> {t("sidebar.overview")}
           </button>
           <button
             className="side-item"
@@ -41,13 +43,13 @@ export function Sidebar({ assets, route, onNavigate, user, settings, onSettingsS
             disabled={!checkinTarget}
             onClick={() => checkinTarget && onNavigate({ kind: "asset", assetId: checkinTarget, tab: "checkin" })}
           >
-            <Icon name="calendar" className="side-item-icon" /> Monthly check-in
+            <Icon name="calendar" className="side-item-icon" /> {t("sidebar.monthly_checkin")}
           </button>
         </div>
       </div>
 
       <div>
-        <div className="side-section-label">Tracked items</div>
+        <div className="side-section-label">{t("sidebar.tracked_items")}</div>
         <div className="side-entities">
           {assets.map((a) => (
             <button
@@ -66,7 +68,7 @@ export function Sidebar({ assets, route, onNavigate, user, settings, onSettingsS
             </button>
           ))}
           <button className="side-item" onClick={() => onNavigate({ kind: "new" })}>
-            <Icon name="plus" className="side-item-icon" /> Add item
+            <Icon name="plus" className="side-item-icon" /> {t("sidebar.add_item")}
           </button>
         </div>
       </div>

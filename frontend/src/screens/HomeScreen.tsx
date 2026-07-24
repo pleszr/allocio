@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { AssetSummary, WorkspaceOverview } from "../api/types";
 import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
@@ -12,6 +13,7 @@ interface HomeScreenProps {
 }
 
 export function HomeScreen({ overview, onOpenAsset, onNew }: HomeScreenProps) {
+  const { t } = useTranslation();
   const { assets, totals } = overview;
   const fmt = useCurrency();
   const underfunded = assets.filter((a) => a.health === "underfunded");
@@ -20,15 +22,15 @@ export function HomeScreen({ overview, onOpenAsset, onNew }: HomeScreenProps) {
     <div className="content fade-in">
       <div className="section-head">
         <div>
-          <h1 className="h1">Your buckets</h1>
+          <h1 className="h1">{t("home.title")}</h1>
           <div className="muted" style={{ marginTop: 6, fontSize: 14 }}>
             {assets.length > 0
-              ? `${assets.length} tracked ${assets.length === 1 ? "item" : "items"} — here's how they're doing today.`
-              : "Set up your first tracked item and Allocio will smooth its costs into a steady monthly allocation."}
+              ? t("home.subtitle", { count: assets.length })
+              : t("home.subtitle_empty")}
           </div>
         </div>
         <button className="btn btn-primary" onClick={onNew}>
-          <Icon name="plus" size={14} /> New bucket
+          <Icon name="plus" size={14} /> {t("home.new_bucket")}
         </button>
       </div>
 
@@ -40,32 +42,32 @@ export function HomeScreen({ overview, onOpenAsset, onNew }: HomeScreenProps) {
           <span className="bucket-add-icon">
             <Icon name="plus" size={20} stroke={2} />
           </span>
-          Add a new bucket
+          {t("home.add_bucket")}
         </button>
       </div>
 
       {assets.length > 0 && (
         <>
           <div className="section-head">
-            <h2 className="h2">Monthly overview</h2>
+            <h2 className="h2">{t("home.monthly_overview")}</h2>
           </div>
           <div className="summary">
             <div className="summary-cell">
-              <div className="summary-label">Total to allocate</div>
+              <div className="summary-label">{t("home.total_to_allocate")}</div>
               <div className="num-lg">{fmt(totals.total_recommended_monthly_allocation, { decimals: 0 })}</div>
               <div className="row-meta" style={{ marginTop: 4 }}>
-                recommended across all buckets
+                {t("home.recommended_across")}
               </div>
             </div>
             <div className="summary-cell">
-              <div className="summary-label">Combined balance</div>
+              <div className="summary-label">{t("home.combined_balance")}</div>
               <div className="num-lg">{fmt(totals.total_balance, { decimals: 0 })}</div>
               <div className="row-meta" style={{ marginTop: 4 }}>
-                across {assets.length} {assets.length === 1 ? "bucket" : "buckets"}
+                {t("home.across_buckets", { count: assets.length })}
               </div>
             </div>
             <div className="summary-cell">
-              <div className="summary-label">Alerts</div>
+              <div className="summary-label">{t("home.alerts")}</div>
               {totals.alert_count > 0 ? (
                 <>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
@@ -73,13 +75,13 @@ export function HomeScreen({ overview, onOpenAsset, onNew }: HomeScreenProps) {
                       <Icon name="alert" size={14} stroke={2.4} />
                     </span>
                     <span className="num-md" style={{ color: "var(--bad)" }}>
-                      {totals.alert_count} {totals.alert_count === 1 ? "issue" : "issues"}
+                      {t("home.issues", { count: totals.alert_count })}
                     </span>
                   </div>
                   <div className="row-meta" style={{ marginTop: 6 }}>
                     {underfunded.length === 1
-                      ? `${underfunded[0].name} is underfunded`
-                      : `${totals.alert_count} buckets are underfunded`}
+                      ? t("home.underfunded_one", { name: underfunded[0].name })
+                      : t("home.underfunded_many", { n: totals.alert_count })}
                   </div>
                 </>
               ) : (
@@ -89,11 +91,11 @@ export function HomeScreen({ overview, onOpenAsset, onNew }: HomeScreenProps) {
                       <Icon name="check" size={14} stroke={2.4} />
                     </span>
                     <span className="num-md" style={{ color: "var(--good)" }}>
-                      All clear
+                      {t("home.all_clear")}
                     </span>
                   </div>
                   <div className="row-meta" style={{ marginTop: 6 }}>
-                    Every bucket is on track
+                    {t("home.all_on_track")}
                   </div>
                 </>
               )}
@@ -106,6 +108,7 @@ export function HomeScreen({ overview, onOpenAsset, onNew }: HomeScreenProps) {
 }
 
 function BucketCard({ asset, onOpen }: { asset: AssetSummary; onOpen: () => void }) {
+  const { t } = useTranslation();
   const fmt = useCurrency();
   const kind = illoKind(asset.type);
   const band = healthBand(asset.health);
@@ -123,11 +126,11 @@ function BucketCard({ asset, onOpen }: { asset: AssetSummary; onOpen: () => void
         </div>
         <div className="bucket-stats">
           <div className="bucket-row">
-            <span className="bucket-row-label">Balance</span>
+            <span className="bucket-row-label">{t("home.balance")}</span>
             <span className="bucket-row-val">{fmt(asset.balance, { decimals })}</span>
           </div>
           <div className="bucket-row">
-            <span className="bucket-row-label">Next allocation</span>
+            <span className="bucket-row-label">{t("home.next_allocation")}</span>
             <span className="bucket-row-val">{fmt(asset.recommended_monthly_allocation, { decimals: 0 })}</span>
           </div>
         </div>
