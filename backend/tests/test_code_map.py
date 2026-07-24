@@ -309,8 +309,38 @@ def test_overview_diff_payload_buckets_added_vs_modified():
     assert payload["removed"] == []
 
 
+def test_overview_diff_payload_marks_existing_file_with_added_symbol_as_modified():
+    before = {"path": "backend/app/n.py", "language": "python", "imports": [], "functions": [], "classes": [], "routes": []}
+    after = {
+        "path": "backend/app/n.py",
+        "language": "python",
+        "imports": [],
+        "functions": [{"name": "foo", "line_start": 1, "line_end": 2, "hash": "a"}],
+        "classes": [],
+        "routes": [],
+    }
+    diff = cm.diff_maps(_map(backend=[before]), _map(backend=[after]), ["backend/app/n.py"])
+
+    assert cm._overview_diff_payload(diff) == {
+        "added": [],
+        "modified": ["backend/app/n.py"],
+        "removed": [],
+    }
+
+
+def test_overview_diff_payload_includes_file_only_product_modules():
+    entry = {"path": "frontend/src/api/types.ts", "language": "typescript", "imports": [], "functions": [], "classes": [], "components": []}
+    diff = cm.diff_maps(_map(frontend=[entry]), _map(frontend=[entry]), ["frontend/src/api/types.ts", "docs/domain-model.md"])
+
+    assert cm._overview_diff_payload(diff) == {
+        "added": [],
+        "modified": ["frontend/src/api/types.ts"],
+        "removed": [],
+    }
+
+
 # --------------------------------------------------------------------------- #
-# Interactive HTML overview (docs/code-map.html)
+# Interactive HTML architecture review
 # --------------------------------------------------------------------------- #
 
 
@@ -329,6 +359,26 @@ def test_overview_html_is_self_contained(tmp_path):
     # No external resources are fetched (the only http URL is the inert SVG namespace).
     assert 'src="http' not in html
     assert 'href="http' not in html
+
+
+def test_overview_html_embeds_pr_changes_and_exact_head_links(tmp_path):
+    entry = _py_entry(tmp_path, "backend/app/services/s.py", "def go():\n    return 1\n")
+    html = cm.render_overview_html(
+        _map(backend=[entry]),
+        change_map={
+            "added": [],
+            "modified": ["backend/app/services/s.py"],
+            "removed": [],
+        },
+        blob_base="https://github.com/pleszr/allocio/blob/abc123/",
+    )
+
+    assert '"modified": ["backend/app/services/s.py"]' in html
+    assert '"blobBase": "https://github.com/pleszr/allocio/blob/abc123/"' in html
+    assert '"removedBlobBase": "https://github.com/pleszr/allocio/blob/abc123/"' in html
+    assert 'id="changedOnly" checked' in html
+    assert "show only changes in this PR" in html
+    assert "location.hash" not in html
 
 
 def test_overview_html_excludes_init_tests_and_tooling(tmp_path):
@@ -370,6 +420,55 @@ def test_overview_payload_frontend_component_not_duplicated_as_fn():
     assert ("component", "App") in kinds
     assert ("fn", "App") not in kinds
     assert ["frontend/src/main.tsx", "frontend/src/App.tsx"] in frontend["edges"]
+
+
+def test_overview_map_keeps_removed_modules_from_the_base():
+    removed = {
+        "path": "backend/app/services/removed.py",
+        "language": "python",
+        "imports": [],
+        "functions": [{"name": "gone", "line_start": 1, "line_end": 2, "hash": "a"}],
+        "classes": [],
+        "routes": [],
+    }
+
+    preview = cm._overview_map_with_removed_files(
+        _map(backend=[removed]),
+        _map(),
+        ["backend/app/services/removed.py"],
+    )
+
+    assert preview["areas"]["backend"]["files"] == [removed]
+
+
+@requires_frontend
+def test_write_overview_html_diff_uses_committed_pr_range(temp_repo):
+    _commit_source(temp_repo, "def foo():\n    return 1\n")
+    base_sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=temp_repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    (temp_repo / "backend" / "app" / "svc.py").write_text("def foo():\n    return 2\n", encoding="utf-8")
+    _git(temp_repo, "add", "backend/app/svc.py")
+    _git(temp_repo, "commit", "-q", "-m", "change")
+    head_sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=temp_repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    output = temp_repo / "preview.html"
+
+    assert cm._command_write_overview_html_diff("HEAD^...HEAD", output) == 0
+
+    html = output.read_text(encoding="utf-8")
+    assert '"modified": ["backend/app/svc.py"]' in html
+    assert f'"blobBase": "https://github.com/pleszr/allocio/blob/{head_sha}/"' in html
+    assert f'"removedBlobBase": "https://github.com/pleszr/allocio/blob/{base_sha}/"' in html
 
 
 # --------------------------------------------------------------------------- #

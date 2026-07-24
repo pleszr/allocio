@@ -74,14 +74,14 @@ When work starts from an issue-planner requirements file under `.claude/plans/`,
 
 The requirements file is a temporary working artifact. Delete it before the final commit or PR unless Roland explicitly asks to keep it.
 
-Do not paste a `Structural Changes` section into the PR body. The `structural-diff` CI workflow generates the layer-grouped Change Map for the PR range (`origin/<base>...HEAD`) and posts it as a single sticky PR comment, refreshing that same comment on every push. It is CI-owned — there is nothing to embed or keep in sync by hand.
+Do not paste `Structural Changes` or `Architecture overview` sections into the PR body. The `architecture-review` CI workflow generates a self-contained interactive review for the PR range (`origin/<base>...HEAD`), publishes it under the repository's GitHub Pages site, and maintains one link-only sticky PR comment. The HTML and its change payload are CI-owned — there is nothing to generate, commit, or keep in sync by hand.
 
 ## Structural Code Map
 
 - `docs/code-map.json` is a generated, deterministic map of backend, frontend, and tooling symbols. Symbol hashes are derived from the parsed AST, so the generator must run under Python 3.14 (the documented runtime) for reproducible output. Always invoke it via `uv run --python 3.14 python tools/code_map.py ...`, never the bare system `python3`.
-- `docs/code-map.html` is the generated human-readable architecture overview: a self-contained, interactive columnar module graph per area (hover to trace dependencies, filter by layer, click a node to open the file on GitHub, `#chg=` mode to highlight a PR's changes). It is derived from the same parsed source — deterministic, no LLM, byte-stable. Regenerate it alongside the JSON whenever source changes: `uv run --python 3.14 python tools/code_map.py --write-overview-html docs/code-map.html && git add docs/code-map.html`. GitHub renders committed `.html` as source, so view it via `open docs/code-map.html` or the githack proxy link embedded in the PR body.
 - Regenerate and re-stage the JSON map whenever backend, frontend, or tooling source changes: `uv run --python 3.14 python tools/code_map.py --write docs/code-map.json && git add docs/code-map.json`.
-- Pre-commit hooks (`code-map-staged-check` and `code-map-overview-check` in `.pre-commit-config.yaml`) block commits when staged source and the staged `docs/code-map.json` or `docs/code-map.html` disagree; the `structural-diff` CI workflow re-checks both on pull requests. The hooks only validate — they never regenerate files.
+- The interactive architecture review is generated only by CI; it is not committed. To inspect the same page locally, run `uv run --python 3.14 python tools/code_map.py --write-overview-html-diff origin/main...HEAD /tmp/allocio-architecture-review.html` and open the output file.
+- The `code-map-staged-check` pre-commit hook blocks commits when staged source and staged `docs/code-map.json` disagree. The `architecture-review` CI workflow repeats that check, generates the interactive HTML with the PR change set embedded, and publishes it to the `gh-pages` branch. The repository's Pages source must be configured as `gh-pages` at `/`; CI creates and maintains the branch and removes a PR's preview when the PR closes.
 - Review staged structural changes before commit with `uv run --python 3.14 python tools/code_map.py --staged --format markdown`.
 
 ## Secret Scanning

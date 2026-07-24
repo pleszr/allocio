@@ -185,8 +185,8 @@ Targets:
 
 Use for:
 
-- changes to how `docs/code-map.json` or the `docs/code-map.html` architecture overview is generated, checked, or diffed
-- structural-diff CI change-map comment and code-map check expectations
+- changes to how `docs/code-map.json` or the CI-generated interactive architecture review is generated, checked, or published
+- architecture-review CI preview-link and code-map check expectations
 - symbol-extraction behavior for Python or TypeScript
 
 ## Source-Of-Truth Docs, Not Memory Files

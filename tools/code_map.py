@@ -12,15 +12,14 @@ Commands:
     python tools/code_map.py --check-staged docs/code-map.json
     python tools/code_map.py --staged --format markdown
     python tools/code_map.py --diff origin/main...HEAD --format markdown
-    python tools/code_map.py --write-overview-html docs/code-map.html
-    python tools/code_map.py --check-overview-html docs/code-map.html
-    python tools/code_map.py --overview-html-diff origin/main...HEAD
+    python tools/code_map.py --write-overview-html /tmp/code-map.html
+    python tools/code_map.py --write-overview-html-diff origin/main...HEAD /tmp/code-map.html
 """
 from __future__ import annotations
 
 import argparse
 import ast
-import base64
+import copy
 import hashlib
 import json
 import subprocess
@@ -61,12 +60,10 @@ LAYER_ORDER = (
     "API", "Services", "Repository", "Domain", "Common", "Migrations", "Tooling", "Other",
 )
 
-# Interactive HTML overview (docs/code-map.html). The page links each node to its
-# source on GitHub and is reachable from a PR via the githack proxy over the head
-# branch. Repo confirmed public as pleszr/allocio.
-GITHUB_BLOB_BASE = "https://github.com/pleszr/allocio/blob/main/"
-GITHUB_RAW_PROXY_BASE = "https://raw.githack.com/pleszr/allocio/"
-OVERVIEW_HTML_PATH = "docs/code-map.html"
+# Interactive HTML overview. CI generates a PR-specific page and publishes it to
+# GitHub Pages; the generated page links every node to the exact PR head commit.
+GITHUB_BLOB_ROOT = "https://github.com/pleszr/allocio/blob/"
+GITHUB_BLOB_BASE = f"{GITHUB_BLOB_ROOT}main/"
 # Default to product code only: the tooling area (the code map's own churny
 # helpers) is collapsed out of the graph. Flip to include it.
 OVERVIEW_INCLUDE_TOOLING = False
@@ -127,10 +124,9 @@ def _dispatch(args: argparse.Namespace) -> int:
         return _command_markdown_diff(args.diff)
     if args.write_overview_html:
         return _command_write_overview_html(Path(args.write_overview_html))
-    if args.check_overview_html:
-        return _command_check_overview_html(Path(args.check_overview_html))
-    if args.overview_html_diff:
-        return _command_overview_html_diff(args.overview_html_diff)
+    if args.write_overview_html_diff:
+        range_expr, path = args.write_overview_html_diff
+        return _command_write_overview_html_diff(range_expr, Path(path))
     print("No command given. See --help.", file=sys.stderr)
     return 1
 
@@ -144,8 +140,13 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--diff", metavar="RANGE", help="Render structural Markdown for a base...head range.")
     parser.add_argument("--format", choices=["markdown"], help="Output format for --staged and --diff.")
     parser.add_argument("--write-overview-html", dest="write_overview_html", metavar="PATH", help="Write the interactive HTML architecture overview to PATH.")
-    parser.add_argument("--check-overview-html", dest="check_overview_html", metavar="PATH", help="Fail if the HTML overview PATH is stale versus the working tree.")
-    parser.add_argument("--overview-html-diff", dest="overview_html_diff", metavar="RANGE", help="Print a githack proxy URL that opens the HTML overview in changed-only mode for a base...head range.")
+    parser.add_argument(
+        "--write-overview-html-diff",
+        dest="write_overview_html_diff",
+        nargs=2,
+        metavar=("RANGE", "PATH"),
+        help="Write a PR-head HTML overview with the RANGE structural changes embedded.",
+    )
     return parser.parse_args(argv)
 
 
@@ -204,23 +205,25 @@ def _command_write_overview_html(path: Path) -> int:
     return 0
 
 
-def _command_check_overview_html(path: Path) -> int:
-    expected = render_overview_html(build_map(REPO_ROOT))
-    if _read_text_or_empty(path) == expected:
-        return 0
-    print(f"{path} is stale versus the working tree.", file=sys.stderr)
-    print(f"Run: uv run --python 3.14 python tools/code_map.py --write-overview-html {path}", file=sys.stderr)
-    return 1
-
-
-def _command_overview_html_diff(range_expr: str) -> int:
+def _command_write_overview_html_diff(range_expr: str, path: Path) -> int:
+    """Write a self-contained architecture review for one committed PR range."""
     left, right = _split_range(range_expr)
     base_ref = _merge_base(left, right)
     base_map = _map_at_ref(base_ref)
     head_map = _map_at_ref(right)
     changed = _changed_files(["diff", "--name-only", base_ref, right])
     diff = diff_maps(base_map, head_map, changed)
-    print(_overview_html_diff_url(diff))
+    change_map = _overview_diff_payload(diff)
+    preview_map = _overview_map_with_removed_files(base_map, head_map, change_map["removed"])
+    head_sha = _rev_parse(right)
+    html = render_overview_html(
+        preview_map,
+        change_map=change_map,
+        blob_base=f"{GITHUB_BLOB_ROOT}{head_sha}/",
+        removed_blob_base=f"{GITHUB_BLOB_ROOT}{base_ref}/",
+    )
+    path.write_text(html, encoding="utf-8")
+    print(f"Wrote {path}")
     return 0
 
 
@@ -436,6 +439,7 @@ class DiffResult:
     file_only: list[str] = field(default_factory=list)
     import_changes: list[ImportChange] = field(default_factory=list)
     changed_files: list[str] = field(default_factory=list)
+    file_statuses: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -461,6 +465,13 @@ def diff_maps(base_map: dict, head_map: dict, changed_files: list[str]) -> DiffR
     git_changed = set(changed_files)
     result.changed_files = sorted(git_changed | touched)
     result.file_only = sorted(path for path in git_changed if path not in touched)
+    for path in result.changed_files:
+        if path in head_imports and path not in base_imports:
+            result.file_statuses[path] = "Added"
+        elif path in base_imports and path not in head_imports:
+            result.file_statuses[path] = "Removed"
+        else:
+            result.file_statuses[path] = "Modified"
     return result
 
 
@@ -677,29 +688,52 @@ def _is_test_file(path: str) -> bool:
 
 
 # --------------------------------------------------------------------------- #
-# Interactive HTML architecture overview (docs/code-map.html)
+# Interactive HTML architecture review
 # --------------------------------------------------------------------------- #
 
 
-def render_overview_html(code_map: dict) -> str:
+def render_overview_html(
+    code_map: dict,
+    *,
+    change_map: dict | None = None,
+    blob_base: str = GITHUB_BLOB_BASE,
+    removed_blob_base: str | None = None,
+) -> str:
     """Render the deterministic, self-contained interactive HTML overview.
 
     The document is byte-stable: the template is static and the embedded map is
     serialized with sorted keys. All layout is computed client-side from the
     embedded data, so nothing here depends on run order or environment.
     """
-    payload = _overview_html_payload(code_map)
-    return _OVERVIEW_HTML_TEMPLATE.replace("__CODE_MAP_JSON__", _embed_json(payload))
+    payload = _overview_html_payload(
+        code_map,
+        blob_base=blob_base,
+        removed_blob_base=removed_blob_base or blob_base,
+    )
+    return (
+        _OVERVIEW_HTML_TEMPLATE
+        .replace("__CODE_MAP_JSON__", _embed_json(payload))
+        .replace("__CHANGE_MAP_JSON__", _embed_json(change_map))
+    )
 
 
-def _overview_html_payload(code_map: dict) -> dict:
+def _overview_html_payload(
+    code_map: dict,
+    *,
+    blob_base: str = GITHUB_BLOB_BASE,
+    removed_blob_base: str | None = None,
+) -> dict:
     areas = [
         _overview_area_payload("Backend", code_map["areas"]["backend"]["files"], "backend/"),
         _overview_area_payload("Frontend", code_map["areas"]["frontend"]["files"], "frontend/"),
     ]
     if OVERVIEW_INCLUDE_TOOLING:
         areas.append(_overview_area_payload("Tooling", code_map["areas"]["tooling"]["files"], ""))
-    return {"blobBase": GITHUB_BLOB_BASE, "areas": [area for area in areas if area["nodes"]]}
+    return {
+        "blobBase": blob_base,
+        "removedBlobBase": removed_blob_base or blob_base,
+        "areas": [area for area in areas if area["nodes"]],
+    }
 
 
 def _overview_area_payload(title: str, files: list[dict], prefix: str) -> dict:
@@ -760,16 +794,11 @@ def _overview_edges(files: list[dict], paths: set[str]) -> list[list[str]]:
     return [list(edge) for edge in sorted(edges)]
 
 
-def _overview_html_diff_url(diff: DiffResult) -> str:
-    """Build the githack proxy URL that opens the HTML overview in changed-only mode."""
-    payload = json.dumps(_overview_diff_payload(diff), sort_keys=True).encode("utf-8")
-    encoded = base64.urlsafe_b64encode(payload).decode("ascii")
-    branch = _git("rev-parse", "--abbrev-ref", "HEAD").strip()
-    return f"{GITHUB_RAW_PROXY_BASE}{branch}/{OVERVIEW_HTML_PATH}#chg={encoded}"
-
-
 def _overview_diff_payload(diff: DiffResult) -> dict:
     statuses: dict[str, set[str]] = {}
+    for path, status in diff.file_statuses.items():
+        if _overview_source_file(path):
+            statuses.setdefault(path, set()).add(status)
     for status, change in _iter_changes(diff):
         statuses.setdefault(change.path, set()).add(status)
     for change in diff.import_changes:
@@ -786,7 +815,33 @@ def _overview_diff_payload(diff: DiffResult) -> dict:
     return {"added": added, "modified": modified, "removed": removed}
 
 
-def _embed_json(payload: dict) -> str:
+def _overview_source_file(path: str) -> bool:
+    """Return whether a changed path can appear as a product module in the overview."""
+    product_prefix = (
+        path.startswith("backend/app/")
+        or path.startswith("backend/alembic/versions/")
+        or path.startswith("frontend/src/")
+    )
+    return product_prefix and _overview_include(path) and PurePosixPath(path).suffix in {".py", ".ts", ".tsx"}
+
+
+def _overview_map_with_removed_files(base_map: dict, head_map: dict, removed_paths: list[str]) -> dict:
+    """Keep removed modules visible in a PR review using their base-ref structure."""
+    preview_map = copy.deepcopy(head_map)
+    removed = set(removed_paths)
+    for area, base_payload in base_map["areas"].items():
+        preview_files = preview_map["areas"][area]["files"]
+        preview_paths = {entry["path"] for entry in preview_files}
+        preview_files.extend(
+            copy.deepcopy(entry)
+            for entry in base_payload["files"]
+            if entry["path"] in removed and entry["path"] not in preview_paths
+        )
+        preview_files.sort(key=lambda entry: entry["path"])
+    return preview_map
+
+
+def _embed_json(payload: object) -> str:
     text = json.dumps(payload, sort_keys=True)
     return text.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
@@ -1068,7 +1123,7 @@ _OVERVIEW_HTML_TEMPLATE = '''<!doctype html>
   <span class="title">Allocio architecture</span>
   <span class="hint">hover a module to trace its dependencies · click to inspect</span>
   <div class="filters" id="filters"></div>
-  <label class="changed-toggle hidden" id="changedWrap"><input type="checkbox" id="changedOnly"> only changed</label>
+  <label class="changed-toggle hidden" id="changedWrap"><input type="checkbox" id="changedOnly" checked> show only changes in this PR</label>
   <div class="legend hidden" id="legend"><span class="l-added">added</span><span class="l-modified">modified</span><span class="l-removed">removed</span></div>
 </div>
 <main id="areas"></main>
@@ -1081,26 +1136,20 @@ _OVERVIEW_HTML_TEMPLATE = '''<!doctype html>
 </aside>
 <script>
 window.__CODE_MAP__ = __CODE_MAP_JSON__;
+window.__CHANGE_MAP__ = __CHANGE_MAP_JSON__;
 (function () {
   "use strict";
   var data = window.__CODE_MAP__;
   var SVGNS = "http://www.w3.org/2000/svg";
   var enabled = new Set();
   var areas = [];
-  var chg = parseChg();
+  var chg = parseChg(window.__CHANGE_MAP__);
 
   function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
 
-  function b64urlDecode(s) {
-    s = s.replace(/-/g, "+").replace(/_/g, "/");
-    while (s.length % 4) { s += "="; }
-    return atob(s);
-  }
-  function parseChg() {
-    var m = location.hash.match(/chg=([^&]+)/);
-    if (!m) { return null; }
+  function parseChg(obj) {
+    if (!obj || typeof obj !== "object") { return null; }
     try {
-      var obj = JSON.parse(b64urlDecode(decodeURIComponent(m[1])));
       var mk = function (a) { return new Set(Array.isArray(a) ? a : []); };
       var added = mk(obj.added), modified = mk(obj.modified), removed = mk(obj.removed);
       var all = new Set();
@@ -1232,7 +1281,8 @@ window.__CODE_MAP__ = __CODE_MAP_JSON__;
       list.appendChild(li);
     });
     var open = document.getElementById("panelOpen");
-    open.href = data.blobBase + node.path + (node.line ? "#L" + node.line : "");
+    var sourceBase = chg && chg.removed.has(node.path) ? data.removedBlobBase : data.blobBase;
+    open.href = sourceBase + node.path + (node.line ? "#L" + node.line : "");
     document.getElementById("panel").classList.remove("hidden");
   }
 
