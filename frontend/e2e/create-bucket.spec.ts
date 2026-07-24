@@ -20,7 +20,9 @@ test("create a vehicle bucket through the wizard and land on its dashboard", asy
   );
   await page.getByRole("button", { name: /Vehicle/ }).click();
   await catalogFetched;
-  await page.getByRole("button", { name: /Continue/ }).click();
+
+  // Selecting the type card auto-advances straight to Step 2 — no separate Continue click.
+  await expect(page.getByText("Tell us about it")).toBeVisible();
 
   // Step 2 — name the bucket (required to advance).
   await page.getByTestId("bucket-name-input").fill("E2E Test Car");
@@ -42,4 +44,25 @@ test("create a vehicle bucket through the wizard and land on its dashboard", asy
   await expect(page.getByRole("heading", { name: "E2E Test Car" })).toBeVisible();
   await expect(page.locator(".error-banner")).toHaveCount(0);
   await expect(page.getByText(/not found/i)).toHaveCount(0);
+});
+
+test("Back from Step 2 preserves the selected type and re-advances on a new pick", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Your buckets" })).toBeVisible();
+
+  await page.getByRole("button", { name: "New bucket", exact: true }).click();
+  const catalogFetched = page.waitForResponse(
+    (r) => r.url().includes("/api/asset-templates/vehicle/catalog") && r.ok(),
+  );
+  await page.getByRole("button", { name: /Vehicle/ }).click();
+  await catalogFetched;
+  await expect(page.getByText("Tell us about it")).toBeVisible();
+
+  // Back returns to Step 1 with the previously selected type still highlighted.
+  await page.getByRole("button", { name: /Back/ }).click();
+  await expect(page.getByRole("button", { name: /Vehicle/ })).toHaveAttribute("aria-pressed", "true");
+
+  // Picking a different type re-advances straight to Step 2 with the new type reflected.
+  await page.getByRole("button", { name: /Property/ }).click();
+  await expect(page.getByText("Tell us about it")).toBeVisible();
 });

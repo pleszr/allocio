@@ -20,7 +20,6 @@ test("change currency relabels money and language persists across reload", async
   );
   await page.getByRole("button", { name: /Vehicle/ }).click();
   await catalogFetched;
-  await page.getByRole("button", { name: /Continue/ }).click();
   await page.getByTestId("bucket-name-input").fill("Currency Test Car");
   await page.getByRole("button", { name: /Continue/ }).click();
   await page.getByRole("button", { name: /Continue/ }).click();

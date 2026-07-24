@@ -263,7 +263,15 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
           steps={[t("newBucket.step_type"), t("newBucket.step_details"), t("newBucket.step_costs"), t("newBucket.step_review")]}
         />
 
-        {step === 1 && <Step1 selected={type} onSelect={setType} />}
+        {step === 1 && (
+          <Step1
+            selected={type}
+            onSelect={(t) => {
+              setType(t);
+              setStep(2);
+            }}
+          />
+        )}
         {step === 2 && <Step2 type={type!} name={name} setName={setName} meta={meta} setMeta={setMeta} />}
         {step === 3 && (
           <Step3
@@ -318,7 +326,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
                 </div>
               </div>
             )}
-            {step < 4 ? (
+            {step === 1 ? null : step < 4 ? (
               <button className="btn btn-primary" disabled={!canNext} onClick={() => canNext && setStep(step + 1)}>
                 {t("newBucket.continue")} <Icon name="arrowRight" size={13} />
               </button>
