@@ -12,7 +12,7 @@ from tests.conftest import TEST_USER_ID
 VEHICLE_BODY = {
     "name": "My Car",
     "template": "vehicle",
-    "vehicle": {"year": 2018, "make": "Toyota", "model": "Corolla", "starting_odometer": 120000},
+    "vehicle": {"starting_odometer": 120000},
 }
 SELECTED_KEYS = ["mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"]
 VEHICLE_BODY_WITH_SELECTION = {**VEHICLE_BODY, "selected_cost_keys": SELECTED_KEYS}
@@ -29,7 +29,8 @@ def test_create_vehicle_no_selection_creates_profile_and_bucket_but_no_rows(clie
     assert payload["asset"]["id"] in response.headers["Location"]
     assert payload["asset"]["type"] == "vehicle"
     assert payload["profile"] is not None
-    assert payload["profile"]["make"] == "Toyota"
+    assert set(payload["profile"]) == {"asset_id", "starting_odometer"}
+    assert payload["profile"]["starting_odometer"] == 120000
     assert payload["time_based_costs"] == []
     assert payload["usage_based_costs"] == []
     assert payload["maintenance_items"] == []
@@ -154,6 +155,9 @@ def test_new_bucket_adopts_owner_default_currency_after_settings_change(
 def test_create_asset_rolls_back_on_failure(
     client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    bucket_count_before = len(db_session.scalars(select(Bucket)).all())
+    time_based_count_before = len(db_session.scalars(select(TimeBasedCost)).all())
+
     def boom(*_args: object, **_kwargs: object) -> None:
         raise RuntimeError("forced failure mid-transaction")
 
@@ -163,8 +167,8 @@ def test_create_asset_rolls_back_on_failure(
 
     assert response.status_code == 500
     assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
-    assert db_session.scalars(select(Bucket)).all() == []
-    assert db_session.scalars(select(TimeBasedCost)).all() == []
+    assert len(db_session.scalars(select(Bucket)).all()) == bucket_count_before
+    assert len(db_session.scalars(select(TimeBasedCost)).all()) == time_based_count_before
 
 
 def test_create_asset_missing_name_is_422(client: TestClient, db_session: Session) -> None:
@@ -182,7 +186,9 @@ def test_create_asset_missing_type_without_template_is_422(client: TestClient, d
 
 
 def test_vehicle_block_without_template_is_422(client: TestClient, db_session: Session) -> None:
-    response = client.post("/api/assets", json={"name": "My Car", "type": "vehicle", "vehicle": {"make": "Toyota"}})
+    response = client.post(
+        "/api/assets", json={"name": "My Car", "type": "vehicle", "vehicle": {"starting_odometer": 120000}}
+    )
 
     assert response.status_code == 422
     assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
@@ -197,6 +203,36 @@ def test_unknown_template_is_422(client: TestClient, db_session: Session) -> Non
 
 def test_negative_odometer_is_422(client: TestClient, db_session: Session) -> None:
     body = {"name": "My Car", "template": "vehicle", "vehicle": {"starting_odometer": -1}}
+    response = client.post("/api/assets", json=body)
+
+    assert response.status_code == 422
+    assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
+
+
+def test_removed_asset_metadata_is_absent_from_openapi(client: TestClient) -> None:
+    schemas = client.get("/openapi.json").json()["components"]["schemas"]
+
+    assert set(schemas["VehicleDetailsInput"]["properties"]) == {"starting_odometer"}
+    assert {"subtitle", "attributes"}.isdisjoint(schemas["CreateAssetRequest"]["properties"])
+    assert {"subtitle", "attributes"}.isdisjoint(schemas["AssetResponse"]["properties"])
+    assert set(schemas["VehicleProfileResponse"]["properties"]) == {"asset_id", "starting_odometer"}
+    assert "subtitle" not in schemas["AssetSummaryResponse"]["properties"]
+    assert {"subtitle", "attributes"}.isdisjoint(schemas["AssetDetailResponse"]["properties"])
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"name": "Legacy", "type": "house", "subtitle": "Old detail"},
+        {"name": "Legacy", "type": "house", "attributes": {"built": 1978}},
+        {"name": "Legacy", "template": "vehicle", "vehicle": {"make": "Toyota"}},
+        {"name": "Legacy", "template": "vehicle", "vehicle": {"model": "Corolla"}},
+        {"name": "Legacy", "template": "vehicle", "vehicle": {"year": 2018}},
+    ],
+)
+def test_removed_asset_metadata_is_rejected(
+    client: TestClient, db_session: Session, body: dict[str, object]
+) -> None:
     response = client.post("/api/assets", json=body)
 
     assert response.status_code == 422

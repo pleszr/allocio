@@ -112,7 +112,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   const [step, setStep] = useState(1);
   const [type, setType] = useState<TypeOption | null>(null);
   const [name, setName] = useState("");
-  const [meta, setMeta] = useState<Record<string, string>>({});
+  const [odometer, setOdometer] = useState("");
   const [costs, setCosts] = useState<DraftCost[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -271,7 +271,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
     setSubmitting(true);
     setError(null);
     try {
-      const req = buildCreateRequest(type, name, meta, selectedKeys, catalogOverrides);
+      const req = buildCreateRequest(type, name, odometer, selectedKeys, catalogOverrides);
       const created = await api.createAsset(req);
       const id = created.asset.id;
       // Only genuinely custom draft rows are posted here; catalog rows are cloned server-side
@@ -324,7 +324,15 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
             }}
           />
         )}
-        {step === 2 && <Step2 type={type!} name={name} setName={setName} meta={meta} setMeta={setMeta} />}
+        {step === 2 && (
+          <Step2
+            type={type!}
+            name={name}
+            setName={setName}
+            odometer={odometer}
+            setOdometer={setOdometer}
+          />
+        )}
         {step === 3 && (
           <Step3
             type={type!}
@@ -347,7 +355,6 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
           <Step4
             type={type!}
             name={name}
-            meta={meta}
             timeLines={reviewTimeLines}
             usageLines={reviewUsageLines}
             monthlyEst={monthlyEst}
@@ -399,7 +406,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
 function buildCreateRequest(
   type: TypeOption,
   name: string,
-  meta: Record<string, string>,
+  odometer: string,
   selectedKeys: Set<string>,
   catalogOverrides: Record<string, { amount: number; interval_value?: number; interval_unit?: IntervalUnit }>,
 ): CreateAssetRequest {
@@ -416,29 +423,17 @@ function buildCreateRequest(
       name,
       template: "vehicle",
       vehicle: {
-        make: meta.make || null,
-        year: meta.year ? Number(meta.year) : null,
-        starting_odometer: meta.odometer ? Number(meta.odometer.replace(/[^\d]/g, "")) : 0,
+        starting_odometer: odometer ? Number(odometer.replace(/[^\d]/g, "")) : 0,
       },
-      subtitle: subtitleFromMeta(meta) || null,
       // Catalog rows are cloned server-side from these keys; only the chosen rows are created.
       selected_cost_keys: Array.from(selectedKeys),
       cost_overrides: costOverrides,
     };
   }
-  const attributes = Object.fromEntries(Object.entries(meta).filter(([, v]) => v.trim() !== ""));
   return {
     name,
     type: type.assetType,
-    subtitle: subtitleFromMeta(meta) || null,
-    attributes: Object.keys(attributes).length > 0 ? attributes : null,
   };
-}
-
-function subtitleFromMeta(meta: Record<string, string>): string {
-  return Object.values(meta)
-    .filter((v) => v.trim() !== "")
-    .join(" · ");
 }
 
 function WizardSteps({ step, steps }: { step: number; steps: string[] }) {
@@ -488,46 +483,20 @@ function Step1({ selected, onSelect }: { selected: TypeOption | null; onSelect: 
   );
 }
 
-interface MetaField {
-  key: string;
-  label: string;
-  placeholder: string;
-  suffix?: string;
-  short?: boolean;
-}
-
 function Step2({
   type,
   name,
   setName,
-  meta,
-  setMeta,
+  odometer,
+  setOdometer,
 }: {
   type: TypeOption;
   name: string;
   setName: (v: string) => void;
-  meta: Record<string, string>;
-  setMeta: (m: Record<string, string>) => void;
+  odometer: string;
+  setOdometer: (value: string) => void;
 }) {
   const { t } = useTranslation();
-  const fields: MetaField[] =
-    type.kind === "car"
-      ? [
-          { key: "make", label: t("newBucket.field_make"), placeholder: "Honda Civic" },
-          { key: "year", label: t("newBucket.field_year"), placeholder: "2019", short: true },
-          { key: "odometer", label: t("newBucket.field_odometer"), placeholder: "47213", suffix: "km", short: true },
-        ]
-      : type.kind === "house"
-        ? [
-            { key: "address", label: t("newBucket.field_address"), placeholder: "Cedar St. apartment" },
-            { key: "built", label: t("newBucket.field_built"), placeholder: "1978", short: true },
-            { key: "size", label: t("newBucket.field_size"), placeholder: "85", suffix: "m²", short: true },
-          ]
-        : [
-            { key: "breed", label: t("newBucket.field_breed"), placeholder: "Border Collie" },
-            { key: "age", label: t("newBucket.field_age"), placeholder: "4", suffix: t("newBucket.suffix_years"), short: true },
-            { key: "weight", label: t("newBucket.field_weight"), placeholder: "18", suffix: "kg", short: true },
-          ];
 
   return (
     <div className="card card-pad">
@@ -540,8 +509,11 @@ function Step2({
 
       <div style={{ display: "grid", gap: 16 }}>
         <div className="field">
-          <label className="field-label">{t("newBucket.bucket_name")}</label>
+          <label className="field-label" htmlFor="bucket-name">
+            {t("newBucket.bucket_name")}
+          </label>
           <input
+            id="bucket-name"
             className="input"
             data-testid="bucket-name-input"
             placeholder={type.kind === "car" ? "Honda Civic" : type.kind === "house" ? "Cedar St." : "Maya"}
@@ -550,22 +522,24 @@ function Step2({
             autoFocus
           />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          {fields.map((f) => (
-            <div key={f.key} className="field" style={{ gridColumn: f.short ? "auto" : "1 / -1" }}>
-              <label className="field-label">{f.label}</label>
-              <div className="input-prefix-wrap">
-                <input
-                  className="input"
-                  placeholder={f.placeholder}
-                  value={meta[f.key] || ""}
-                  onChange={(e) => setMeta({ ...meta, [f.key]: e.target.value })}
-                />
-                {f.suffix && <span className="input-suffix">{f.suffix}</span>}
-              </div>
+        {type.kind === "car" && (
+          <div className="field">
+            <label className="field-label" htmlFor="bucket-odometer">
+              {t("newBucket.field_odometer")}
+            </label>
+            <div className="input-prefix-wrap">
+              <input
+                id="bucket-odometer"
+                className="input"
+                inputMode="numeric"
+                placeholder="47213"
+                value={odometer}
+                onChange={(e) => setOdometer(e.target.value)}
+              />
+              <span className="input-suffix">km</span>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -912,7 +886,6 @@ function CostRow({ cost, onUpdate, onRemove }: { cost: DraftCost; onUpdate: (p: 
 function Step4({
   type,
   name,
-  meta,
   timeLines,
   usageLines,
   monthlyEst,
@@ -921,7 +894,6 @@ function Step4({
 }: {
   type: TypeOption;
   name: string;
-  meta: Record<string, string>;
   timeLines: ReviewLine[];
   usageLines: ReviewLine[];
   monthlyEst: number;
@@ -950,7 +922,6 @@ function Step4({
       <div className="card">
         <div style={{ padding: "20px var(--pad) 14px" }}>
           <div className="card-title">{t("newBucket.review_suffix", { name: name || t("newBucket.untitled") })}</div>
-          <div className="card-sub">{subtitleFromMeta(meta) || t("newBucket.no_details")}</div>
         </div>
 
         {timeLines.length === 0 && usageLines.length === 0 && (

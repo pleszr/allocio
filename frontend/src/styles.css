@@ -556,11 +556,6 @@ body {
   color: var(--ink);
   letter-spacing: -0.015em;
 }
-.bucket-sub {
-  font-size: 12.5px;
-  color: var(--muted);
-  margin-top: 2px;
-}
 .bucket-stats {
   display: flex; flex-direction: column; gap: 6px;
   padding-top: 4px;

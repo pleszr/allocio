@@ -105,8 +105,6 @@ Fields:
 - `user_id`
 - `type`
 - `name`
-- `subtitle`
-- `attributes`
 - `status`
 - `created_at`
 - `archived_at`
@@ -115,8 +113,7 @@ Rules:
 
 - `type` is the product term, not `kind`
 - `type` is free-form; `vehicle` is the type set by the built-in vehicle template, not the only allowed value
-- `subtitle` is an opaque display string the client composes; the backend stores and echoes it verbatim and never derives per-type text
-- `attributes` is an opaque free-form object for non-vehicle detail (e.g. house/pet fields); the backend never interprets its keys and it drives no calculation
+- `name` is the sole asset and bucket-facing identifier
 - one asset has one bucket in MVP
 
 ### `vehicle_profile`
@@ -126,14 +123,12 @@ Vehicle-only metadata attached to an asset.
 Fields:
 
 - `asset_id`
-- `year`
-- `make`
-- `model`
 - `starting_odometer`
 
 Rules:
 
 - `vehicle_profile` exists only for `asset.type = vehicle`
+- `starting_odometer` is the only vehicle-specific metadata collected at creation
 - `current_odometer` is derived from the latest posted check-in
 - no `trim`
 - no odometer unit field in MVP

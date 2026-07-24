@@ -9,7 +9,7 @@ from app.domain.vehicle_defaults import vehicle_catalog_keys
 VALID_VEHICLE = {
     "name": "My Car",
     "template": "vehicle",
-    "vehicle": {"year": 2018, "make": "Toyota", "model": "Corolla", "starting_odometer": 120000},
+    "vehicle": {"starting_odometer": 120000},
     "selected_cost_keys": sorted(vehicle_catalog_keys()),
 }
 

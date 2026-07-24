@@ -122,7 +122,6 @@ function BucketCard({ asset, onOpen }: { asset: AssetSummary; onOpen: () => void
       <div className="bucket-body">
         <div>
           <div className="bucket-name">{asset.name}</div>
-          <div className="bucket-sub">{asset.subtitle ?? asset.type}</div>
         </div>
         <div className="bucket-stats">
           <div className="bucket-row">

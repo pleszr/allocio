@@ -19,9 +19,6 @@ from app.repository.asset_repository import insert_asset_dependents, persist_ass
 class VehicleDetails:
     """Optional vehicle-profile inputs supplied when the vehicle template is selected."""
 
-    year: int | None = None
-    make: str | None = None
-    model: str | None = None
     starting_odometer: int = 0
 
 
@@ -67,8 +64,6 @@ class AssetService:
         asset_type: str | None,
         template_key: str | None,
         vehicle_details: VehicleDetails | None,
-        subtitle: str | None = None,
-        attributes: dict | None = None,
         selected_cost_keys: list[str] | None = None,
         cost_overrides: list[CostOverride] | None = None,
     ) -> CreatedAsset:
@@ -78,8 +73,7 @@ class AssetService:
         attaches a vehicle profile when the template carries one; only the template cost rows whose
         `technical_key` is in `selected_cost_keys` are cloned (omitted/empty clones none). Each cloned
         row uses the template's default for the owner's currency unless `cost_overrides` supplies a
-        caller-edited value for that row's `technical_key`. `subtitle` and `attributes` are opaque,
-        type-agnostic detail the caller supplies for any asset. Persists the asset first for its id,
+        caller-edited value for that row's `technical_key`. Persists the asset first for its id,
         inserts every dependent, and commits exactly once; any failure rolls back the whole set.
         """
         template = self._resolve_template(template_key)
@@ -88,9 +82,7 @@ class AssetService:
         self._validate_cost_overrides(selected_keys, cost_overrides)
         currency = self._resolve_owner_currency(user_id)
         try:
-            asset = Asset(
-                type=resolved_type, user_id=user_id, name=name, subtitle=subtitle, attributes=attributes
-            )
+            asset = Asset(type=resolved_type, user_id=user_id, name=name)
             persist_asset(self._session, asset)
 
             bucket = Bucket(asset_id=asset.id, currency=currency)
@@ -200,8 +192,5 @@ class AssetService:
         details = vehicle_details if vehicle_details is not None else VehicleDetails()
         return VehicleProfile(
             asset_id=asset_id,
-            year=details.year,
-            make=details.make,
-            model=details.model,
             starting_odometer=details.starting_odometer,
         )

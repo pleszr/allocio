@@ -11,7 +11,7 @@ from app.domain.vehicle_defaults import vehicle_catalog_keys
 VALID_VEHICLE = {
     "name": "My Car",
     "template": "vehicle",
-    "vehicle": {"year": 2018, "make": "Toyota", "model": "Corolla", "starting_odometer": 120000},
+    "vehicle": {"starting_odometer": 120000},
     "selected_cost_keys": sorted(vehicle_catalog_keys()),
 }
 STARTING_ODOMETER = 120000
@@ -82,18 +82,12 @@ def test_detail_recent_activity_merges_inflows_and_outflows(client: TestClient) 
     assert dates == sorted(dates, reverse=True)
 
 
-def test_detail_non_vehicle_has_null_usage_and_echoes_profile(client: TestClient) -> None:
-    body = {
-        "name": "Cedar St.",
-        "type": "house",
-        "subtitle": "2-bed · Built 1978",
-        "attributes": {"built": "1978"},
-    }
-    asset_id = client.post("/api/assets", json=body).json()["asset"]["id"]
+def test_detail_non_vehicle_has_null_usage(client: TestClient) -> None:
+    asset_id = client.post("/api/assets", json={"name": "Cedar St.", "type": "house"}).json()["asset"]["id"]
 
     detail = client.get(f"/api/assets/{asset_id}").json()
-    assert detail["subtitle"] == "2-bed · Built 1978"
-    assert detail["attributes"] == {"built": "1978"}
+    assert "subtitle" not in detail
+    assert "attributes" not in detail
     assert detail["current_usage"] is None
     assert detail["usage_since_last_check_in"] is None
     assert detail["last_check_in_date"] is None

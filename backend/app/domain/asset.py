@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, text
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -23,8 +23,6 @@ class Asset(Base):
     )
     type: Mapped[str] = mapped_column(String, nullable=False, server_default=text("'vehicle'"))
     name: Mapped[str] = mapped_column(String, nullable=False)
-    subtitle: Mapped[str | None] = mapped_column(String, nullable=True)
-    attributes: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     status: Mapped[str] = mapped_column(String, nullable=False, server_default=text("'active'"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=text("now()"))
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -38,9 +36,6 @@ class VehicleProfile(Base):
     asset_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("assets.id"), primary_key=True, nullable=False
     )
-    year: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    make: Mapped[str | None] = mapped_column(String, nullable=True)
-    model: Mapped[str | None] = mapped_column(String, nullable=True)
     starting_odometer: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
 
 

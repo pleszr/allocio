@@ -38,8 +38,6 @@ class AssetDetail:
     asset_id: uuid.UUID
     type: str
     name: str
-    subtitle: str | None
-    attributes: dict | None
     status: str
     currency: str
     balance: Decimal
@@ -72,8 +70,6 @@ class AssetDetailService:
             asset_id=asset.id,
             type=summary.type,
             name=summary.name,
-            subtitle=asset.subtitle,
-            attributes=asset.attributes,
             status=summary.status,
             currency=summary.currency,
             balance=summary.balance,
