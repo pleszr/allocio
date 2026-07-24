@@ -179,7 +179,7 @@ export interface CheckInPreview {
 export interface TemplateTimeBasedCostItem {
   technical_key: string;
   label: string;
-  amount: number;
+  amounts: Record<CurrencyCode, number>;
   interval_value: number;
   interval_unit: IntervalUnit;
 }
@@ -187,9 +187,8 @@ export interface TemplateTimeBasedCostItem {
 export interface TemplateUsageBasedCostItem {
   technical_key: string;
   label: string;
-  amount_per_unit: number;
+  amounts_per_unit: Record<CurrencyCode, number>;
   usage_unit: string;
-  currency: string;
 }
 
 export interface TemplateMaintenanceItem {
@@ -198,7 +197,7 @@ export interface TemplateMaintenanceItem {
   interval_km: number | null;
   interval_months: number | null;
   tire_type: string | null;
-  estimated_cost: number | null;
+  estimated_costs: Record<CurrencyCode, number> | null;
 }
 
 export interface AssetTemplateCatalog {
@@ -213,12 +212,20 @@ export interface VehicleDetailsInput {
   starting_odometer?: number;
 }
 
+export interface TemplateCostOverride {
+  technical_key: string;
+  amount: number;
+  interval_value?: number | null;
+  interval_unit?: IntervalUnit | null;
+}
+
 export interface CreateAssetRequest {
   name: string;
   type?: string | null;
   template?: "vehicle" | null;
   vehicle?: VehicleDetailsInput | null;
   selected_cost_keys?: string[] | null;
+  cost_overrides?: TemplateCostOverride[] | null;
 }
 
 export interface CreateAssetResponse {

@@ -268,6 +268,8 @@
     "period_year": "per year",
     "period_2years": "every 2 years",
     "period_usage": "per use",
+    "interval_unit_months": "months",
+    "interval_unit_years": "years",
     "unit_km": "/ km",
     "unit_hour": "/ hour",
     "unit_use": "/ use",
@@ -283,5 +285,30 @@
     "what_happens_next": "What happens next",
     "accruing_prefix": "Allocio starts accruing",
     "accruing_suffix": "into this bucket. Run a monthly check-in to log usage and post the accrual."
+  },
+  "templates": {
+    "vehicle": {
+      "seasonal_tire_change": { "label": "Seasonal tire change" },
+      "vehicle_inspection": { "label": "Vehicle inspection" },
+      "mandatory_liability_insurance": { "label": "Mandatory liability insurance" },
+      "comprehensive_insurance": { "label": "Comprehensive insurance" },
+      "vehicle_tax": { "label": "Vehicle tax" },
+      "motorway_vignette": { "label": "Motorway vignette" },
+      "usage_based_reserve": { "label": "Usage-based reserve" },
+      "front_brake_disc": { "label": "Front brake discs" },
+      "rear_brake_disc": { "label": "Rear brake discs" },
+      "front_brake_pad": { "label": "Front brake pads" },
+      "rear_brake_pad": { "label": "Rear brake pads" },
+      "annual_service": { "label": "Annual service" },
+      "automatic_transmission_fluid": { "label": "Automatic transmission fluid" },
+      "fuel_filter": { "label": "Fuel filter" },
+      "water_pump": { "label": "Water pump" },
+      "timing_system": { "label": "Timing system" },
+      "battery": { "label": "Battery" },
+      "all_season_tires": { "label": "All-season tires" },
+      "winter_tires": { "label": "Winter tires" },
+      "summer_tires": { "label": "Summer tires" },
+      "other": { "label": "Other" }
+    }
   }
 }

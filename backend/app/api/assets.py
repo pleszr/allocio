@@ -17,7 +17,7 @@ from app.api.schemas.responses import (
 )
 from app.common.message_bundle import INTERNAL_ERROR
 from app.services.asset_detail_service import AssetDetail, AssetDetailService
-from app.services.asset_service import AssetService, VehicleDetails
+from app.services.asset_service import AssetService, CostOverride, VehicleDetails
 from app.services.balance_history_service import BalanceHistory, BalanceHistoryService
 from app.services.dependencies import (
     get_asset_detail_service,
@@ -55,6 +55,19 @@ def create_asset(
 ) -> CreateAssetResponse:
     """Delegate creation to the service and set the `Location` header on the created asset."""
     vehicle_details = None if body.vehicle is None else VehicleDetails(**body.vehicle.model_dump())
+    cost_overrides = (
+        None
+        if body.cost_overrides is None
+        else [
+            CostOverride(
+                technical_key=o.technical_key,
+                amount=o.amount,
+                interval_value=o.interval_value,
+                interval_unit=o.interval_unit,
+            )
+            for o in body.cost_overrides
+        ]
+    )
     created = service.create_asset(
         user_id=user_id,
         name=body.name,
@@ -62,6 +75,7 @@ def create_asset(
         template_key=body.template,
         vehicle_details=vehicle_details,
         selected_cost_keys=body.selected_cost_keys,
+        cost_overrides=cost_overrides,
     )
     response.headers["Location"] = f"/api/assets/{created.asset.id}"
     return CreateAssetResponse.model_validate(created)

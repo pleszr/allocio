@@ -20,15 +20,17 @@ def test_get_vehicle_catalog_spot_checks_known_keys_and_field_shapes(client: Tes
     time_by_key = {row["technical_key"]: row for row in payload["time_based_costs"]}
     assert "comprehensive_insurance" in time_by_key
     comprehensive = time_by_key["comprehensive_insurance"]
-    assert Decimal(str(comprehensive["amount"])) == Decimal("11650")
+    assert Decimal(str(comprehensive["amounts"]["HUF"])) == Decimal("11650")
+    assert Decimal(str(comprehensive["amounts"]["EUR"])) == Decimal("29")
+    assert Decimal(str(comprehensive["amounts"]["USD"])) == Decimal("32")
     assert isinstance(comprehensive["interval_value"], int)
     assert comprehensive["interval_unit"] == "months"
 
     reserve = payload["usage_based_costs"][0]
     assert reserve["technical_key"] == "usage_based_reserve"
-    assert Decimal(str(reserve["amount_per_unit"])) == Decimal("10")
+    assert Decimal(str(reserve["amounts_per_unit"]["HUF"])) == Decimal("10")
     assert reserve["usage_unit"] == "km"
-    assert reserve["currency"] == "HUF"
+    assert set(reserve["amounts_per_unit"].keys()) == {"HUF", "EUR", "USD"}
 
     maint_by_key = {row["technical_key"]: row for row in payload["maintenance_items"]}
     assert "all_season_tires" in maint_by_key
@@ -40,7 +42,7 @@ def test_get_vehicle_catalog_spot_checks_known_keys_and_field_shapes(client: Tes
     other = maint_by_key["other"]
     assert other["interval_km"] is None
     assert other["interval_months"] is None
-    assert other["estimated_cost"] is None
+    assert other["estimated_costs"] is None
 
 
 def test_get_catalog_unknown_template_is_404(client: TestClient) -> None:

@@ -38,6 +38,32 @@ class VehicleDetailsInput(BaseModel):
     )
 
 
+class TemplateCostOverride(BaseModel):
+    """A user-edited value for one selected template row; interval fields apply to time-based rows only."""
+
+    technical_key: str = Field(
+        description="The selected template row this override applies to.",
+        max_length=60,
+        examples=["mandatory_liability_insurance"],
+    )
+    amount: Decimal = Field(
+        ge=0, description="Overridden amount (time-based `amount` or usage-based `amount_per_unit`).", examples=[45000]
+    )
+    interval_value: int | None = Field(
+        default=None, gt=0, description="Overridden interval value; time-based rows only.", examples=[12]
+    )
+    interval_unit: IntervalUnit | None = Field(
+        default=None, description="Overridden interval unit; time-based rows only.", examples=["months"]
+    )
+
+    @model_validator(mode="after")
+    def _interval_fields_are_both_or_neither(self) -> "TemplateCostOverride":
+        """Reject a partial interval override: both fields set, or neither."""
+        if (self.interval_value is None) != (self.interval_unit is None):
+            raise ValueError("interval_value and interval_unit must be set together or both omitted.")
+        return self
+
+
 class CreateAssetRequest(BaseModel):
     """Body for creating an asset. `user_id` and bucket currency are server-set, not accepted here.
 
@@ -71,6 +97,13 @@ class CreateAssetRequest(BaseModel):
         "Membership in the template catalog is validated server-side.",
         examples=[["mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"]],
     )
+    cost_overrides: list[TemplateCostOverride] | None = Field(
+        default=None,
+        max_length=100,
+        description="Per-row overrides for selected template costs. A selected key without an override here "
+        "clones the template's default for the owner's currency. Only time-based costs and the usage-based "
+        "reserve accept an override; a maintenance-item key is rejected.",
+    )
 
     @field_validator("selected_cost_keys")
     @classmethod
@@ -93,6 +126,8 @@ class CreateAssetRequest(BaseModel):
                 raise ValueError("Vehicle details require the vehicle template.")
             if self.selected_cost_keys:
                 raise ValueError("Cost selection requires a template.")
+            if self.cost_overrides:
+                raise ValueError("Cost overrides require a template.")
             return self
         if self.template == "vehicle" and self.type not in (None, "vehicle"):
             raise ValueError("The vehicle template sets type to 'vehicle'; a conflicting type is not allowed.")

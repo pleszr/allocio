@@ -369,7 +369,10 @@ class TemplateTimeBasedCostItem(BaseModel):
 
     technical_key: str = Field(description="Stable template key identifying this cost.", examples=["comprehensive_insurance"])
     label: str = Field(description="Human-readable cost label.", examples=["Comprehensive insurance"])
-    amount: Decimal = Field(description="Default cost amount per interval.")
+    amounts: dict[str, Decimal] = Field(
+        description="Default amount per interval, keyed by currency code (HUF/EUR/USD).",
+        examples=[{"HUF": "11650", "EUR": "29", "USD": "32"}],
+    )
     interval_value: int = Field(description="Number of interval units between occurrences.", examples=[12])
     interval_unit: str = Field(description="Unit of the recurrence interval.", examples=["months"])
 
@@ -379,9 +382,11 @@ class TemplateUsageBasedCostItem(BaseModel):
 
     technical_key: str = Field(description="Stable template key identifying this reserve.", examples=["usage_based_reserve"])
     label: str = Field(description="Human-readable reserve label.", examples=["Usage-based reserve"])
-    amount_per_unit: Decimal = Field(description="Default reserve amount accrued per usage unit.")
+    amounts_per_unit: dict[str, Decimal] = Field(
+        description="Default reserve amount accrued per usage unit, keyed by currency code (HUF/EUR/USD).",
+        examples=[{"HUF": "10", "EUR": "0.025", "USD": "0.03"}],
+    )
     usage_unit: str = Field(description="Unit the reserve accrues per (e.g. km).", examples=["km"])
-    currency: str = Field(description="ISO currency code for the reserve.", examples=["HUF"])
 
 
 class TemplateMaintenanceItem(BaseModel):
@@ -392,7 +397,9 @@ class TemplateMaintenanceItem(BaseModel):
     interval_km: int | None = Field(description="Kilometer interval between services, if any.", examples=[50000])
     interval_months: int | None = Field(description="Month interval between services, if any.", examples=[36])
     tire_type: str | None = Field(description="Tire type for tire items, if applicable.", examples=["all_season"])
-    estimated_cost: Decimal | None = Field(description="Estimated cost of the item, if known.")
+    estimated_costs: dict[str, Decimal] | None = Field(
+        description="Estimated cost per currency code (HUF/EUR/USD), if curated; null when none exists yet."
+    )
 
 
 class AssetTemplateCatalogResponse(BaseModel):

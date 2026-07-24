@@ -46,6 +46,16 @@ export function useCurrency(): MoneyFormatter {
   return useMemo(() => makeFormatter(currency), [currency]);
 }
 
+// Returns the raw current `CurrencyCode` (not a formatter) — for callers that need to pick the
+// matching entry out of a per-currency value (e.g. a template catalog row's `amounts` map).
+export function useCurrencyCode(): CurrencyCode {
+  const currency = useContext(CurrencyContext);
+  if (currency === null) {
+    throw new Error("useCurrencyCode() must be used inside a <CurrencyProvider>.");
+  }
+  return currency;
+}
+
 function makeFormatter(currency: CurrencyCode): MoneyFormatter {
   const { symbol, position } = CURRENCY_META[currency];
   return (n, opts = {}) => {

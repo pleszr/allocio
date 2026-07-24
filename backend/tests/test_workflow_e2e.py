@@ -16,11 +16,17 @@ from datetime import date, timedelta
 from fastapi.testclient import TestClient
 
 # The browser sends these exact payloads. Keep them mirrored with the frontend client.
+# `cost_overrides` mirrors what the New Bucket wizard now always sends for a selected time-based
+# or usage-based row (its current value, edited or not) — maintenance-item keys never get one.
 VEHICLE_BODY = {
     "name": "My Car",
     "template": "vehicle",
     "vehicle": {"starting_odometer": 120000},
     "selected_cost_keys": ["mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"],
+    "cost_overrides": [
+        {"technical_key": "mandatory_liability_insurance", "amount": 50119, "interval_value": 12, "interval_unit": "months"},
+        {"technical_key": "usage_based_reserve", "amount": 10},
+    ],
 }
 STARTING_ODOMETER = 120000
 FUTURE_END = str(date.today() + timedelta(days=30))

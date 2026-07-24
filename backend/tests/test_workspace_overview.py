@@ -138,7 +138,10 @@ def test_created_vehicle_recommended_matches_seeded_time_based(client: TestClien
     # No check-ins yet: balance is zero and usage-based monthly contributes nothing.
     assert _dec(summary["balance"]) == Decimal("0")
     expected_time_based = sum(
-        (time_based_monthly_accrual(t.amount, t.interval_value, t.interval_unit) for t in DEFAULT_TIME_BASED_COSTS),
+        (
+            time_based_monthly_accrual(t.amounts["HUF"], t.interval_value, t.interval_unit)
+            for t in DEFAULT_TIME_BASED_COSTS
+        ),
         Decimal(0),
     )
     assert _dec(summary["recommended_monthly_allocation"]) == quantize_currency(expected_time_based)
