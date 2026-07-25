@@ -102,45 +102,6 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
         </div>
       </div>
 
-      {/* Balance history */}
-      <div className="card" style={{ marginBottom: 24 }}>
-        <div className="card-hd">
-          <div>
-            <div className="card-title">{t("dashboard.balance_history")}</div>
-            <div className="card-sub">{t("dashboard.balance_history_sub", { name: e.name })}</div>
-          </div>
-          <div className="seg">
-            {RANGES.map((r) => (
-              <button key={r.months} className="seg-btn" aria-pressed={months === r.months} onClick={() => setMonths(r.months)}>
-                {r.months === 60 ? t("dashboard.range_all") : r.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div style={{ padding: "20px var(--pad) var(--pad)" }}>
-          {history.loading ? (
-            <div className="row-meta">{t("common.loading")}</div>
-          ) : points.length === 0 ? (
-            <div className="row-meta">{t("dashboard.no_history")}</div>
-          ) : (
-            <>
-              <Sparkline
-                data={balances}
-                width={900}
-                height={130}
-                padding={12}
-                months={points.map((p) => fmtMonthYear(p.as_of))}
-                fmtValue={(v) => fmt(v, { decimals: 0 })}
-              />
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-                <span className="row-meta">{fmtMonthYear(points[0].as_of)}</span>
-                <span className="row-meta">{fmtMonthYear(points[points.length - 1].as_of)}</span>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
       {/* KPI grid */}
       <div className="kpi-grid" style={{ marginBottom: 24 }}>
         <div className="kpi">
@@ -187,8 +148,8 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
         </div>
       </div>
 
-      {/* Maintenance + upcoming expenses + recent activity */}
-      <div className="col-3-2">
+      {/* Maintenance + upcoming expenses + recent activity + balance history */}
+      <div className="col-2">
         <div className="card">
           <div className="card-hd">
             <div>
@@ -253,6 +214,49 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
                 <div className="row-meta" style={{ padding: "12px var(--pad)" }}>
                   {t("dashboard.no_activity")}
                 </div>
+              )}
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-hd">
+              <div>
+                <div className="card-title">{t("dashboard.balance_history")}</div>
+                <div className="card-sub">{t("dashboard.balance_history_sub", { name: e.name })}</div>
+              </div>
+              <div className="seg">
+                {RANGES.map((r) => (
+                  <button
+                    key={r.months}
+                    className="seg-btn"
+                    aria-pressed={months === r.months}
+                    onClick={() => setMonths(r.months)}
+                  >
+                    {r.months === 60 ? t("dashboard.range_all") : r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ padding: "20px var(--pad) var(--pad)" }}>
+              {history.loading ? (
+                <div className="row-meta">{t("common.loading")}</div>
+              ) : points.length === 0 ? (
+                <div className="row-meta">{t("dashboard.no_history")}</div>
+              ) : (
+                <>
+                  <Sparkline
+                    data={balances}
+                    width={900}
+                    height={130}
+                    padding={12}
+                    months={points.map((p) => fmtMonthYear(p.as_of))}
+                    fmtValue={(v) => fmt(v, { decimals: 0 })}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+                    <span className="row-meta">{fmtMonthYear(points[0].as_of)}</span>
+                    <span className="row-meta">{fmtMonthYear(points[points.length - 1].as_of)}</span>
+                  </div>
+                </>
               )}
             </div>
           </div>

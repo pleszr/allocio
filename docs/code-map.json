@@ -4467,25 +4467,25 @@
             {
               "name": "DashboardScreen",
               "line_start": 27,
-              "line_end": 263,
-              "hash": "7bd746fb8f36e033"
+              "line_end": 267,
+              "hash": "d3413af615264fa4"
             },
             {
               "name": "MaintCompactRow",
-              "line_start": 265,
-              "line_end": 290,
+              "line_start": 269,
+              "line_end": 294,
               "hash": "bf34b2a0d41106f1"
             },
             {
               "name": "TxRow",
-              "line_start": 323,
-              "line_end": 362,
+              "line_start": 327,
+              "line_end": 366,
               "hash": "cbb1c90fe6db32dd"
             },
             {
               "name": "UpcomingRow",
-              "line_start": 292,
-              "line_end": 321,
+              "line_start": 296,
+              "line_end": 325,
               "hash": "1091459e134e8390"
             }
           ],
@@ -4494,28 +4494,28 @@
             {
               "name": "DashboardScreen",
               "line_start": 27,
-              "line_end": 263,
-              "hash": "7bd746fb8f36e033",
+              "line_end": 267,
+              "hash": "d3413af615264fa4",
               "kind": "function"
             },
             {
               "name": "MaintCompactRow",
-              "line_start": 265,
-              "line_end": 290,
+              "line_start": 269,
+              "line_end": 294,
               "hash": "bf34b2a0d41106f1",
               "kind": "function"
             },
             {
               "name": "TxRow",
-              "line_start": 323,
-              "line_end": 362,
+              "line_start": 327,
+              "line_end": 366,
               "hash": "cbb1c90fe6db32dd",
               "kind": "function"
             },
             {
               "name": "UpcomingRow",
-              "line_start": 292,
-              "line_end": 321,
+              "line_start": 296,
+              "line_end": 325,
               "hash": "1091459e134e8390",
               "kind": "function"
             }
