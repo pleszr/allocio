@@ -1,7 +1,7 @@
 # Allocio Domain Model
 
 Status: Draft v1
-Last updated: 2026-05-15
+Last updated: 2026-07-24
 
 ## Purpose
 
@@ -72,6 +72,10 @@ Maintenance items may also provide recommendation input for the usage-based rese
 
 In the spreadsheet model, a maintenance item may become due by distance, by elapsed time, or by whichever threshold is reached first.
 
+### Manual extra
+
+A user-set flat monthly amount added on top of the time-based and usage-based accruals, for costs the model doesn't otherwise capture. Corresponds to the workbook's `Extra safety` buffer.
+
 ### Check-in
 
 The monthly review workflow where the user records elapsed usage, reviews accruals and expenses, and posts the period result.
@@ -106,6 +110,7 @@ Fields:
 - `type`
 - `name`
 - `status`
+- `manual_extra_monthly`
 - `created_at`
 - `archived_at`
 
@@ -115,6 +120,8 @@ Rules:
 - `type` is free-form; `vehicle` is the type set by the built-in vehicle template, not the only allowed value
 - `name` is the sole asset and bucket-facing identifier
 - one asset has one bucket in MVP
+- `manual_extra_monthly` defaults to `0` and is user-adjustable; it is added to the recommended monthly allocation alongside time-based and usage-based accruals
+- the app may derive a recommended `manual_extra_monthly` from the gap between an asset's last 12 months of posted expenses and posted allocations; that recommendation is derived guidance, not canonical stored truth, and never overwrites the stored value without an explicit user action
 
 ### `vehicle_profile`
 
@@ -356,6 +363,7 @@ Derived:
 - current usage counter
 - monthly allocation suggestion
 - recommendation for usage-based reserve rate
+- recommendation for `manual_extra_monthly`
 - maintenance health and urgency status
 - dashboard summaries and trends
 
@@ -481,7 +489,6 @@ The following concepts exist in the spreadsheet model but are intentionally defe
 - vehicle depreciation (`autó értékcsökkenés`)
 - alternative vehicle cost (`autó alternatív ktg`)
 - out-of-pocket payments (`Kifizettuk zsebbol`)
-- extra safety buffer (`Extra safety`)
 
 These may be added later as separate planning or reconciliation concepts, but they should not shape the first schema and calculator pass.
 
