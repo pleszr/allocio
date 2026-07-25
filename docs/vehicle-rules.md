@@ -661,6 +661,38 @@ If the user-configured rate is:
   This excludes month-only rows and kilometer rows without a comparable current-usage/service
   baseline. Overdue distance remains clamped to zero. Equal distances sort by case-insensitive
   label and then row UUID, and no eligible row yields null.
+- **Upcoming expenses** includes active recurring costs and maintenance expected within the
+  inclusive next 90 days. Recurring costs use their next occurrence. Maintenance forecasting is
+  independent of the current `ok` / `soon` / `due` eligibility thresholds: those statuses describe
+  current attention, while this signal asks whether a trigger is expected inside the future window.
+
+For kilometer-based upcoming maintenance, the forecast derives one usage rate specifically for
+this signal:
+
+- anchor the history window at the latest posted check-in's `period_end`
+- use the trailing 12 calendar months ending at that anchor, or all covered history when less than
+  12 months is available
+- exclude earlier usage; when a check-in straddles the calendar cutoff, prorate its `usage_amount`
+  by the overlap days divided by that check-in's full covered days
+- `forecast_average_monthly_usage = usage_in_window / covered_days * 30`
+- missing or non-positive usage, or a non-positive covered duration, yields no forecast rate; it
+  does not invent a default and does not affect the separate workspace allocation usage rate
+
+Each maintenance trigger is evaluated independently:
+
+- an already `overdue` item is due now (`days_until = 0`, `overdue = true`) without needing a
+  forecast usage rate
+- a kilometer trigger qualifies when
+  `remaining_km <= 3 * forecast_average_monthly_usage`, including equality, and uses
+  `round(remaining_km / (forecast_average_monthly_usage / 30))`
+- a time trigger uses `remaining_months * 30`
+- a missing kilometer baseline or forecast rate invalidates only the kilometer trigger; a valid
+  time trigger may still qualify
+- when both triggers are valid, the earlier `days_until` wins and the maintenance row appears once
+
+Non-overdue candidates appear only at `days_until <= 90`. Forecast rows use the stored estimated
+cost, or zero when it is absent, and sort by days until due, then case-insensitive label, then
+category for deterministic output.
 
 ## Workspace Overview Derivations
 

@@ -284,11 +284,14 @@ class AssetDetailService:
     def _upcoming_expenses(
         self, user_id: uuid.UUID, asset_id: uuid.UUID, maintenance_items: list[MaintenanceItemView]
     ) -> list[UpcomingExpense]:
-        """Forecast active time-based costs due soon plus overdue/soon maintenance, within the 90-day window."""
+        """Forecast active time-based costs and maintenance within the 90-day window."""
         today = date.today()
         items = self._upcoming_time_based(user_id, asset_id, today)
         items += self._upcoming_maintenance(asset_id, maintenance_items)
-        return sorted(items, key=lambda item: item.days_until)
+        return sorted(
+            items,
+            key=lambda item: (item.days_until, item.name.casefold(), item.category),
+        )
 
     def _upcoming_time_based(
         self, user_id: uuid.UUID, asset_id: uuid.UUID, today: date
@@ -311,50 +314,89 @@ class AssetDetailService:
     def _upcoming_maintenance(
         self, asset_id: uuid.UUID, maintenance_items: list[MaintenanceItemView]
     ) -> list[UpcomingExpense]:
-        """Active maintenance items that are overdue (now) or due/soon (projected) within the forecast window."""
-        items: list[UpcomingExpense] = []
-        daily_rate: Decimal | None = None
+        """Return each active row whose earliest valid trigger is inside the forecast window."""
+        average_monthly_usage = self._forecast_average_monthly_usage(asset_id)
+        candidates: list[UpcomingExpense] = []
         for view in maintenance_items:
             if not view.row.is_active:
                 continue
-            cost = view.row.estimated_cost or Decimal(0)
-            if view.status == "overdue":
-                items.append(UpcomingExpense(name=view.row.label, category="maintenance", days_until=0, amount=cost, overdue=True))
-            elif view.status in ("due", "soon"):
-                if daily_rate is None:
-                    daily_rate = self._daily_usage_rate(asset_id)
-                days = self._estimated_days_until(view, daily_rate)
-                if days is not None and days <= _UPCOMING_HORIZON_DAYS:
-                    items.append(
-                        UpcomingExpense(name=view.row.label, category="maintenance", days_until=days, amount=cost, overdue=False)
-                    )
-        return items
+            candidate = self._upcoming_maintenance_candidate(view, average_monthly_usage)
+            if candidate is not None:
+                candidates.append(candidate)
+        return candidates
 
-    def _daily_usage_rate(self, asset_id: uuid.UUID) -> Decimal:
-        """Average usage per day across all posted check-ins, or zero without enough data to estimate.
+    def _upcoming_maintenance_candidate(
+        self, view: MaintenanceItemView, average_monthly_usage: Decimal | None
+    ) -> UpcomingExpense | None:
+        """Build one maintenance forecast from the earliest valid kilometer or time trigger."""
+        cost = view.row.estimated_cost or Decimal(0)
+        if view.status == "overdue":
+            return UpcomingExpense(
+                name=view.row.label,
+                category="maintenance",
+                days_until=0,
+                amount=cost,
+                overdue=True,
+            )
 
-        Day-granular counterpart of `workspace_service._usage_based_monthly`'s whole-months-based rate —
-        this forecast window is measured in days, not months. Reuses the same repository totals query.
-        """
-        total_usage, first_start, last_end = check_in_repository.get_posted_usage_totals(self._session, asset_id)
-        if first_start is None or last_end is None or total_usage <= 0:
-            return Decimal(0)
-        span_days = (last_end - first_start).days
-        if span_days <= 0:
-            return Decimal(0)
-        return Decimal(total_usage) / Decimal(span_days)
+        trigger_days = self._maintenance_trigger_days(view, average_monthly_usage)
+        if not trigger_days:
+            return None
+        days_until = min(trigger_days)
+        if days_until > _UPCOMING_HORIZON_DAYS:
+            return None
+        return UpcomingExpense(
+            name=view.row.label,
+            category="maintenance",
+            days_until=days_until,
+            amount=cost,
+            overdue=False,
+        )
 
-    def _estimated_days_until(self, view: MaintenanceItemView, daily_rate: Decimal) -> int | None:
-        """Project a days-until-due estimate for a due/soon item, or `None` when there's no data to project from.
-
-        Prefers a usage-rate-based estimate from `remaining_km`; falls back to a coarse 30-days-per-month
-        approximation from `remaining_months`. Never fabricates a default usage rate when none is posted yet.
-        """
-        if view.remaining_km is not None and daily_rate > 0:
-            return round(view.remaining_km / daily_rate)
+    def _maintenance_trigger_days(
+        self, view: MaintenanceItemView, average_monthly_usage: Decimal | None
+    ) -> list[int]:
+        """Return independently valid kilometer and time trigger estimates."""
+        trigger_days: list[int] = []
+        if (
+            view.remaining_km is not None
+            and average_monthly_usage is not None
+            and view.remaining_km <= average_monthly_usage * 3
+        ):
+            daily_usage = average_monthly_usage / _MONTH_DAYS
+            trigger_days.append(round(Decimal(view.remaining_km) / daily_usage))
         if view.remaining_months is not None:
-            return view.remaining_months * _MONTH_DAYS
-        return None
+            trigger_days.append(view.remaining_months * _MONTH_DAYS)
+        return trigger_days
+
+    def _forecast_average_monthly_usage(self, asset_id: uuid.UUID) -> Decimal | None:
+        """Return a 30-day usage rate from at most 12 calendar months of posted history."""
+        check_ins = check_in_repository.list_posted_check_ins(self._session, asset_id)
+        if not check_ins:
+            return None
+
+        window_end = check_ins[-1].period_end
+        window_start = _subtract_months_clamped(window_end, 12)
+        usage_in_window = Decimal(0)
+        covered_days = 0
+        for check_in in check_ins:
+            period_days = (check_in.period_end - check_in.period_start).days
+            overlap_start = max(check_in.period_start, window_start)
+            overlap_end = min(check_in.period_end, window_end)
+            overlap_days = (overlap_end - overlap_start).days
+            if period_days <= 0 or overlap_days <= 0:
+                continue
+            covered_days += overlap_days
+            usage_amount = check_in.usage_amount
+            if usage_amount is None:
+                return None
+            usage_in_window += (
+                Decimal(usage_amount) * Decimal(overlap_days) / Decimal(period_days)
+            )
+
+        if usage_in_window <= 0 or covered_days <= 0:
+            return None
+        return usage_in_window / Decimal(covered_days) * _MONTH_DAYS
 
 
 def _subtract_months_clamped(value: date, months: int) -> date:
