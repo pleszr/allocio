@@ -7,7 +7,7 @@ commits or flushes; an unknown or unowned asset raises `NotFoundError`.
 
 import uuid
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Literal
 
@@ -64,6 +64,9 @@ class AssetDetail:
     maintenance_items: list[MaintenanceItemView]
     recent_activity: list[ActivityItem]
     upcoming_expenses: list[UpcomingExpense]
+    manual_extra_monthly: Decimal
+    manual_extra_recommended: Decimal
+    average_monthly_usage: Decimal
 
 
 class AssetDetailService:
@@ -98,7 +101,26 @@ class AssetDetailService:
             maintenance_items=maintenance_items,
             recent_activity=self._recent_activity(asset_id),
             upcoming_expenses=self._upcoming_expenses(user_id, asset_id, maintenance_items),
+            manual_extra_monthly=asset.manual_extra_monthly,
+            manual_extra_recommended=self._manual_extra_recommendation(asset_id),
+            average_monthly_usage=self._workspace.monthly_usage_rate(asset_id),
         )
+
+    def _manual_extra_recommendation(self, asset_id: uuid.UUID) -> Decimal:
+        """Derive a recommended manual-extra buffer from the last 12 months' expense/allocation gap.
+
+        Floored at zero; derived guidance only, per docs/domain-model.md — never overwrites the
+        stored `manual_extra_monthly` value on its own.
+        """
+        bucket = expense_repository.get_bucket_for_asset(self._session, asset_id)
+        if bucket is None:
+            return Decimal(0)
+        window_start = date.today() - timedelta(days=365)
+        allocations = check_in_repository.list_posted_allocation_events(self._session, bucket.id)
+        expenses = expense_repository.list_expenses_for_bucket(self._session, bucket.id)
+        total_allocated = sum((amount for event_date, amount in allocations if event_date >= window_start), Decimal(0))
+        total_expense = sum((expense.amount for expense in expenses if expense.event_date >= window_start), Decimal(0))
+        return max(Decimal(0), total_expense - total_allocated)
 
     def _recent_activity(self, asset_id: uuid.UUID) -> list[ActivityItem]:
         """Merge posted allocations (inflow) and expenses (outflow) into a newest-first, capped feed."""

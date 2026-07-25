@@ -5,7 +5,10 @@ from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
+from app.domain.asset import Bucket
+from app.domain.check_in import AllocationEvent, CheckIn, ExpenseEvent
 from app.domain.vehicle_defaults import vehicle_catalog_keys
 
 # The detail payload asserts over the full seeded maintenance/cost set, so select every key.
@@ -252,3 +255,144 @@ def test_upcoming_expenses_ordered_by_days_until(
     days = [item["days_until"] for item in _upcoming(client, asset_id)]
     assert days == sorted(days)
     assert days[0] == 0  # the overdue maintenance item sorts first
+
+
+# ── Manual extra + average usage (issue #88) ────────────────────────────
+def _add_posted_check_in(session: Session, asset_id: uuid.UUID, period_start: date, period_end: date) -> CheckIn:
+    """Insert a posted check-in whose id can back the NOT NULL `AllocationEvent.check_in_id`."""
+    check_in = CheckIn(
+        asset_id=asset_id, period_start=period_start, period_end=period_end, status="posted"
+    )
+    session.add(check_in)
+    session.flush()
+    return check_in
+
+
+def _add_allocation(session: Session, bucket_id: uuid.UUID, check_in_id: uuid.UUID, amount: str, event_date: date) -> None:
+    session.add(
+        AllocationEvent(
+            bucket_id=bucket_id,
+            check_in_id=check_in_id,
+            event_date=event_date,
+            source_type="time_based_cost",
+            source_id=None,
+            amount=Decimal(amount),
+        )
+    )
+    session.flush()
+
+
+def _add_expense(session: Session, bucket_id: uuid.UUID, amount: str, event_date: date) -> None:
+    session.add(
+        ExpenseEvent(bucket_id=bucket_id, check_in_id=None, event_date=event_date, kind="other", amount=Decimal(amount))
+    )
+    session.flush()
+
+
+def _bucket_id(session: Session, asset_id: str) -> uuid.UUID:
+    return session.query(Bucket).filter_by(asset_id=uuid.UUID(asset_id)).one().id
+
+
+def test_manual_extra_monthly_defaults_to_zero(client: TestClient, backdate_asset_creation: Callable[[str], None]) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
+
+    body = client.get(f"/api/assets/{asset_id}").json()
+
+    assert Decimal(body["manual_extra_monthly"]) == Decimal("0")
+    assert Decimal(body["manual_extra_recommended"]) == Decimal("0")
+
+
+def test_manual_extra_recommended_reflects_12_month_gap(
+    client: TestClient, db_session: Session, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
+    check_in = _add_posted_check_in(db_session, uuid.UUID(asset_id), date.today() - timedelta(days=90), date.today())
+    bucket_id = _bucket_id(db_session, asset_id)
+    _add_allocation(db_session, bucket_id, check_in.id, "1000.00", date.today() - timedelta(days=30))
+    _add_expense(db_session, bucket_id, "4000.00", date.today() - timedelta(days=20))
+
+    body = client.get(f"/api/assets/{asset_id}").json()
+
+    assert Decimal(body["manual_extra_recommended"]) == Decimal("3000.00")
+
+
+def test_manual_extra_recommended_floors_at_zero(
+    client: TestClient, db_session: Session, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
+    check_in = _add_posted_check_in(db_session, uuid.UUID(asset_id), date.today() - timedelta(days=90), date.today())
+    bucket_id = _bucket_id(db_session, asset_id)
+    _add_allocation(db_session, bucket_id, check_in.id, "5000.00", date.today() - timedelta(days=30))
+    _add_expense(db_session, bucket_id, "1000.00", date.today() - timedelta(days=20))
+
+    body = client.get(f"/api/assets/{asset_id}").json()
+
+    assert Decimal(body["manual_extra_recommended"]) == Decimal("0")
+
+
+def test_manual_extra_recommendation_excludes_events_older_than_12_months(
+    client: TestClient, db_session: Session, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation, days=400)
+    check_in = _add_posted_check_in(db_session, uuid.UUID(asset_id), date.today() - timedelta(days=400), date.today())
+    bucket_id = _bucket_id(db_session, asset_id)
+    # Outside the 365-day window: must not count toward the gap.
+    _add_expense(db_session, bucket_id, "9000.00", date.today() - timedelta(days=380))
+
+    body = client.get(f"/api/assets/{asset_id}").json()
+
+    assert Decimal(body["manual_extra_recommended"]) == Decimal("0")
+
+
+def test_update_manual_extra_persists_and_folds_into_recommended_allocation(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
+    before = Decimal(client.get(f"/api/assets/{asset_id}").json()["recommended_monthly_allocation"])
+
+    response = client.put(f"/api/assets/{asset_id}/manual-extra", json={"amount": "5000.00"})
+    assert response.status_code == 200
+    assert Decimal(response.json()["manual_extra_monthly"]) == Decimal("5000.00")
+
+    after = client.get(f"/api/assets/{asset_id}").json()
+    assert Decimal(after["manual_extra_monthly"]) == Decimal("5000.00")
+    assert Decimal(after["recommended_monthly_allocation"]) == before + Decimal("5000.00")
+
+
+def test_update_manual_extra_rejects_negative_amount(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
+
+    assert client.put(f"/api/assets/{asset_id}/manual-extra", json={"amount": "-1"}).status_code == 422
+
+
+def test_update_manual_extra_unknown_asset_is_404(client: TestClient) -> None:
+    response = client.put(f"/api/assets/{uuid.uuid4()}/manual-extra", json={"amount": "10"})
+    assert response.status_code == 404
+
+
+def test_average_monthly_usage_zero_without_check_ins(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
+
+    body = client.get(f"/api/assets/{asset_id}").json()
+
+    assert Decimal(body["average_monthly_usage"]) == Decimal("0")
+
+
+def test_average_monthly_usage_nonzero_with_posted_usage(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation, days=100)
+    first_end = str(date.today() - timedelta(days=50))
+    client.post(f"/api/assets/{asset_id}/check-ins", json={"period_end": first_end, "usage_end": 121000, "expenses": []})
+    client.post(
+        f"/api/assets/{asset_id}/check-ins", json={"period_end": str(date.today()), "usage_end": 130000, "expenses": []}
+    )
+
+    body = client.get(f"/api/assets/{asset_id}").json()
+
+    # 10,000 km over a ~3-whole-month window (see calculator.whole_months) -> nonzero average.
+    assert Decimal(body["average_monthly_usage"]) > Decimal("0")

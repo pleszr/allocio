@@ -18,6 +18,7 @@ import type {
   CreateUsageBasedCostRequest,
   CurrentUser,
   MaintenanceItem,
+  ManualExtraUpdate,
   TimeBasedCost,
   UsageBasedCost,
   UserSettings,
@@ -56,6 +57,9 @@ const DECIMAL_KEYS = new Set([
   "allocated",
   "expense",
   "net",
+  "manual_extra_monthly",
+  "manual_extra_recommended",
+  "average_monthly_usage",
   // Template catalog rows carry a per-currency amount map (`amounts`/`amounts_per_unit`/
   // `estimated_costs`, e.g. `{"HUF": "11650.00", ...}`); the reviver runs bottom-up per key, so it
   // sees "HUF"/"EUR"/"USD" as the string value's own key before it sees the parent map's key.
@@ -120,6 +124,8 @@ export const api = {
   // Workspace + detail reads
   listAssets: () => request<WorkspaceOverview>("/assets"),
   getAsset: (id: string) => request<AssetDetail>(`/assets/${id}`),
+  updateManualExtra: (id: string, amount: number) =>
+    request<ManualExtraUpdate>(`/assets/${id}/manual-extra`, { method: "PUT", ...body({ amount }) }),
   getBalanceHistory: (id: string, months = 12) =>
     request<BalanceHistory>(`/assets/${id}/balance-history?months=${months}`),
   getCheckInHistory: (id: string) => request<CheckInHistory>(`/assets/${id}/check-in-history`),

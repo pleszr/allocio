@@ -72,6 +72,16 @@ class WorkspaceService:
             raise NotFoundError("Asset not found.")
         return self._summarize(asset)
 
+    def monthly_usage_rate(self, asset_id: uuid.UUID) -> Decimal:
+        """Average usage per month across all posted check-ins, or zero without enough data.
+
+        Shared by `_usage_based_monthly`'s accrual math and by callers (e.g. the Costs screen's
+        "Est. per month" usage-based estimate) that need the raw trailing-average figure itself.
+        """
+        total_usage, first_start, last_end = check_in_repository.get_posted_usage_totals(self._session, asset_id)
+        months = 0 if first_start is None else calculator.whole_months(first_start, last_end)
+        return calculator.expected_monthly_usage(total_usage, months)
+
     def _summarize(self, asset: Asset) -> AssetSummary:
         """Compose one asset's balance, recommended monthly allocation, and health status."""
         bucket = expense_repository.get_bucket_for_asset(self._session, asset.id)
@@ -118,7 +128,7 @@ class WorkspaceService:
         """
         time_based = self._time_based_monthly(asset, bucket)
         usage_based = self._usage_based_monthly(asset)
-        return calculator.quantize_currency(time_based + usage_based)
+        return calculator.quantize_currency(time_based + usage_based + asset.manual_extra_monthly)
 
     def _time_based_monthly(self, asset: Asset, bucket: Bucket) -> Decimal:
         """Accrue the monthly total across active time-based costs, applying latest-cost rollover."""
@@ -141,9 +151,7 @@ class WorkspaceService:
         active_rows = cost_repository.list_active_usage_based_costs(self._session, asset.id)
         if not active_rows:
             return Decimal(0)
-        total_usage, first_start, last_end = check_in_repository.get_posted_usage_totals(self._session, asset.id)
-        months = 0 if first_start is None else calculator.whole_months(first_start, last_end)
-        monthly_usage = calculator.expected_monthly_usage(total_usage, months)
+        monthly_usage = self.monthly_usage_rate(asset.id)
         return sum(
             (calculator.usage_based_monthly_accrual(row.amount_per_unit, monthly_usage) for row in active_rows),
             Decimal(0),

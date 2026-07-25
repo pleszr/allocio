@@ -28,6 +28,12 @@ class UpdateUserSettingsRequest(BaseModel):
     )
 
 
+class UpdateManualExtraRequest(BaseModel):
+    """Full-replace body for an asset's manual extra monthly buffer; a negative amount yields a 422."""
+
+    amount: Decimal = Field(ge=0, description="New manual extra monthly buffer.", examples=[5000])
+
+
 class VehicleDetailsInput(BaseModel):
     """Vehicle-profile fields, accepted only when the vehicle template is selected."""
 

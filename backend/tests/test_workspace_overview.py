@@ -232,6 +232,19 @@ def test_inactive_time_based_cost_is_excluded(client: TestClient, db_session: Se
     assert _dec(body["totals"]["total_recommended_monthly_allocation"]) == Decimal("1000.00")
 
 
+def test_manual_extra_monthly_folds_into_recommended_allocation(client: TestClient, db_session: Session) -> None:
+    asset, _bucket = _make_asset(db_session, name="ManualExtra")
+    _add_time_based(db_session, asset.id, amount="12000", interval_value=12, unit="months")
+    asset.manual_extra_monthly = Decimal("1500.00")
+    db_session.flush()
+
+    body = client.get("/api/assets").json()
+    summary = _asset_by_id(body, asset.id)
+
+    # 12000/12mo = 1000/mo time-based, plus the 1500 manual extra buffer.
+    assert _dec(summary["recommended_monthly_allocation"]) == Decimal("2500.00")
+
+
 def test_assets_of_other_users_are_absent(client: TestClient, db_session: Session) -> None:
     mine, _bucket = _make_asset(db_session, user_id=TEST_USER_ID, name="Mine")
     theirs, _theirs_bucket = _make_asset(db_session, user_id=OTHER_USER_ID, name="Theirs")
