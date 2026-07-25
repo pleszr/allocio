@@ -92,8 +92,9 @@ and the amount paid outside it.
 ### Paid out of pocket
 
 The one-time remainder of an expense that exceeds the money available in the bucket, including the
-allocation created by the same check-in. It is derived automatically, never entered by the user, and
-does not make the virtual bucket negative. Hungarian product copy: `Kifizettük zsebből`.
+allocation created by the same check-in. It defaults to that derived shortfall, but the user may raise
+it (never lower it below the derived shortfall) up to the expense's full amount, and it never makes the
+virtual bucket negative. Hungarian product copy: `Kifizettük zsebből`.
 
 ## Domain Principles
 
@@ -340,7 +341,7 @@ Rules:
 
 - `kind` supports both modeled expenses and manual `Other`
 - `amount` is the full real-world expense and remains the reference amount for future cost rollover
-- `paid_out_of_pocket` is derived at preview/post time, is non-negative, and cannot exceed `amount`
+- `paid_out_of_pocket` defaults to the derived shortfall at preview/post time; the caller may raise it (never lower it below the derived shortfall) up to `amount`. Always non-negative and never exceeds `amount`
 - `bucket_amount = amount - paid_out_of_pocket`
 - check-in expenses consume `balance_before + current check-in allocations` in submitted order
 - a standalone expense consumes at most the bucket balance available on its `event_date`

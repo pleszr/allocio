@@ -212,6 +212,158 @@ def test_multiple_expenses_consume_available_money_in_request_order(
     assert _dec(preview["balance_after"]) == Decimal("0.00")
 
 
+def test_override_above_natural_shortfall_reduces_bucket_draw(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    """Door-repair scenario: the bucket could fully cover the expense, but the user forces it out of pocket."""
+    created = _create_vehicle(client, backdate_asset_creation)
+    asset_id = created["asset"]["id"]
+    base_body = _preview_body(PERIOD_END, STARTING_ODOMETER + 900)
+    available = _dec(client.post(f"/api/assets/{asset_id}/check-ins/preview", json=base_body).json()["total_allocation"])
+    expense_amount = available - Decimal("100.00")
+
+    preview = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(
+            PERIOD_END,
+            STARTING_ODOMETER + 900,
+            [
+                {
+                    "kind": "other",
+                    "amount": str(expense_amount),
+                    "comment": "Door repair",
+                    "paid_out_of_pocket_override": str(expense_amount),
+                }
+            ],
+        ),
+    ).json()
+
+    line = preview["expense_lines"][0]
+    assert _dec(line["paid_out_of_pocket"]) == expense_amount
+    assert _dec(line["bucket_amount"]) == Decimal("0.00")
+    assert _dec(preview["balance_after"]) == _dec(preview["balance_before"]) + available
+
+
+def test_override_below_natural_shortfall_is_clamped_to_natural(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    created = _create_vehicle(client, backdate_asset_creation)
+    asset_id = created["asset"]["id"]
+    base_body = _preview_body(PERIOD_END, STARTING_ODOMETER + 900)
+    available = _dec(client.post(f"/api/assets/{asset_id}/check-ins/preview", json=base_body).json()["total_allocation"])
+    expense_amount = available + Decimal("150.00")  # natural paid_out_of_pocket == 150.00
+
+    preview = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(
+            PERIOD_END,
+            STARTING_ODOMETER + 900,
+            [
+                {
+                    "kind": "other",
+                    "amount": str(expense_amount),
+                    "comment": "Large repair",
+                    "paid_out_of_pocket_override": "50.00",
+                }
+            ],
+        ),
+    ).json()
+
+    line = preview["expense_lines"][0]
+    # The caller asked for only 50.00 out of pocket, but the natural floor (150.00) wins -- never lowered.
+    assert _dec(line["paid_out_of_pocket"]) == Decimal("150.00")
+    assert _dec(line["bucket_amount"]) == available
+
+
+def test_omitted_override_is_byte_for_byte_identical_to_derived_only(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    created = _create_vehicle(client, backdate_asset_creation)
+    asset_id = created["asset"]["id"]
+    expenses_without = [{"kind": "other", "amount": "5000.00", "comment": "car wash"}]
+    expenses_with_null = [
+        {"kind": "other", "amount": "5000.00", "comment": "car wash", "paid_out_of_pocket_override": None}
+    ]
+
+    without_override = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(PERIOD_END, STARTING_ODOMETER + 900, expenses_without),
+    ).json()
+    with_null_override = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(PERIOD_END, STARTING_ODOMETER + 900, expenses_with_null),
+    ).json()
+
+    assert without_override == with_null_override
+
+
+def test_earlier_override_increases_bucket_balance_left_for_later_natural_floor(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    created = _create_vehicle(client, backdate_asset_creation)
+    asset_id = created["asset"]["id"]
+    base_body = _preview_body(PERIOD_END, STARTING_ODOMETER + 900)
+    available = _dec(client.post(f"/api/assets/{asset_id}/check-ins/preview", json=base_body).json()["total_allocation"])
+    second_amount = Decimal("50.00")
+
+    baseline = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(
+            PERIOD_END,
+            STARTING_ODOMETER + 900,
+            [
+                {"kind": "other", "amount": str(available), "comment": "First"},
+                {"kind": "other", "amount": str(second_amount), "comment": "Second"},
+            ],
+        ),
+    ).json()
+    with_override = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(
+            PERIOD_END,
+            STARTING_ODOMETER + 900,
+            [
+                {
+                    "kind": "other",
+                    "amount": str(available),
+                    "comment": "First",
+                    "paid_out_of_pocket_override": str(available),
+                },
+                {"kind": "other", "amount": str(second_amount), "comment": "Second"},
+            ],
+        ),
+    ).json()
+
+    baseline_second = baseline["expense_lines"][1]
+    override_second = with_override["expense_lines"][1]
+    # Without the override, line one drains the entire bucket, so line two is entirely out of pocket.
+    assert _dec(baseline_second["paid_out_of_pocket"]) == second_amount
+    assert _dec(baseline_second["bucket_amount"]) == Decimal("0.00")
+    # With the override, line one draws nothing from the bucket, leaving it free to cover line two.
+    assert _dec(override_second["paid_out_of_pocket"]) == Decimal("0.00")
+    assert _dec(override_second["bucket_amount"]) == second_amount
+
+
+def test_override_above_amount_is_422(client: TestClient, backdate_asset_creation: Callable[[str], None]) -> None:
+    created = _create_vehicle(client, backdate_asset_creation)
+    asset_id = created["asset"]["id"]
+    expenses = [
+        {
+            "kind": "other",
+            "amount": "100.00",
+            "comment": "Repair",
+            "paid_out_of_pocket_override": "150.00",
+        }
+    ]
+
+    result = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(PERIOD_END, STARTING_ODOMETER + 900, expenses),
+    )
+
+    assert result.status_code == 422
+
+
 def test_post_creates_check_in_and_events(client: TestClient, backdate_asset_creation: Callable[[str], None]) -> None:
     created = _create_vehicle(client, backdate_asset_creation)
     asset_id = created["asset"]["id"]

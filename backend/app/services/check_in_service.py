@@ -37,6 +37,7 @@ class ExpenseDraft:
     comment: str | None
     source_type: str | None
     source_id: uuid.UUID | None
+    paid_out_of_pocket_override: Decimal | None
 
 
 @dataclass(frozen=True)
@@ -238,6 +239,7 @@ class CheckInService:
                 source_type=draft.source_type,
                 source_id=draft.source_id,
                 usage_counter_at_event=draft.usage_counter_at_event,
+                paid_out_of_pocket_override=draft.paid_out_of_pocket_override,
             )
             for draft in expenses
         ]

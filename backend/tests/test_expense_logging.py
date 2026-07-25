@@ -110,6 +110,71 @@ def test_backdated_standalone_expense_cannot_use_later_allocation(
     assert Decimal(row["paid_out_of_pocket"]) == Decimal("40.00")
 
 
+def test_standalone_override_above_natural_shortfall_reduces_bucket_draw(
+    client: TestClient, db_session: Session
+) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    _fund_bucket(db_session, asset_id, "100.00", date.today())
+
+    row = client.post(
+        f"/api/assets/{asset_id}/expenses",
+        json={
+            "kind": "other",
+            "amount": "50.00",
+            "comment": "Door repair",
+            "paid_out_of_pocket_override": "50.00",
+        },
+    ).json()
+
+    assert Decimal(row["bucket_amount"]) == Decimal("0.00")
+    assert Decimal(row["paid_out_of_pocket"]) == Decimal("50.00")
+
+
+def test_standalone_override_below_natural_shortfall_is_clamped_to_natural(
+    client: TestClient, db_session: Session
+) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    _fund_bucket(db_session, asset_id, "100.00", date.today())
+
+    row = client.post(
+        f"/api/assets/{asset_id}/expenses",
+        json={
+            "kind": "other",
+            "amount": "150.00",
+            "comment": "Large repair",
+            "paid_out_of_pocket_override": "10.00",
+        },
+    ).json()
+
+    # Natural shortfall is 50.00; the caller's lower 10.00 request never lowers it.
+    assert Decimal(row["bucket_amount"]) == Decimal("100.00")
+    assert Decimal(row["paid_out_of_pocket"]) == Decimal("50.00")
+
+
+def test_standalone_omitted_override_is_byte_for_byte_identical_to_derived_only(
+    client: TestClient, db_session: Session
+) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    _fund_bucket(db_session, asset_id, "100.00", date.today())
+
+    without_override = client.post(
+        f"/api/assets/{asset_id}/expenses",
+        json={"kind": "other", "amount": "150.00", "comment": "Repair"},
+    ).json()
+
+    _fund_bucket(db_session, asset_id, "100.00", date.today())
+    with_null_override = client.post(
+        f"/api/assets/{asset_id}/expenses",
+        json={"kind": "other", "amount": "150.00", "comment": "Repair", "paid_out_of_pocket_override": None},
+    ).json()
+
+    assert without_override["bucket_amount"] == with_null_override["bucket_amount"]
+    assert without_override["paid_out_of_pocket"] == with_null_override["paid_out_of_pocket"]
+
+
 def test_log_modeled_expense_echoes_source(client: TestClient) -> None:
     created = _create_vehicle(client)
     asset_id = created["asset"]["id"]

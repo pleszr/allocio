@@ -103,6 +103,7 @@ def _to_drafts(expenses: list[LogExpenseRequest]) -> list[ExpenseDraft]:
             comment=item.comment,
             source_type=item.source_type,
             source_id=item.source_id,
+            paid_out_of_pocket_override=item.paid_out_of_pocket_override,
         )
         for item in expenses
     ]

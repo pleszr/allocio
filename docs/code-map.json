@@ -539,13 +539,13 @@
             {
               "name": "_to_drafts",
               "line_start": 95,
-              "line_end": 108,
-              "hash": "90e7f25a2d3a99b5"
+              "line_end": 109,
+              "hash": "83c7abf2ff5f38b3"
             },
             {
               "name": "_to_preview_response",
-              "line_start": 111,
-              "line_end": 150,
+              "line_start": 112,
+              "line_end": 151,
               "hash": "4687be8832815b49"
             },
             {
@@ -752,15 +752,15 @@
           "functions": [
             {
               "name": "list_expenses",
-              "line_start": 67,
-              "line_end": 74,
+              "line_start": 68,
+              "line_end": 75,
               "hash": "c29ae2b820b21689"
             },
             {
               "name": "log_expense",
               "line_start": 31,
-              "line_end": 51,
-              "hash": "8cf9383201f75bfd"
+              "line_end": 52,
+              "hash": "0b5d774bb3879d73"
             }
           ],
           "classes": [],
@@ -769,8 +769,8 @@
               "method": "get",
               "path": "/assets/{asset_id}/expenses",
               "handler": "list_expenses",
-              "line_start": 67,
-              "line_end": 74,
+              "line_start": 68,
+              "line_end": 75,
               "hash": "c29ae2b820b21689"
             },
             {
@@ -778,8 +778,8 @@
               "path": "/assets/{asset_id}/expenses",
               "handler": "log_expense",
               "line_start": 31,
-              "line_end": 51,
-              "hash": "8cf9383201f75bfd"
+              "line_end": 52,
+              "hash": "0b5d774bb3879d73"
             }
           ]
         },
@@ -881,28 +881,34 @@
             {
               "name": "LogExpenseRequest",
               "line_start": 222,
-              "line_end": 268,
-              "hash": "fec975190329a5e2",
+              "line_end": 283,
+              "hash": "f9bdbef636802630",
               "methods": [
                 {
                   "name": "_check_source_matches_kind",
-                  "line_start": 261,
-                  "line_end": 268,
+                  "line_start": 269,
+                  "line_end": 276,
                   "hash": "d919c543a28c37a8"
+                },
+                {
+                  "name": "_override_does_not_exceed_amount",
+                  "line_start": 279,
+                  "line_end": 283,
+                  "hash": "d427a2ce97be25da"
                 }
               ]
             },
             {
               "name": "PostCheckInRequest",
-              "line_start": 294,
-              "line_end": 299,
+              "line_start": 309,
+              "line_end": 314,
               "hash": "b03fef63c359077f",
               "methods": []
             },
             {
               "name": "PreviewCheckInRequest",
-              "line_start": 271,
-              "line_end": 291,
+              "line_start": 286,
+              "line_end": 306,
               "hash": "c2ef72c01535b8b6",
               "methods": []
             },
@@ -922,8 +928,8 @@
             },
             {
               "name": "UpdateMaintenanceItemRequest",
-              "line_start": 302,
-              "line_end": 315,
+              "line_start": 317,
+              "line_end": 330,
               "hash": "197bb31033bc827f",
               "methods": []
             },
@@ -1669,61 +1675,67 @@
           "functions": [
             {
               "name": "_expense_lines",
-              "line_start": 221,
-              "line_end": 242,
-              "hash": "6f5ef73a64ca0a15"
+              "line_start": 225,
+              "line_end": 254,
+              "hash": "dfabdcf0d5efadc2"
             },
             {
               "name": "_manual_extra_line",
-              "line_start": 212,
-              "line_end": 218,
+              "line_start": 216,
+              "line_end": 222,
               "hash": "9807ddeec5ec3efa"
             },
             {
               "name": "_time_based_lines",
-              "line_start": 177,
-              "line_end": 193,
+              "line_start": 181,
+              "line_end": 197,
               "hash": "83407f05c76c7163"
             },
             {
               "name": "_usage_based_lines",
-              "line_start": 196,
-              "line_end": 209,
+              "line_start": 200,
+              "line_end": 213,
               "hash": "0c54b7cb13e831a0"
             },
             {
               "name": "compute_check_in",
-              "line_start": 102,
-              "line_end": 174,
-              "hash": "8128b48dc3d476ad"
+              "line_start": 103,
+              "line_end": 178,
+              "hash": "711d318cf2b69849"
+            },
+            {
+              "name": "resolve_paid_out_of_pocket",
+              "line_start": 257,
+              "line_end": 265,
+              "hash": "641f315aecd34638"
             }
           ],
           "classes": [
             {
               "name": "AllocationLine",
-              "line_start": 61,
-              "line_end": 67,
+              "line_start": 62,
+              "line_end": 68,
               "hash": "4f88c319c4f5907b",
               "methods": []
             },
             {
               "name": "CheckInComputation",
-              "line_start": 86,
-              "line_end": 99,
+              "line_start": 87,
+              "line_end": 100,
               "hash": "3b3078b8fa7fdca2",
               "methods": []
             },
             {
               "name": "ExpenseDraftInput",
               "line_start": 48,
-              "line_end": 57,
-              "hash": "6f63718f2093e0ab",
+              "line_end": 58,
+              "hash": "45fe8440779341fd",
               "methods": []
             },
             {
               "name": "ExpenseLine",
-              "line_start": 71,
-              "line_end": 82,
+              "line_start": 72,
+              "line_end": 83,
               "hash": "011389997eac2100",
               "methods": []
             },
@@ -2688,117 +2700,117 @@
           "classes": [
             {
               "name": "CheckInPreview",
-              "line_start": 43,
-              "line_end": 52,
+              "line_start": 44,
+              "line_end": 53,
               "hash": "e6a524f45625ca25",
               "methods": []
             },
             {
               "name": "CheckInService",
-              "line_start": 65,
-              "line_end": 364,
+              "line_start": 66,
+              "line_end": 366,
               "hash": "94ed875258913601",
               "methods": [
                 {
                   "name": "__init__",
-                  "line_start": 68,
-                  "line_end": 69,
+                  "line_start": 69,
+                  "line_end": 70,
                   "hash": "2c8f2810305a160d"
                 },
                 {
                   "name": "_build_allocation_events",
-                  "line_start": 301,
-                  "line_end": 319,
+                  "line_start": 303,
+                  "line_end": 321,
                   "hash": "588ce0010e6a4722"
                 },
                 {
                   "name": "_build_check_in",
-                  "line_start": 278,
-                  "line_end": 299,
+                  "line_start": 280,
+                  "line_end": 301,
                   "hash": "78c2eda944c4f52d"
                 },
                 {
                   "name": "_build_expense_events",
-                  "line_start": 321,
-                  "line_end": 343,
+                  "line_start": 323,
+                  "line_end": 345,
                   "hash": "6498f4d6008e17a6"
                 },
                 {
                   "name": "_compute",
-                  "line_start": 174,
-                  "line_end": 196,
+                  "line_start": 175,
+                  "line_end": 197,
                   "hash": "301c4f2d4280b632"
                 },
                 {
                   "name": "_derive_period",
-                  "line_start": 131,
-                  "line_end": 152,
+                  "line_start": 132,
+                  "line_end": 153,
                   "hash": "3e29778a1872809c"
                 },
                 {
                   "name": "_expense_inputs",
-                  "line_start": 230,
-                  "line_end": 243,
-                  "hash": "e6c0bceb082aa41d"
+                  "line_start": 231,
+                  "line_end": 245,
+                  "hash": "6d9a1ede11b96e53"
                 },
                 {
                   "name": "_persist",
-                  "line_start": 253,
-                  "line_end": 276,
+                  "line_start": 255,
+                  "line_end": 278,
                   "hash": "7e9c247bfb73ea3c"
                 },
                 {
                   "name": "_require_bucket",
-                  "line_start": 124,
-                  "line_end": 129,
+                  "line_start": 125,
+                  "line_end": 130,
                   "hash": "aa5f2acaaef10f7a"
                 },
                 {
                   "name": "_require_expense_sources_exist",
-                  "line_start": 245,
-                  "line_end": 251,
+                  "line_start": 247,
+                  "line_end": 253,
                   "hash": "cc0083308320dc1e"
                 },
                 {
                   "name": "_require_owned_asset",
-                  "line_start": 117,
-                  "line_end": 122,
+                  "line_start": 118,
+                  "line_end": 123,
                   "hash": "9b1140b9ca6e5ac2"
                 },
                 {
                   "name": "_reset_maintenance_baselines",
-                  "line_start": 345,
-                  "line_end": 364,
+                  "line_start": 347,
+                  "line_end": 366,
                   "hash": "805f034250a7a286"
                 },
                 {
                   "name": "_time_based_inputs",
-                  "line_start": 198,
-                  "line_end": 221,
+                  "line_start": 199,
+                  "line_end": 222,
                   "hash": "f4258e69bc76996b"
                 },
                 {
                   "name": "_usage_based_inputs",
-                  "line_start": 223,
-                  "line_end": 228,
+                  "line_start": 224,
+                  "line_end": 229,
                   "hash": "1f8454e9430629c1"
                 },
                 {
                   "name": "_validate_period",
-                  "line_start": 154,
-                  "line_end": 172,
+                  "line_start": 155,
+                  "line_end": 173,
                   "hash": "cf9a1a93d53d6cd2"
                 },
                 {
                   "name": "post_check_in",
-                  "line_start": 97,
-                  "line_end": 115,
+                  "line_start": 98,
+                  "line_end": 116,
                   "hash": "b9f0ad5bdb68cc07"
                 },
                 {
                   "name": "preview_check_in",
-                  "line_start": 71,
-                  "line_end": 95,
+                  "line_start": 72,
+                  "line_end": 96,
                   "hash": "3610ffe0bc6be99d"
                 }
               ]
@@ -2806,14 +2818,14 @@
             {
               "name": "ExpenseDraft",
               "line_start": 30,
-              "line_end": 39,
-              "hash": "75bd92ee61027f94",
+              "line_end": 40,
+              "hash": "b084d9c32c42face",
               "methods": []
             },
             {
               "name": "_PeriodContext",
-              "line_start": 56,
-              "line_end": 62,
+              "line_start": 57,
+              "line_end": 63,
               "hash": "07ef67f83d6df7c9",
               "methods": []
             }
@@ -3096,6 +3108,7 @@
             "app.domain",
             "app.domain.asset",
             "app.domain.check_in",
+            "app.domain.check_in_calc",
             "app.repository",
             "datetime",
             "decimal",
@@ -3106,45 +3119,45 @@
           "classes": [
             {
               "name": "ExpenseService",
-              "line_start": 20,
-              "line_end": 100,
+              "line_start": 21,
+              "line_end": 108,
               "hash": "aac40effad0ed04e",
               "methods": [
                 {
                   "name": "__init__",
-                  "line_start": 23,
-                  "line_end": 24,
+                  "line_start": 24,
+                  "line_end": 25,
                   "hash": "2c8f2810305a160d"
                 },
                 {
                   "name": "_add_and_commit",
-                  "line_start": 92,
-                  "line_end": 100,
+                  "line_start": 100,
+                  "line_end": 108,
                   "hash": "fbc26d001fc19683"
                 },
                 {
                   "name": "_balance_on",
-                  "line_start": 70,
-                  "line_end": 75,
+                  "line_start": 78,
+                  "line_end": 83,
                   "hash": "a0e81b61578a29b7"
                 },
                 {
                   "name": "_require_owned_asset",
-                  "line_start": 85,
-                  "line_end": 90,
+                  "line_start": 93,
+                  "line_end": 98,
                   "hash": "4d421a5da80957e2"
                 },
                 {
                   "name": "list_expenses",
-                  "line_start": 77,
-                  "line_end": 83,
+                  "line_start": 85,
+                  "line_end": 91,
                   "hash": "38b27347410b93b7"
                 },
                 {
                   "name": "log_expense",
-                  "line_start": 26,
-                  "line_end": 68,
-                  "hash": "037e4b739073dbd0"
+                  "line_start": 27,
+                  "line_end": 76,
+                  "hash": "3f060747ef029609"
                 }
               ]
             }
@@ -3877,68 +3890,68 @@
           "functions": [
             {
               "name": "CheckInScreen",
-              "line_start": 46,
-              "line_end": 506,
-              "hash": "a1fcf600080ee68a"
+              "line_start": 52,
+              "line_end": 514,
+              "hash": "4c0921d04980f3e2"
             },
             {
               "name": "ExpenseRow",
-              "line_start": 508,
-              "line_end": 585,
-              "hash": "6dbd89215ce7ffdb"
+              "line_start": 516,
+              "line_end": 623,
+              "hash": "80f648f8dcfdc55d"
             },
             {
               "name": "FlagRow",
-              "line_start": 587,
-              "line_end": 622,
+              "line_start": 625,
+              "line_end": 660,
               "hash": "04697ac8287eb9e9"
             },
             {
               "name": "RowKV",
-              "line_start": 624,
-              "line_end": 635,
+              "line_start": 662,
+              "line_end": 673,
               "hash": "5b2cd9af20e61b05"
             },
             {
               "name": "isDraftExpenseInvalid",
-              "line_start": 23,
-              "line_end": 27,
-              "hash": "cb728cb060508f25"
+              "line_start": 24,
+              "line_end": 32,
+              "hash": "7f376e3ee698bfe2"
             },
             {
               "name": "toExpenseDrafts",
-              "line_start": 29,
-              "line_end": 39,
-              "hash": "394f951378aa64c2"
+              "line_start": 34,
+              "line_end": 45,
+              "hash": "a81f723c14d9070c"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "CheckInScreen",
-              "line_start": 46,
-              "line_end": 506,
-              "hash": "a1fcf600080ee68a",
+              "line_start": 52,
+              "line_end": 514,
+              "hash": "4c0921d04980f3e2",
               "kind": "function"
             },
             {
               "name": "ExpenseRow",
-              "line_start": 508,
-              "line_end": 585,
-              "hash": "6dbd89215ce7ffdb",
+              "line_start": 516,
+              "line_end": 623,
+              "hash": "80f648f8dcfdc55d",
               "kind": "function"
             },
             {
               "name": "FlagRow",
-              "line_start": 587,
-              "line_end": 622,
+              "line_start": 625,
+              "line_end": 660,
               "hash": "04697ac8287eb9e9",
               "kind": "function"
             },
             {
               "name": "RowKV",
-              "line_start": 624,
-              "line_end": 635,
+              "line_start": 662,
+              "line_end": 673,
               "hash": "5b2cd9af20e61b05",
               "kind": "function"
             }
