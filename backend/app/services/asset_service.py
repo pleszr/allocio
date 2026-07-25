@@ -6,12 +6,12 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.common.exceptions import ValidationError
+from app.common.exceptions import NotFoundError, ValidationError
 from app.domain.asset import Asset, Bucket, VehicleProfile
 from app.domain.asset_templates import ASSET_TEMPLATES, AssetTemplate
 from app.domain.cost import MaintenanceItem, TimeBasedCost, UsageBasedCost
 from app.domain.vehicle_defaults import build_selected_rows, overridable_catalog_keys, vehicle_catalog_keys
-from app.repository import user_repository
+from app.repository import check_in_repository, user_repository
 from app.repository.asset_repository import insert_asset_dependents, persist_asset
 
 
@@ -104,6 +104,15 @@ class AssetService:
             usage_based_costs=usage_based,
             maintenance_items=maintenance,
         )
+
+    def update_manual_extra_monthly(self, user_id: uuid.UUID, asset_id: uuid.UUID, amount: Decimal) -> Decimal:
+        """Replace an owned asset's manual extra monthly buffer. Commits immediately (single-field write)."""
+        asset = check_in_repository.get_owned_asset(self._session, user_id, asset_id)
+        if asset is None:
+            raise NotFoundError("Asset not found.")
+        asset.manual_extra_monthly = amount
+        self._session.commit()
+        return asset.manual_extra_monthly
 
     def _resolve_owner_currency(self, user_id: uuid.UUID) -> str:
         """Return the owner's default currency so the new bucket and seeded rows adopt it.

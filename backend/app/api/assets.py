@@ -4,7 +4,7 @@ import uuid
 from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.api.costs import _serialize_maintenance
-from app.api.schemas.requests import CreateAssetRequest
+from app.api.schemas.requests import CreateAssetRequest, UpdateManualExtraRequest
 from app.api.schemas.responses import (
     ActivityItemResponse,
     AssetDetailResponse,
@@ -14,6 +14,7 @@ from app.api.schemas.responses import (
     CheckInHistoryResponse,
     CheckInHistoryRowResponse,
     CreateAssetResponse,
+    ManualExtraResponse,
     UpcomingExpenseResponse,
     WorkspaceOverviewResponse,
     WorkspaceTotalsResponse,
@@ -162,6 +163,32 @@ def get_check_in_history(
     return _to_check_in_history_response(history)
 
 
+@router.put(
+    "/assets/{asset_id}/manual-extra",
+    summary="Replace an asset's manual extra monthly buffer",
+    description="""Full-replace write for the flat monthly buffer added on top of an asset's modeled
+    time- and usage-based accruals. The new value folds into recommended_monthly_allocation
+    everywhere it's shown (workspace list, asset detail, health status).""",
+    response_model=ManualExtraResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "The updated manual extra monthly buffer."},
+        404: {"description": "Asset not found for this user."},
+        422: {"description": "amount is negative."},
+        500: {"description": INTERNAL_ERROR},
+    },
+)
+def update_manual_extra(
+    asset_id: uuid.UUID,
+    body: UpdateManualExtraRequest,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    service: AssetService = Depends(get_asset_service),
+) -> ManualExtraResponse:
+    """Delegate to the asset service and wrap the updated value."""
+    updated = service.update_manual_extra_monthly(user_id, asset_id, body.amount)
+    return ManualExtraResponse(manual_extra_monthly=updated)
+
+
 @router.get(
     "/assets/{asset_id}",
     summary="Read one asset's detail payload",
@@ -217,6 +244,9 @@ def _to_asset_detail_response(detail: AssetDetail) -> AssetDetailResponse:
             )
             for item in detail.upcoming_expenses
         ],
+        manual_extra_monthly=detail.manual_extra_monthly,
+        manual_extra_recommended=detail.manual_extra_recommended,
+        average_monthly_usage=detail.average_monthly_usage,
     )
 
 

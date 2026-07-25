@@ -103,6 +103,13 @@ export interface AssetDetail {
   maintenance_items: MaintenanceItem[];
   recent_activity: ActivityItem[];
   upcoming_expenses: UpcomingExpense[];
+  manual_extra_monthly: number;
+  manual_extra_recommended: number;
+  average_monthly_usage: number;
+}
+
+export interface ManualExtraUpdate {
+  manual_extra_monthly: number;
 }
 
 // ── Balance history (GET /api/assets/{id}/balance-history) ─────────────

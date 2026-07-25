@@ -358,6 +358,12 @@ class UpcomingExpenseResponse(BaseModel):
     overdue: bool = Field(description="True for an already-overdue maintenance item.")
 
 
+class ManualExtraResponse(BaseModel):
+    """The updated manual extra monthly buffer, returned by the manual-extra write route."""
+
+    manual_extra_monthly: Decimal = Field(description="The updated manual extra monthly buffer.")
+
+
 class AssetDetailResponse(BaseModel):
     """One asset's composed dashboard payload: derived figures, usage, maintenance, and recent activity."""
 
@@ -368,8 +374,19 @@ class AssetDetailResponse(BaseModel):
     currency: str = Field(description="ISO currency code of the asset's bucket.", examples=["HUF"])
     balance: Decimal = Field(description="Event-derived bucket balance: sum(allocations) - sum(expenses).")
     recommended_monthly_allocation: Decimal = Field(
-        description="Suggested monthly saving; also the 'next allocation' amount the dashboard shows. The "
-        "next-allocation date and pending accrual are intentionally omitted pending a product decision on cadence."
+        description="Suggested monthly saving; also the 'next allocation' amount the dashboard shows. Includes "
+        "the active time-based and usage-based accruals plus manual_extra_monthly. The next-allocation date and "
+        "pending accrual are intentionally omitted pending a product decision on cadence."
+    )
+    manual_extra_monthly: Decimal = Field(
+        description="User-set flat monthly buffer added on top of the modeled time- and usage-based accruals."
+    )
+    manual_extra_recommended: Decimal = Field(
+        description="Derived guidance for manual_extra_monthly from the last 12 months' expense/allocation gap, "
+        "floored at zero. Informational only — never overwrites the stored value."
+    )
+    average_monthly_usage: Decimal = Field(
+        description="Trailing average usage per month across all posted check-ins; zero without enough data."
     )
     daily_accrual: Decimal = Field(
         description="Per-day accrual derived as recommended_monthly_allocation * 12 / 365, quantized to currency."

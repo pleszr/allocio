@@ -21,6 +21,7 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
   const { t } = useTranslation();
   const fmt = useCurrency();
   const [tab, setTab] = useState<CostTab>(initialTab ?? "time");
+  const [manualEditing, setManualEditing] = useState(false);
   const asset = useAsync(() => api.getAsset(assetId), [assetId]);
   const time = useAsync(() => api.listTimeBasedCosts(assetId), [assetId]);
   const usage = useAsync(() => api.listUsageBasedCosts(assetId), [assetId]);
@@ -47,6 +48,9 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
   const assetName = asset.data.name;
   const assetType = asset.data.type;
   const recommendedMonthly = asset.data.recommended_monthly_allocation;
+  const manualExtra = asset.data.manual_extra_monthly;
+  const manualExtraRecommended = asset.data.manual_extra_recommended;
+  const avgMonthlyUsage = asset.data.average_monthly_usage;
 
   const timeRows = time.data ?? [];
   const usageRows = usage.data ?? [];
@@ -79,7 +83,17 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
         </div>
       </div>
 
-      <div className="kpi-grid" style={{ marginBottom: 24 }}>
+      {manualEditing && (
+        <ManualExtraEditor
+          assetId={assetId}
+          current={manualExtra}
+          recommended={manualExtraRecommended}
+          onClose={() => setManualEditing(false)}
+          onChanged={reloadAll}
+        />
+      )}
+
+      <div className="kpi-grid kpi-grid-4" style={{ marginBottom: 24 }}>
         <div className="kpi">
           <div className="kpi-label">{t("costs.time_total")}</div>
           <div className="num-lg">
@@ -103,20 +117,102 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
           </div>
         </div>
         <div className="kpi">
-          <div className="kpi-label">{t("costs.recommended_allocation")}</div>
+          <div className="kpi-label">{t("costs.manual_extra")}</div>
+          <div className="num-lg">
+            {fmt(manualExtra, { decimals: 0 })}
+            <span className="muted" style={{ fontSize: 14 }}>
+              {t("costs.per_mo")}
+            </span>
+          </div>
+          <div className="kpi-sub">
+            {manualExtraRecommended > 0
+              ? t("costs.manual_extra_recommended_sub", { amount: fmt(manualExtraRecommended, { decimals: 0 }) })
+              : t("costs.manual_extra_sub")}
+          </div>
+          <button className="kpi-link" onClick={() => setManualEditing(true)}>
+            <Icon name="edit" size={11} /> {t("costs.manual_extra_edit")}
+          </button>
+        </div>
+        <div className="kpi" style={{ background: "var(--accent-soft)", borderColor: "transparent" }}>
+          <div className="kpi-label">{t("costs.required_allocation")}</div>
           <div className="num-lg">
             {fmt(recommendedMonthly, { decimals: 0 })}
             <span className="muted" style={{ fontSize: 14 }}>
               {t("costs.per_mo")}
             </span>
           </div>
-          <div className="kpi-sub">{t("costs.time_plus_usage")}</div>
+          <div className="kpi-sub">{t("costs.time_usage_manual")}</div>
         </div>
       </div>
 
       {tab === "time" && <TimeTable assetId={assetId} rows={timeRows} onChanged={reloadAll} />}
-      {tab === "usage" && <UsageTable assetId={assetId} rows={usageRows} onChanged={reloadAll} />}
+      {tab === "usage" && <UsageTable assetId={assetId} rows={usageRows} avgMonthlyUsage={avgMonthlyUsage} onChanged={reloadAll} />}
       {tab === "maint" && <MaintTable assetId={assetId} rows={maintRows} onChanged={reloadAll} />}
+    </div>
+  );
+}
+
+// ── Manual extra ─────────────────────────────────────────────────────────
+function ManualExtraEditor({
+  assetId,
+  current,
+  recommended,
+  onClose,
+  onChanged,
+}: {
+  assetId: string;
+  current: number;
+  recommended: number;
+  onClose: () => void;
+  onChanged: () => void;
+}) {
+  const { t } = useTranslation();
+  const fmt = useCurrency();
+  const [amount, setAmount] = useState(String(current));
+  const { error, busy, run } = useMutation(onChanged);
+
+  const save = () => run(() => api.updateManualExtra(assetId, Number(amount)), onClose);
+
+  return (
+    <div className="card card-pad" style={{ marginBottom: 20, background: "var(--surface-sunk)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
+        <div style={{ maxWidth: 380 }}>
+          <div className="card-title" style={{ marginBottom: 6 }}>
+            {t("costs.manual_extra_panel_title")}
+          </div>
+          <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.5, marginBottom: 12 }}>
+            {t("costs.manual_extra_panel_desc")}
+          </div>
+          <LabeledMoney label={t("costs.field_extra_per_month")} value={amount} onChange={setAmount} />
+        </div>
+        <div style={{ minWidth: 240, borderLeft: "1px solid var(--line)", paddingLeft: 24 }}>
+          <div className="card-title" style={{ marginBottom: 6 }}>
+            {t("costs.manual_extra_recommendation_title")}
+          </div>
+          <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.6 }}>
+            {t("costs.manual_extra_recommendation_desc")}
+          </div>
+          <div style={{ marginTop: 10, display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span className="num-md">
+              {fmt(recommended, { decimals: 0 })}
+              <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>
+                {t("costs.per_mo")}
+              </span>
+            </span>
+            <button className="btn btn-sm btn-primary" onClick={() => setAmount(String(recommended))}>
+              {t("costs.use_this")}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <EditActions busy={busy} onCancel={onClose} onSave={save} />
+      </div>
+      {error && (
+        <div className="error-banner" style={{ marginTop: 12 }}>
+          {error}
+        </div>
+      )}
     </div>
   );
 }
@@ -308,7 +404,17 @@ function TimeCreateRow({ assetId, onClose, onChanged }: { assetId: string; onClo
 }
 
 // ── Usage-based ────────────────────────────────────────────────────────
-function UsageTable({ assetId, rows, onChanged }: { assetId: string; rows: UsageBasedCost[]; onChanged: () => void }) {
+function UsageTable({
+  assetId,
+  rows,
+  avgMonthlyUsage,
+  onChanged,
+}: {
+  assetId: string;
+  rows: UsageBasedCost[];
+  avgMonthlyUsage: number;
+  onChanged: () => void;
+}) {
   const { t } = useTranslation();
   const fmt = useCurrency();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -321,7 +427,7 @@ function UsageTable({ assetId, rows, onChanged }: { assetId: string; rows: Usage
           <tr>
             <th style={{ width: "40%" }}>{t("costs.th_component")}</th>
             <th>{t("costs.th_rate")}</th>
-            <th>{t("costs.th_per_100")}</th>
+            <th>{t("costs.th_est_month")}</th>
             <th style={{ width: 1 }}></th>
           </tr>
         </thead>
@@ -338,7 +444,12 @@ function UsageTable({ assetId, rows, onChanged }: { assetId: string; rows: Usage
                 <td className="col-num">
                   {fmt(u.amount_per_unit, { decimals: 3 })}/{u.usage_unit}
                 </td>
-                <td className="col-num">{fmt(u.amount_per_unit * 100, { decimals: 2 })}</td>
+                <td className="col-num">
+                  {fmt(u.amount_per_unit * avgMonthlyUsage, { decimals: 2 })}
+                  <div className="row-meta">
+                    {t("costs.avg_per_month", { amount: fmtNumber(avgMonthlyUsage, 0), unit: u.usage_unit })}
+                  </div>
+                </td>
                 <td>
                   <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(u.id)}>
                     <Icon name="edit" size={12} />
@@ -434,6 +545,7 @@ function MaintTable({ assetId, rows, onChanged }: { assetId: string; rows: Maint
             <th style={{ width: "32%" }}>{t("costs.th_item")}</th>
             <th>{t("costs.th_replace_every")}</th>
             <th>{t("costs.th_last_serviced")}</th>
+            <th>{t("costs.th_now")}</th>
             <th>{t("costs.th_status")}</th>
             <th style={{ width: 1 }}></th>
           </tr>
@@ -459,6 +571,15 @@ function MaintTable({ assetId, rows, onChanged }: { assetId: string; rows: Maint
                     ? `${fmtNumber(m.last_serviced_at_odometer)} km`
                     : m.last_serviced_at_date
                       ? fmtDate(m.last_serviced_at_date)
+                      : "—"}
+                </td>
+                <td className="col-num">
+                  {m.interval_km !== null
+                    ? m.km_since_service !== null
+                      ? `${fmtNumber(m.km_since_service)} km`
+                      : "—"
+                    : m.months_since_service !== null
+                      ? t("costs.now_months", { months: m.months_since_service })
                       : "—"}
                 </td>
                 <td>
@@ -508,7 +629,7 @@ function MaintEditRow({ assetId, row, onClose, onChanged }: { assetId: string; r
 
   return (
     <tr style={{ background: "var(--surface-sunk)" }}>
-      <td colSpan={5} style={{ padding: "20px var(--pad)" }}>
+      <td colSpan={6} style={{ padding: "20px var(--pad)" }}>
         <div className="eyebrow" style={{ marginBottom: 14 }}>
           {t("costs.editing", { name: row.label })}
         </div>
@@ -548,7 +669,7 @@ function MaintCreateRow({ assetId, onClose, onChanged }: { assetId: string; onCl
 
   return (
     <tr style={{ background: "var(--surface-sunk)" }}>
-      <td colSpan={5} style={{ padding: "20px var(--pad)" }}>
+      <td colSpan={6} style={{ padding: "20px var(--pad)" }}>
         <div className="eyebrow" style={{ marginBottom: 14 }}>
           {t("costs.new_maint")}
         </div>
