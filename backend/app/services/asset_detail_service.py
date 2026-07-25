@@ -252,11 +252,12 @@ class AssetDetailService:
     def _expense_items(self, bucket_id: uuid.UUID) -> list[ActivityItem]:
         """Build negative-amount activity items from posted expense events."""
         expenses = expense_repository.list_expenses_for_bucket(self._session, bucket_id)
+        source_labels = expense_repository.resolve_source_labels(self._session, expenses)
         return [
             ActivityItem(
                 date=expense.event_date,
                 kind="expense",
-                label=self._expense_label(expense),
+                label=expense.resolved_label(source_labels.get((expense.source_type, expense.source_id))),
                 amount=-expense.bucket_amount,
                 paid_out_of_pocket=expense.paid_out_of_pocket,
             )
@@ -272,14 +273,6 @@ class AssetDetailService:
                 return label
         source_type = getattr(event, "source_type", None)
         return "Allocation" if not source_type else str(source_type).replace("_", " ").capitalize()
-
-    def _expense_label(self, expense: object) -> str:
-        """Prefer the expense comment, else fall back to a source-derived label."""
-        comment = getattr(expense, "comment", None)
-        if isinstance(comment, str) and comment:
-            return comment
-        source_type = getattr(expense, "source_type", None)
-        return "Expense" if not source_type else str(source_type).replace("_", " ").capitalize()
 
     def _upcoming_expenses(
         self, user_id: uuid.UUID, asset_id: uuid.UUID, maintenance_items: list[MaintenanceItemView]
