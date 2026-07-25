@@ -225,6 +225,48 @@ export interface CheckInPreview {
   balance_after: number;
 }
 
+// ── Check-in detail / edit (GET/PATCH /api/assets/{id}/check-ins/{check_in_id}) ────
+export interface CheckInDetail {
+  check_in_id: string;
+  period_end: string;
+  usage_end: number | null;
+  active_tire_type: TireType | null;
+  elapsed_days: number;
+  usage_amount: number | null;
+  allocation_lines: AllocationLine[];
+  expense_lines: ExpenseLine[];
+  notes: string | null;
+}
+
+// Mirrors CheckInPreview minus asset_id/period_start/usage_start (unchanged and already known from
+// the earlier getCheckIn call), plus the edit-only validity fields. Deliberately close enough to
+// CheckInPreview that CheckInScreen's existing preview rendering (Step 2 card, confirm panel) can
+// render either shape without a separate code path.
+export interface EditCheckInPreview {
+  period_end: string;
+  usage_end: number | null;
+  active_tire_type: string | null;
+  elapsed_days: number;
+  usage_amount: number | null;
+  allocation_lines: AllocationLine[];
+  expense_lines: ExpenseLine[];
+  balance_before: number;
+  total_allocation: number;
+  total_expense: number;
+  total_bucket_expense: number;
+  paid_out_of_pocket: number;
+  net_bucket_change: number;
+  balance_after: number;
+  is_valid: boolean;
+  first_invalid_check_in_id: string | null;
+  first_invalid_period_end: string | null;
+}
+
+export interface EditCheckInBody {
+  expenses: ExpenseDraft[];
+  notes?: string | null;
+}
+
 // ── Template catalog (GET /api/asset-templates/{key}/catalog) ─────────
 // Money fields (amount, amount_per_unit, estimated_cost) are `number` here
 // because the client reviver coerces the backend's Decimal strings. Interval

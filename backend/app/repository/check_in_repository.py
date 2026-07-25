@@ -51,6 +51,65 @@ def list_posted_check_ins(session: Session, asset_id: uuid.UUID) -> list[CheckIn
     return list(session.scalars(stmt).all())
 
 
+def get_owned_check_in(
+    session: Session, user_id: uuid.UUID, asset_id: uuid.UUID, check_in_id: uuid.UUID
+) -> CheckIn | None:
+    """Return the posted check-in only when it belongs to `asset_id` and the asset is owned by `user_id`.
+
+    Joins through the asset ownership gate so an unowned, non-posted, or missing check-in is
+    indistinguishable from any other 404 and never leaks another user's rows.
+    """
+    stmt = (
+        select(CheckIn)
+        .join(Asset, Asset.id == CheckIn.asset_id)
+        .where(
+            CheckIn.id == check_in_id,
+            CheckIn.asset_id == asset_id,
+            CheckIn.status == "posted",
+            Asset.user_id == user_id,
+        )
+    )
+    return session.scalars(stmt).one_or_none()
+
+
+def list_posted_check_ins_after(session: Session, asset_id: uuid.UUID, period_end: date) -> list[CheckIn]:
+    """Return posted check-ins with a later `period_end`, oldest first, for an edit's forward-simulation walk."""
+    stmt = (
+        select(CheckIn)
+        .where(CheckIn.asset_id == asset_id, CheckIn.status == "posted", CheckIn.period_end > period_end)
+        .order_by(CheckIn.period_end)
+    )
+    return list(session.scalars(stmt).all())
+
+
+def list_allocation_events_for_check_in(session: Session, check_in_id: uuid.UUID) -> list[AllocationEvent]:
+    """Return every allocation event posted for one check-in, for its detail view."""
+    stmt = select(AllocationEvent).where(AllocationEvent.check_in_id == check_in_id)
+    return list(session.scalars(stmt).all())
+
+
+def get_latest_check_in_linked_to_maintenance_item(
+    session: Session, asset_id: uuid.UUID, maintenance_item_id: uuid.UUID
+) -> CheckIn | None:
+    """Return the asset's latest posted check-in that still links an expense to this maintenance item.
+
+    Used to re-derive a maintenance item's baseline after an edit changes which check-in is "latest".
+    """
+    stmt = (
+        select(CheckIn)
+        .join(ExpenseEvent, ExpenseEvent.check_in_id == CheckIn.id)
+        .where(
+            CheckIn.asset_id == asset_id,
+            CheckIn.status == "posted",
+            ExpenseEvent.source_type == "maintenance_item",
+            ExpenseEvent.source_id == maintenance_item_id,
+        )
+        .order_by(CheckIn.period_end.desc())
+        .limit(1)
+    )
+    return session.scalars(stmt).one_or_none()
+
+
 def sum_allocation_amounts_by_check_in(session: Session, bucket_id: uuid.UUID) -> dict[uuid.UUID, Decimal]:
     """Return each check-in's total posted allocation amount, keyed by `check_in_id`, for the History ledger."""
     stmt = (
@@ -64,6 +123,19 @@ def sum_allocation_amounts_by_check_in(session: Session, bucket_id: uuid.UUID) -
 def list_posted_allocation_amounts(session: Session, bucket_id: uuid.UUID) -> list[Decimal]:
     """Return the amounts of every posted allocation event for the bucket, for balance reconstruction."""
     stmt = select(AllocationEvent.amount).where(AllocationEvent.bucket_id == bucket_id)
+    return list(session.scalars(stmt).all())
+
+
+def list_posted_allocation_amounts_before(session: Session, bucket_id: uuid.UUID, period_end: date) -> list[Decimal]:
+    """Return posted allocation amounts effective strictly before `period_end`, for an edit's opening balance.
+
+    An allocation event's `event_date` is always its own check-in's `period_end` (see
+    `CheckInService._build_allocation_events`), so this scopes to "everything posted for an earlier
+    period" exactly as an edit's balance-before must.
+    """
+    stmt = select(AllocationEvent.amount).where(
+        AllocationEvent.bucket_id == bucket_id, AllocationEvent.event_date < period_end
+    )
     return list(session.scalars(stmt).all())
 
 

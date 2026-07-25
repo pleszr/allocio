@@ -15,8 +15,24 @@ submission order, the same way the bucket-depletion split itself works, since wh
 absorbs how much doesn't matter for a check-in-level paid-out-of-pocket amount. A period with AJ
 left over after its own lines are exhausted (including periods with no modeled/other expenses at
 all) gets a synthetic 'other' expense for the remainder, so every AJ value is always fully
-accounted for. Not part of the layered `app/` architecture and not wired into the code map; a
-personal, run-once data migration kept for reference/re-run rather than a reusable import feature.
+accounted for.
+
+The September 2025 period deliberately omits the sheet's post-purchase catch-up service visit
+(front/rear brake work, annual service, transmission fluid, fuel filter, water pump, timing
+system, plus an uncategorized 'egyéb' amount -- see the sheet's own 'summa kiadás' for that row,
+1,140,002 Ft) and its AJ is left `None` rather than the sheet's 955118.20, since that whole amount
+was the catch-up bill. Allocio's accrual model is about smoothing *future* expected costs, not a
+one-time backlog a used car came with; leaving it in would permanently skew the average-cost and
+allocation signals derived from posted history. `apply_maintenance_baselines` instead seeds each
+affected maintenance item's `last_serviced_at_date`/`last_serviced_at_odometer` directly (bypassing
+the normal check-in-linked-expense reset), using the sheet's own parallel 'csere/cserélendő
+km/hónap' forecast table as the source of truth, so future due-dates still forecast correctly from
+the real service point even though no expense event represents the cost. `front_brake_disc` is the
+one exception the sheet's forecast table doesn't cover -- Roland confirmed it was actually replaced
+in 2024 at 120,000 km (exact day unknown, so dated to 2024-01-01).
+
+Not part of the layered `app/` architecture and not wired into the code map; a personal, run-once
+data migration kept for reference/re-run rather than a reusable import feature.
 """
 
 import uuid
@@ -29,6 +45,7 @@ from app.domain.user import User
 from app.domain.vehicle_defaults import vehicle_catalog_keys
 from app.services.asset_service import AssetService, CostOverride, VehicleDetails
 from app.services.check_in_service import CheckInService, ExpenseDraft
+from app.services.cost_service import CostService
 
 OWNER_EMAIL = "plesz.roland@gmail.com"
 ASSET_NAME = "Focus Kombi"
@@ -50,6 +67,24 @@ COST_OVERRIDES = [
 ]
 
 SourceMap = dict[str, tuple[str, uuid.UUID]]
+
+# (technical_key, last_serviced_at_date, last_serviced_at_odometer) for maintenance items whose real
+# service baseline predates or coincides with the September catch-up visit that this import
+# deliberately does not post as an expense (see the module docstring). The Sept 2025 values come
+# straight from the sheet's own 'csere (km/hónap)' forecast table (last-serviced 2025-09-01,
+# odometer 176829 == that period's usage_end); front_brake_disc isn't in that table at all -- Roland
+# confirmed it separately as a 2024 replacement at 120,000 km, done before this sheet started
+# tracking it, dated to 2024-01-01 since the exact day isn't known.
+MAINTENANCE_BASELINE_RESETS = [
+    ("front_brake_pad", date(2025, 9, 1), 176829),
+    ("rear_brake_pad", date(2025, 9, 1), 176829),
+    ("annual_service", date(2025, 9, 1), 176829),
+    ("automatic_transmission_fluid", date(2025, 9, 1), 176829),
+    ("fuel_filter", date(2025, 9, 1), 176829),
+    ("water_pump", date(2025, 9, 1), 176829),
+    ("timing_system", date(2025, 9, 1), 176829),
+    ("front_brake_disc", date(2024, 1, 1), 120000),
+]
 
 
 @dataclass(frozen=True)
@@ -116,29 +151,12 @@ def build_periods(source_map: SourceMap) -> list[Period]:
         ),
         Period(date(2025, 7, 1), 174900, None, [], zero, None),
         Period(date(2025, 8, 1), 176200, None, [], zero, None),
-        Period(
-            date(2025, 9, 1),
-            176829,
-            None,
-            [
-                modeled("front_brake_disc", "100000", source_map, date(2025, 9, 1), 176829),
-                modeled("front_brake_pad", "50000", source_map, date(2025, 9, 1), 176829),
-                modeled("rear_brake_pad", "1", source_map, date(2025, 9, 1), 176829),
-                modeled("annual_service", "60000", source_map, date(2025, 9, 1), 176829),
-                modeled("automatic_transmission_fluid", "140000", source_map, date(2025, 9, 1), 176829),
-                modeled("fuel_filter", "40000", source_map, date(2025, 9, 1), 176829),
-                modeled("water_pump", "1", source_map, date(2025, 9, 1), 176829),
-                modeled("timing_system", "250000", source_map, date(2025, 9, 1), 176829),
-                other(
-                    "500000",
-                    "Imported from spreadsheet: uncategorized 'egyéb' cost, Sept 2025 service visit",
-                    date(2025, 9, 1),
-                    176829,
-                ),
-            ],
-            zero,
-            Decimal("955118.20"),
-        ),
+        # September's post-purchase catch-up service visit (brakes, annual service, transmission
+        # fluid, fuel filter, water pump, timing system, plus an uncategorized 'egyéb' amount --
+        # 1,140,002 Ft total, AJ 955118.20) is intentionally not posted as an expense here; see the
+        # module docstring. `apply_maintenance_baselines` seeds the affected items' service
+        # baselines directly instead.
+        Period(date(2025, 9, 1), 176829, None, [], zero, None),
         Period(date(2025, 10, 1), 178132, None, [], zero, None),
         Period(date(2025, 11, 1), 178551, None, [], zero, None),
         Period(
@@ -241,6 +259,29 @@ def build_source_map(created) -> SourceMap:  # noqa: ANN001 - CreatedAsset from 
     return source_map
 
 
+def apply_maintenance_baselines(
+    cost_service: CostService, owner_id: uuid.UUID, asset_id: uuid.UUID, source_map: SourceMap
+) -> None:
+    """Seed each item in `MAINTENANCE_BASELINE_RESETS` with its real last-serviced date/odometer.
+
+    Bypasses the normal check-in-linked-expense reset (no expense is posted for these) so future
+    due-dates still forecast from the real service point even though the catch-up cost itself is
+    intentionally excluded from the expense ledger.
+    """
+    for technical_key, last_serviced_at_date, last_serviced_at_odometer in MAINTENANCE_BASELINE_RESETS:
+        _source_type, item_id = source_map[technical_key]
+        cost_service.update_maintenance_item(
+            user_id=owner_id,
+            asset_id=asset_id,
+            item_id=item_id,
+            changes={
+                "last_serviced_at_date": last_serviced_at_date,
+                "last_serviced_at_odometer": last_serviced_at_odometer,
+            },
+        )
+        print(f"  Seeded {technical_key} baseline: {last_serviced_at_date} @ {last_serviced_at_odometer} km")
+
+
 def main() -> None:
     """Create the backdated vehicle asset, then replay its 14 real monthly check-ins in order."""
     session = SessionLocal()
@@ -266,6 +307,9 @@ def main() -> None:
         print(f"Backdated created_at to {ACQUISITION_DATE.isoformat()}")
 
         source_map = build_source_map(created)
+        cost_service = CostService(session)
+        apply_maintenance_baselines(cost_service, owner.id, asset_id, source_map)
+
         check_in_service = CheckInService(session)
 
         for period in build_periods(source_map):

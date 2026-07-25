@@ -11,6 +11,7 @@ import type {
   AssetTemplateCatalog,
   BalanceHistory,
   CheckInBody,
+  CheckInDetail,
   CheckInHistory,
   CheckInPreview,
   CreateAssetRequest,
@@ -19,6 +20,8 @@ import type {
   CreateTimeBasedCostRequest,
   CreateUsageBasedCostRequest,
   CurrentUser,
+  EditCheckInBody,
+  EditCheckInPreview,
   MaintenanceItem,
   ManualExtraUpdate,
   TimeBasedCost,
@@ -180,4 +183,17 @@ export const api = {
     request<CheckInPreview>(`/assets/${id}/check-ins/preview`, { method: "POST", ...body(data) }),
   postCheckIn: (id: string, data: CheckInBody) =>
     request<unknown>(`/assets/${id}/check-ins`, { method: "POST", ...body(data) }),
+
+  // Check-in edit: correct a past posted check-in's expenses from the History tab. Only
+  // expense_events (and notes) are ever replaced; period/usage/tire and allocation_events are
+  // immutable even here (see docs/vehicle-rules.md, "Check-in expense edit (deliberate exception)").
+  getCheckIn: (assetId: string, checkInId: string) =>
+    request<CheckInDetail>(`/assets/${assetId}/check-ins/${checkInId}`),
+  previewEditCheckIn: (assetId: string, checkInId: string, data: EditCheckInBody) =>
+    request<EditCheckInPreview>(`/assets/${assetId}/check-ins/${checkInId}/preview`, {
+      method: "POST",
+      ...body(data),
+    }),
+  editCheckIn: (assetId: string, checkInId: string, data: EditCheckInBody) =>
+    request<unknown>(`/assets/${assetId}/check-ins/${checkInId}`, { method: "PATCH", ...body(data) }),
 };

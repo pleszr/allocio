@@ -278,6 +278,64 @@ class CheckInPostResponse(BaseModel):
     expense_events: list[ExpenseEventResponse] = Field(description="Posted expense events for the period.")
 
 
+class CheckInDetailResponse(BaseModel):
+    """One posted check-in's immutable period plus its posted allocation/expense lines, for the edit screen."""
+
+    check_in_id: uuid.UUID = Field(description="The posted check-in this detail describes.")
+    period_end: date = Field(description="The check-in's period end date; immutable once posted.")
+    usage_end: int | None = Field(description="Usage counter at period end, or null for non-usage assets.")
+    active_tire_type: str | None = Field(description="Tire type active during the period, if supplied.")
+    elapsed_days: int = Field(description="Whole calendar days covered by this period.")
+    usage_amount: int | None = Field(description="Usage counted this period, or null for non-usage assets.")
+    allocation_lines: list[AllocationLineResponse] = Field(description="The check-in's posted allocation lines.")
+    expense_lines: list[ExpenseLineResponse] = Field(description="The check-in's posted expense lines.")
+    notes: str | None = Field(description="The check-in's stored free-text note, if any.")
+
+
+class EditCheckInPreviewResponse(BaseModel):
+    """Previewed result of an expense-only edit to a posted check-in; computed without writing any records.
+
+    Mirrors `CheckInPreviewResponse` minus `asset_id`/`period_start`/`usage_start` (unchanged and
+    already known from the earlier `GET` call), plus the edit-only validity fields, so the frontend
+    can reuse its existing preview rendering for both a new check-in and an edit.
+    """
+
+    period_end: date = Field(description="The check-in's period end date; immutable once posted.")
+    usage_end: int | None = Field(description="Usage counter at period end, or null for non-usage assets.")
+    active_tire_type: str | None = Field(description="Tire type active during the period, if supplied.")
+    elapsed_days: int = Field(description="Whole calendar days covered by this period.")
+    usage_amount: int | None = Field(description="Usage counted this period, or null for non-usage assets.")
+    allocation_lines: list[AllocationLineResponse] = Field(
+        description="The check-in's posted allocation lines; unchanged by an edit."
+    )
+    expense_lines: list[ExpenseLineResponse] = Field(description="Recomputed expense lines for the submitted edit.")
+    balance_before: Decimal = Field(description="Bucket balance from posted events strictly before this period.")
+    total_allocation: Decimal = Field(description="The check-in's own posted allocation total; unchanged by an edit.")
+    total_expense: Decimal = Field(description="Sum of full real-world expense amounts.")
+    total_bucket_expense: Decimal = Field(description="Sum of expense portions covered by the bucket.")
+    paid_out_of_pocket: Decimal = Field(description="Sum of expense remainders paid outside the bucket.")
+    net_bucket_change: Decimal = Field(description="total_allocation - total_bucket_expense.")
+    balance_after: Decimal = Field(description="Non-negative bucket balance after the edit, for this check-in alone.")
+    is_valid: bool = Field(
+        description="Whether this edit leaves every later already-posted period's balance non-negative."
+    )
+    first_invalid_check_in_id: uuid.UUID | None = Field(
+        description="The first later check-in whose balance would go negative if this edit were applied, else null."
+    )
+    first_invalid_period_end: date | None = Field(
+        description="That check-in's period_end, or null when the edit is valid."
+    )
+
+
+class EditCheckInResponse(BaseModel):
+    """Full record set returned after applying a check-in edit, so a client can render it without a refetch."""
+
+    check_in: CheckInResponse = Field(
+        description="The updated check-in record (notes only; period/usage/tire fields are unchanged)."
+    )
+    expense_events: list[ExpenseEventResponse] = Field(description="The check-in's replacement expense events.")
+
+
 class AssetSummaryResponse(BaseModel):
     """One owned asset with its derived balance and recommended monthly allocation."""
 
