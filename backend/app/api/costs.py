@@ -13,16 +13,31 @@ from app.api.schemas.requests import (
 )
 from app.api.schemas.responses import MaintenanceItemResponse, TimeBasedCostResponse, UsageBasedCostResponse
 from app.common.message_bundle import INTERNAL_ERROR
-from app.services.cost_service import CostService, MaintenanceItemView
+from app.services.cost_service import CostService, MaintenanceItemView, TimeBasedCostView
 from app.services.dependencies import get_cost_service, get_current_user_id
 
 router = APIRouter(prefix="/api", tags=["costs"])
 
 
-def _serialize_time_based(row, service: CostService) -> TimeBasedCostResponse:
-    """Serialize a time-based cost row and attach its computed next-due date via the service."""
-    base = TimeBasedCostResponse.model_validate(row)
-    return base.model_copy(update={"next_due_date": service.next_due_for(row)})
+def _serialize_time_based(view: TimeBasedCostView) -> TimeBasedCostResponse:
+    """Serialize a recurring row with all service-derived monetary fields."""
+    row = view.row
+    return TimeBasedCostResponse(
+        id=row.id,
+        asset_id=row.asset_id,
+        label=row.label,
+        technical_key=row.technical_key,
+        amount=row.amount,
+        reference_amount=view.reference_amount,
+        annualized_amount=view.annualized_amount,
+        daily_rate=view.daily_rate,
+        interval_value=row.interval_value,
+        interval_unit=row.interval_unit,
+        first_due_date=row.first_due_date,
+        next_due_date=view.next_due_date,
+        notes=row.notes,
+        is_active=row.is_active,
+    )
 
 
 def _serialize_maintenance(view: MaintenanceItemView) -> MaintenanceItemResponse:
@@ -60,8 +75,8 @@ def list_time_based_costs(
     service: CostService = Depends(get_cost_service),
 ) -> list[TimeBasedCostResponse]:
     """Delegate to the service and serialize each row."""
-    rows = service.list_time_based_costs(user_id=user_id, asset_id=asset_id)
-    return [_serialize_time_based(row, service) for row in rows]
+    views = service.list_time_based_cost_views(user_id=user_id, asset_id=asset_id)
+    return [_serialize_time_based(view) for view in views]
 
 
 @router.post(
@@ -97,7 +112,7 @@ def create_time_based_cost(
         notes=body.notes,
     )
     response.headers["Location"] = f"/api/assets/{asset_id}/time-based-costs/{row.id}"
-    return _serialize_time_based(row, service)
+    return _serialize_time_based(service.time_based_cost_view(row))
 
 
 @router.patch(
@@ -125,7 +140,7 @@ def update_time_based_cost(
     row = service.update_time_based_cost(
         user_id=user_id, asset_id=asset_id, cost_id=cost_id, changes=body.model_dump(exclude_unset=True)
     )
-    return _serialize_time_based(row, service)
+    return _serialize_time_based(service.time_based_cost_view(row))
 
 
 @router.get(

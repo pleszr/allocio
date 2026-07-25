@@ -135,9 +135,21 @@ def time_based_period_accrual(
     """
     if elapsed_days < 0:
         raise ValueError("elapsed_days must not be negative.")
-    annualized = reference_amount / interval_years(interval_value, interval_unit)
-    daily_rate = annualized / DAYS_PER_YEAR
-    return daily_rate * Decimal(elapsed_days)
+    return time_based_daily_rate(reference_amount, interval_value, interval_unit) * Decimal(elapsed_days)
+
+
+def time_based_annualized_amount(
+    reference_amount: Decimal, interval_value: int, interval_unit: IntervalUnit
+) -> Decimal:
+    """Return the unrounded yearly equivalent of one recurring cost amount."""
+    return reference_amount / interval_years(interval_value, interval_unit)
+
+
+def time_based_daily_rate(
+    reference_amount: Decimal, interval_value: int, interval_unit: IntervalUnit
+) -> Decimal:
+    """Return the unrounded per-day rate of one annualized recurring cost."""
+    return time_based_annualized_amount(reference_amount, interval_value, interval_unit) / DAYS_PER_YEAR
 
 
 def usage_based_period_accrual(usage_amount: int, amount_per_unit: Decimal) -> Decimal:
@@ -341,7 +353,7 @@ def time_based_monthly_accrual(
     Returns:
         The unrounded monthly accrual (interval errors propagate from `interval_years`).
     """
-    return reference_amount / interval_years(interval_value, interval_unit) / _MONTHS_PER_YEAR
+    return time_based_annualized_amount(reference_amount, interval_value, interval_unit) / _MONTHS_PER_YEAR
 
 
 def whole_months(start: date, end: date) -> int:

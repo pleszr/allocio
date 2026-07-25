@@ -27,8 +27,3 @@ export function daysBetween(aIso: string, bIso: string): number {
 export function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
-
-// Approximate days for a time-based interval so we can show a per-day equivalent.
-export function intervalDays(value: number, unit: "months" | "years"): number {
-  return value * (unit === "years" ? 365 : 30);
-}

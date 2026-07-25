@@ -5,7 +5,7 @@ import type { IntervalUnit, MaintenanceItem, TimeBasedCost, UsageBasedCost } fro
 import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { useCurrency } from "../utils/currency";
-import { fmtDate, fmtNumber, intervalDays } from "../utils/format";
+import { fmtDate, fmtNumber } from "../utils/format";
 import { maintenancePill } from "../utils/maintenanceStatus";
 import { useAsync } from "../utils/useAsync";
 
@@ -56,9 +56,9 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
   const usageRows = usage.data ?? [];
   const maintRows = maint.data ?? [];
 
-  const timePerDay = timeRows
-    .filter((t) => t.is_active)
-    .reduce((s, t) => s + t.amount / intervalDays(t.interval_value, t.interval_unit), 0);
+  const activeTimeRows = timeRows.filter((t) => t.is_active);
+  const timePerDay = activeTimeRows.reduce((sum, row) => sum + row.daily_rate, 0);
+  const timePerYear = activeTimeRows.reduce((sum, row) => sum + row.annualized_amount, 0);
   const usageRate = usageRows.filter((u) => u.is_active).reduce((s, u) => s + u.amount_per_unit, 0);
 
   return (
@@ -97,7 +97,7 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
         <div className="kpi">
           <div className="kpi-label">{t("costs.time_total")}</div>
           <div className="num-lg">
-            {fmt(timePerDay * 365, { decimals: 0 })}
+            {fmt(timePerYear, { decimals: 0 })}
             <span className="muted" style={{ fontSize: 14 }}>
               {t("costs.per_yr")}
             </span>
@@ -278,7 +278,7 @@ function TimeTable({ assetId, rows, onChanged }: { assetId: string; rows: TimeBa
                 <td className="row-meta">
                   {t("costs.every_interval", { value: row.interval_value, unit: t(`costs.unit_${row.interval_unit}`) })}
                 </td>
-                <td className="col-num">{fmt(row.amount / intervalDays(row.interval_value, row.interval_unit), { decimals: 2 })}</td>
+                <td className="col-num">{fmt(row.daily_rate, { decimals: 2 })}</td>
                 <td className="row-meta">{row.next_due_date ? fmtDate(row.next_due_date) : "—"}</td>
                 <td>
                   <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(row.id)}>

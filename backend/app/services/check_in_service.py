@@ -47,8 +47,8 @@ class CheckInPreview:
     asset_id: uuid.UUID
     period_start: date
     period_end: date
-    usage_start: int
-    usage_end: int
+    usage_start: int | None
+    usage_end: int | None
     active_tire_type: str | None
     computation: CheckInComputation
 
@@ -74,7 +74,7 @@ class CheckInService:
         user_id: uuid.UUID,
         asset_id: uuid.UUID,
         period_end: date,
-        usage_end: int,
+        usage_end: int | None,
         active_tire_type: str | None,
         expenses: list[ExpenseDraft],
     ) -> CheckInPreview:
@@ -82,15 +82,16 @@ class CheckInService:
         asset = self._require_owned_asset(user_id, asset_id)
         bucket = self._require_bucket(asset_id)
         context = self._derive_period(asset)
-        self._validate_period(context, period_end, usage_end)
+        resolved_usage_end, tracks_usage = self._resolve_usage_end(asset_id, context, usage_end)
+        self._validate_period(context, period_end, resolved_usage_end)
         resolved_tire_type = active_tire_type if active_tire_type is not None else context.previous_active_tire_type
-        computation = self._compute(asset, bucket, context, period_end, usage_end, expenses)
+        computation = self._compute(asset, bucket, context, period_end, resolved_usage_end, expenses)
         return CheckInPreview(
             asset_id=asset_id,
             period_start=context.period_start,
             period_end=period_end,
-            usage_start=context.usage_start,
-            usage_end=usage_end,
+            usage_start=context.usage_start if tracks_usage else None,
+            usage_end=resolved_usage_end if tracks_usage else None,
             active_tire_type=resolved_tire_type,
             computation=computation,
         )
@@ -100,7 +101,7 @@ class CheckInService:
         user_id: uuid.UUID,
         asset_id: uuid.UUID,
         period_end: date,
-        usage_end: int,
+        usage_end: int | None,
         active_tire_type: str | None,
         expenses: list[ExpenseDraft],
         notes: str | None,
@@ -109,11 +110,21 @@ class CheckInService:
         asset = self._require_owned_asset(user_id, asset_id)
         bucket = self._require_bucket(asset_id)
         context = self._derive_period(asset)
-        self._validate_period(context, period_end, usage_end)
+        resolved_usage_end, tracks_usage = self._resolve_usage_end(asset_id, context, usage_end)
+        self._validate_period(context, period_end, resolved_usage_end)
         self._require_expense_sources_exist(asset_id, expenses)
         resolved_tire_type = active_tire_type if active_tire_type is not None else context.previous_active_tire_type
-        computation = self._compute(asset, bucket, context, period_end, usage_end, expenses)
-        return self._persist(bucket, context, period_end, usage_end, resolved_tire_type, notes, expenses, computation)
+        computation = self._compute(asset, bucket, context, period_end, resolved_usage_end, expenses)
+        return self._persist(
+            bucket,
+            context,
+            period_end,
+            resolved_usage_end if tracks_usage else None,
+            resolved_tire_type,
+            notes,
+            expenses,
+            computation,
+        )
 
     def _require_owned_asset(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> Asset:
         """Return the owned asset or raise `NotFoundError` so unowned assets never leak."""
@@ -171,6 +182,17 @@ class CheckInService:
             raise ValidationError("period_end cannot be in the future.")
         if usage_end < context.usage_start:
             raise ValidationError("usage_end must be greater than or equal to the derived usage start.")
+
+    def _resolve_usage_end(
+        self, asset_id: uuid.UUID, context: _PeriodContext, requested: int | None
+    ) -> tuple[int, bool]:
+        """Require usage for profiled assets and ignore the input dimension for all other assets."""
+        tracks_usage = check_in_repository.get_vehicle_profile(self._session, asset_id) is not None
+        if tracks_usage:
+            if requested is None:
+                raise ValidationError("usage_end is required for an asset that tracks usage.")
+            return requested, True
+        return context.usage_start, False
 
     def _compute(
         self,
@@ -282,7 +304,7 @@ class CheckInService:
         bucket: Bucket,
         context: _PeriodContext,
         period_end: date,
-        usage_end: int,
+        usage_end: int | None,
         active_tire_type: str | None,
         notes: str | None,
     ) -> CheckIn:
@@ -292,9 +314,9 @@ class CheckInService:
             period_start=context.period_start,
             period_end=period_end,
             checked_in_at=datetime.now(timezone.utc),
-            usage_start=context.usage_start,
+            usage_start=context.usage_start if usage_end is not None else None,
             usage_end=usage_end,
-            usage_amount=usage_end - context.usage_start,
+            usage_amount=usage_end - context.usage_start if usage_end is not None else None,
             active_tire_type=active_tire_type,
             notes=notes,
             status="posted",
@@ -345,7 +367,7 @@ class CheckInService:
         return events
 
     def _reset_maintenance_baselines(
-        self, asset_id: uuid.UUID, expenses: list[ExpenseDraft], period_end: date, usage_end: int
+        self, asset_id: uuid.UUID, expenses: list[ExpenseDraft], period_end: date, usage_end: int | None
     ) -> None:
         """Reset each maintenance-linked expense's item to the check-in's period_end/usage_end.
 
@@ -362,5 +384,5 @@ class CheckInService:
             if item is None:
                 raise NotFoundError("Maintenance item not found.")
             item.last_serviced_at_date = period_end
-            if item.tire_type is None:
+            if item.tire_type is None and usage_end is not None:
                 item.last_serviced_at_odometer = usage_end

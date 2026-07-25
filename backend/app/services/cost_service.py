@@ -41,6 +41,17 @@ _Row = TypeVar("_Row")
 
 
 @dataclass(frozen=True)
+class TimeBasedCostView:
+    """A recurring cost row plus its current backend-derived monetary rates."""
+
+    row: TimeBasedCost
+    reference_amount: Decimal
+    annualized_amount: Decimal
+    daily_rate: Decimal
+    next_due_date: date | None
+
+
+@dataclass(frozen=True)
 class MaintenanceItemView:
     """A maintenance row plus its calculator-derived status and progress figures for a read."""
 
@@ -64,6 +75,14 @@ class CostService:
         """Return all time-based cost rows for an owned asset. Read-only."""
         self._require_owned_asset(user_id, asset_id)
         return cost_repository.list_time_based_costs(self._session, asset_id)
+
+    def list_time_based_cost_views(
+        self, user_id: uuid.UUID, asset_id: uuid.UUID
+    ) -> list[TimeBasedCostView]:
+        """Return recurring rows with rollover-aware reference, yearly, and daily amounts."""
+        self._require_owned_asset(user_id, asset_id)
+        rows = cost_repository.list_time_based_costs(self._session, asset_id)
+        return self._time_based_views(rows, date.today())
 
     def create_time_based_cost(
         self,
@@ -104,6 +123,10 @@ class CostService:
     def next_due_for(self, cost: TimeBasedCost) -> date | None:
         """Compute a time-based cost's informational next-due date as of today, or None without an anchor."""
         return calculator.next_due_date(cost.first_due_date, cost.interval_value, cost.interval_unit, date.today())
+
+    def time_based_cost_view(self, row: TimeBasedCost) -> TimeBasedCostView:
+        """Enrich one already-owned recurring row for create/update responses."""
+        return self._time_based_views([row], date.today())[0]
 
     def list_usage_based_costs(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> list[UsageBasedCost]:
         """Return all usage-based cost rows for an owned asset. Read-only."""
@@ -221,6 +244,43 @@ class CostService:
         if asset is None:
             raise NotFoundError("Asset not found.")
         return asset
+
+    def _time_based_views(self, rows: list[TimeBasedCost], as_of: date) -> list[TimeBasedCostView]:
+        """Compute current recurring-cost figures with one bucket-expense read for the row set."""
+        if not rows:
+            return []
+        bucket = expense_repository.get_bucket_for_asset(self._session, rows[0].asset_id)
+        if bucket is None:
+            raise NotFoundError("Bucket not found for asset.")
+        expenses = expense_repository.list_expenses_for_bucket(self._session, bucket.id)
+        linked_by_source: dict[uuid.UUID, list[tuple[date, Decimal]]] = {}
+        for expense in expenses:
+            if (
+                expense.kind == "modeled"
+                and expense.source_type == "time_based_cost"
+                and expense.source_id is not None
+            ):
+                linked_by_source.setdefault(expense.source_id, []).append((expense.event_date, expense.amount))
+
+        views: list[TimeBasedCostView] = []
+        for row in rows:
+            reference = calculator.reference_amount(row.amount, linked_by_source.get(row.id, []), as_of)
+            annualized = calculator.time_based_annualized_amount(
+                reference, row.interval_value, row.interval_unit
+            )
+            daily = calculator.time_based_daily_rate(reference, row.interval_value, row.interval_unit)
+            views.append(
+                TimeBasedCostView(
+                    row=row,
+                    reference_amount=calculator.quantize_currency(reference),
+                    annualized_amount=calculator.quantize_currency(annualized),
+                    daily_rate=calculator.quantize_currency(daily),
+                    next_due_date=calculator.next_due_date(
+                        row.first_due_date, row.interval_value, row.interval_unit, as_of
+                    ),
+                )
+            )
+        return views
 
     def _current_asset_usage(self, asset_id: uuid.UUID) -> int | None:
         """Derive the asset's current usage counter: latest posted `usage_end`, else starting odometer.

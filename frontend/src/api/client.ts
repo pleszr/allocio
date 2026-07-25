@@ -5,6 +5,8 @@
 // now means "not signed in" — the app's auth gate routes those to sign-in.
 
 import type {
+  AllocationEstimate,
+  AllocationEstimateRequest,
   AssetDetail,
   AssetTemplateCatalog,
   BalanceHistory,
@@ -46,6 +48,13 @@ const DECIMAL_KEYS = new Set([
   "total_recommended_monthly_allocation",
   "amount",
   "amount_per_unit",
+  "reference_amount",
+  "annualized_amount",
+  "monthly_amount",
+  "daily_rate",
+  "daily_total",
+  "monthly_total",
+  "yearly_total",
   "estimated_cost",
   "km_progress",
   "month_progress",
@@ -157,6 +166,9 @@ export const api = {
   // Template catalog (drives the vehicle cost picker at creation)
   getTemplateCatalog: (templateKey: string) =>
     request<AssetTemplateCatalog>(`/asset-templates/${templateKey}/catalog`),
+
+  estimateAllocation: (data: AllocationEstimateRequest) =>
+    request<AllocationEstimate>("/allocation-estimates", { method: "POST", ...body(data) }),
 
   // Create asset
   createAsset: (data: CreateAssetRequest) =>

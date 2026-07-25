@@ -75,10 +75,12 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
         <div className="hero-stats">
           <div>
             <div className="hero-stat-label">
-              {e.current_usage !== null ? t("dashboard.current_usage") : t("dashboard.daily_accrual")}
+              {e.tracks_usage ? t("dashboard.current_usage") : t("dashboard.daily_accrual")}
             </div>
             <div className="hero-stat-val">
-              {e.current_usage !== null ? `${fmtNumber(e.current_usage)} km` : fmt(e.daily_accrual, { decimals: 2 })}
+              {e.tracks_usage && e.current_usage !== null
+                ? `${fmtNumber(e.current_usage)} km`
+                : fmt(e.daily_accrual, { decimals: 2 })}
             </div>
           </div>
           <div>
@@ -148,7 +150,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
             {t("dashboard.per_mo_recommended", { amount: fmt(e.recommended_monthly_allocation, { decimals: 0 }) })}
           </div>
         </div>
-        {e.current_usage !== null ? (
+        {e.tracks_usage && e.current_usage !== null ? (
           <div className="kpi">
             <div className="kpi-label">{t("dashboard.current_usage")}</div>
             <div className="num-lg">

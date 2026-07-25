@@ -3,7 +3,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query, Response, status
 
-from app.api.costs import _serialize_maintenance
+from app.api.costs import _serialize_maintenance, _serialize_time_based
 from app.api.schemas.requests import CreateAssetRequest, UpdateManualExtraRequest
 from app.api.schemas.responses import (
     ActivityItemResponse,
@@ -25,11 +25,13 @@ from app.services.asset_detail_service import AssetDetail, AssetDetailService
 from app.services.asset_service import AssetService, CostOverride, VehicleDetails
 from app.services.balance_history_service import BalanceHistory, BalanceHistoryService
 from app.services.check_in_history_service import CheckInHistory, CheckInHistoryService
+from app.services.cost_service import CostService
 from app.services.dependencies import (
     get_asset_detail_service,
     get_asset_service,
     get_balance_history_service,
     get_check_in_history_service,
+    get_cost_service,
     get_current_user_id,
     get_workspace_service,
 )
@@ -59,6 +61,7 @@ def create_asset(
     response: Response,
     user_id: uuid.UUID = Depends(get_current_user_id),
     service: AssetService = Depends(get_asset_service),
+    cost_service: CostService = Depends(get_cost_service),
 ) -> CreateAssetResponse:
     """Delegate creation to the service and set the `Location` header on the created asset."""
     vehicle_details = None if body.vehicle is None else VehicleDetails(**body.vehicle.model_dump())
@@ -85,7 +88,19 @@ def create_asset(
         cost_overrides=cost_overrides,
     )
     response.headers["Location"] = f"/api/assets/{created.asset.id}"
-    return CreateAssetResponse.model_validate(created)
+    return CreateAssetResponse.model_validate(
+        {
+            "asset": created.asset,
+            "profile": created.profile,
+            "bucket": created.bucket,
+            "time_based_costs": [
+                _serialize_time_based(cost_service.time_based_cost_view(row))
+                for row in created.time_based_costs
+            ],
+            "usage_based_costs": created.usage_based_costs,
+            "maintenance_items": created.maintenance_items,
+        }
+    )
 
 
 @router.get(
@@ -227,6 +242,7 @@ def _to_asset_detail_response(detail: AssetDetail) -> AssetDetailResponse:
         balance=detail.balance,
         recommended_monthly_allocation=detail.recommended_monthly_allocation,
         daily_accrual=detail.daily_accrual,
+        tracks_usage=detail.tracks_usage,
         current_usage=detail.current_usage,
         usage_since_last_check_in=detail.usage_since_last_check_in,
         last_check_in_date=detail.last_check_in_date,

@@ -119,7 +119,7 @@ def _to_preview_response(preview: CheckInPreview) -> CheckInPreviewResponse:
         usage_start=preview.usage_start,
         usage_end=preview.usage_end,
         elapsed_days=computation.elapsed_days,
-        usage_amount=computation.usage_amount,
+        usage_amount=computation.usage_amount if preview.usage_end is not None else None,
         active_tire_type=preview.active_tire_type,
         allocation_lines=[
             AllocationLineResponse(
