@@ -105,7 +105,9 @@ def test_create_bucket_and_check_in_workflow(
 
     commit = client.post(f"/api/assets/{asset_id}/check-ins", json={**check_in_body, "notes": "first month"})
     assert commit.status_code == 201
-    assert any(line["source_type"] == "manual_extra" for line in commit.json()["allocation_events"])
+    allocation_events = commit.json()["allocation_events"]
+    assert any(line["source_type"] == "manual_extra" for line in allocation_events)
+    expected_allocated = sum((Decimal(line["amount"]) for line in allocation_events), start=Decimal("0"))
 
     # 9. The new bucket now shows up in the workspace overview.
     final_overview = client.get("/api/assets")
@@ -118,6 +120,8 @@ def test_create_bucket_and_check_in_workflow(
     assert history.status_code == 200
     rows = history.json()["rows"]
     assert len(rows) == 1
+    assert rows[0]["period_end"] == PERIOD_END
+    assert Decimal(rows[0]["allocated"]) == expected_allocated
     assert rows[0]["usage_since_last"] == 900
     assert Decimal(rows[0]["paid_out_of_pocket"]) == Decimal("100.00")
     assert Decimal(str(rows[0]["balance"])) == Decimal(str(expected_balance_after))

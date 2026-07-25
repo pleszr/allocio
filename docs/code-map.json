@@ -4195,26 +4195,50 @@
             {
               "name": "DashboardScreen",
               "line_start": 27,
-              "line_end": 249,
-              "hash": "fd0eb51b4f0b61a5"
+              "line_end": 271,
+              "hash": "a285995a0274ff51"
             },
             {
               "name": "MaintCompactRow",
-              "line_start": 251,
-              "line_end": 276,
+              "line_start": 273,
+              "line_end": 298,
               "hash": "bf34b2a0d41106f1"
             },
             {
               "name": "TxRow",
-              "line_start": 309,
-              "line_end": 348,
+              "line_start": 331,
+              "line_end": 370,
               "hash": "cbb1c90fe6db32dd"
             },
             {
               "name": "UpcomingRow",
-              "line_start": 278,
-              "line_end": 307,
+              "line_start": 300,
+              "line_end": 329,
               "hash": "1091459e134e8390"
+            },
+            {
+              "name": "calculateAverageAllocation",
+              "line_start": 377,
+              "line_end": 401,
+              "hash": "cf29ad11e7c06ebc"
+            },
+            {
+              "name": "datePartsIso",
+              "line_start": 415,
+              "line_end": 417,
+              "hash": "6521f4d4ca45278d"
+            },
+            {
+              "name": "localDateIso",
+              "line_start": 411,
+              "line_end": 413,
+              "hash": "6051007d43fefa99"
+            },
+            {
+              "name": "subtractMonthsClamped",
+              "line_start": 403,
+              "line_end": 409,
+              "hash": "5148a2613fa9e710"
             }
           ],
           "classes": [],
@@ -4222,28 +4246,28 @@
             {
               "name": "DashboardScreen",
               "line_start": 27,
-              "line_end": 249,
-              "hash": "fd0eb51b4f0b61a5",
+              "line_end": 271,
+              "hash": "a285995a0274ff51",
               "kind": "function"
             },
             {
               "name": "MaintCompactRow",
-              "line_start": 251,
-              "line_end": 276,
+              "line_start": 273,
+              "line_end": 298,
               "hash": "bf34b2a0d41106f1",
               "kind": "function"
             },
             {
               "name": "TxRow",
-              "line_start": 309,
-              "line_end": 348,
+              "line_start": 331,
+              "line_end": 370,
               "hash": "cbb1c90fe6db32dd",
               "kind": "function"
             },
             {
               "name": "UpcomingRow",
-              "line_start": 278,
-              "line_end": 307,
+              "line_start": 300,
+              "line_end": 329,
               "hash": "1091459e134e8390",
               "kind": "function"
             }
@@ -4692,7 +4716,6 @@
             "fmtMonthYear",
             "fmtNumber",
             "intervalDays",
-            "mockNextAllocation",
             "todayIso"
           ],
           "functions": [
@@ -4731,12 +4754,6 @@
               "line_start": 32,
               "line_end": 34,
               "hash": "77230a5a103315fb"
-            },
-            {
-              "name": "mockNextAllocation",
-              "line_start": 39,
-              "line_end": 44,
-              "hash": "d11d7a5be83ed23d"
             },
             {
               "name": "todayIso",

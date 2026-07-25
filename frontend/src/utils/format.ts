@@ -32,13 +32,3 @@ export function todayIso(): string {
 export function intervalDays(value: number, unit: "months" | "years"): number {
   return value * (unit === "years" ? 365 : 30);
 }
-
-// MOCK — the backend intentionally omits allocation cadence (see GitHub issue).
-// Until a real cadence lands, the dashboard treats allocations as landing on the
-// 1st of each month. This is a placeholder, not a backend-derived value.
-export function mockNextAllocation(): { dateIso: string; daysUntil: number } {
-  const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const daysUntil = Math.max(0, Math.round((next.getTime() - now.getTime()) / 86400000));
-  return { dateIso: next.toISOString().slice(0, 10), daysUntil };
-}

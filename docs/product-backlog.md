@@ -243,7 +243,8 @@ Build the per-item detail view with:
 
 - current bucket balance
 - recent trend
-- next allocation signal
+- average posted allocation signal
+- distance remaining until the configured annual service
 - maintenance alerts
 - recent activity
 
