@@ -183,9 +183,7 @@ function HistoryRow({
             <ul className="history-expense-list">
               {row.expenses.map((line, index) => (
                 <li key={index} className="history-expense-line">
-                  <span className="history-expense-comment">
-                    {line.comment ?? t("history.expense_line_fallback")}
-                  </span>
+                  <span className="history-expense-comment">{line.label}</span>
                   <span className="history-expense-amount">{fmt(-line.amount, { decimals: 2 })}</span>
                   {line.paid_out_of_pocket > 0 && (
                     <span className="history-expense-split">

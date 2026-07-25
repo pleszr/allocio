@@ -213,6 +213,24 @@ class ExpenseLineResponse(BaseModel):
     usage_counter_at_event: int | None = Field(description="Usage reading at the time of the expense, if supplied.")
 
 
+class CheckInExpenseLineResponse(BaseModel):
+    """One posted expense (outflow) line for the History tab, with a resolved display label."""
+
+    kind: str = Field(description="'modeled' for a cost/maintenance expense or 'other' for a manual entry.")
+    amount: Decimal = Field(description="Full real-world expense amount; stored positive.")
+    bucket_amount: Decimal = Field(description="Portion covered by the virtual bucket.")
+    paid_out_of_pocket: Decimal = Field(description="Derived remainder paid outside the virtual bucket.")
+    event_date: date = Field(description="Date the expense occurred; resolved to today when the draft omitted it.")
+    comment: str | None = Field(description="Free-text note describing the expense, if any.")
+    source_type: str | None = Field(description="Source table for a modeled expense, else null.")
+    source_id: uuid.UUID | None = Field(description="Id of the linked source row for a modeled expense, else null.")
+    usage_counter_at_event: int | None = Field(description="Usage reading at the time of the expense, if supplied.")
+    label: str = Field(
+        description="Display label: resolved source name, the comment, both combined, or a fallback.",
+        examples=["Tires", "Replaced front pair", "Tires — replaced front pair"],
+    )
+
+
 class CheckInPreviewResponse(BaseModel):
     """Deterministic financial result of a check-in period; computed without writing any records."""
 
@@ -398,7 +416,7 @@ class CheckInHistoryRowResponse(BaseModel):
     paid_out_of_pocket: Decimal = Field(description="Expense total paid outside the virtual bucket.")
     net: Decimal = Field(description="allocated - bucket_expense for this check-in.")
     balance: Decimal = Field(description="Running bucket balance after this check-in.")
-    expenses: list[ExpenseLineResponse] = Field(
+    expenses: list[CheckInExpenseLineResponse] = Field(
         description="Individual expense line items funded during this check-in, oldest first."
     )
 

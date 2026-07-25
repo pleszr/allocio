@@ -290,7 +290,6 @@
     "irregular_cadence": "{{days}} nap telt el az előző elszámolás óta — kívül esik a szokásos ~30 napos ütemen",
     "expand_expenses": "Kiadás-bontás megjelenítése",
     "collapse_expenses": "Kiadás-bontás elrejtése",
-    "expense_line_fallback": "Kiadás",
     "edit_check_in": "Elszámolás szerkesztése"
   },
   "newBucket": {

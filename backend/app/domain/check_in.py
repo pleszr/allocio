@@ -86,3 +86,19 @@ class ExpenseEvent(Base):
     def bucket_amount(self) -> Decimal:
         """Return the portion of the full expense funded by the virtual bucket."""
         return self.amount - self.paid_out_of_pocket
+
+    def resolved_label(self, source_label: str | None) -> str:
+        """Compose a display label from a resolved source name plus this event's own comment.
+
+        Combines both when present (e.g. "Tires — replaced front pair"), falls back to whichever
+        one exists, then to a humanized `source_type`, then to a generic "Expense".
+        """
+        if source_label and self.comment:
+            return f"{source_label} — {self.comment}"
+        if source_label:
+            return source_label
+        if self.comment:
+            return self.comment
+        if self.source_type:
+            return self.source_type.replace("_", " ").capitalize()
+        return "Expense"
