@@ -141,6 +141,7 @@ export interface CheckInHistoryRow {
   paid_out_of_pocket: number;
   net: number;
   balance: number;
+  expenses: ExpenseLine[];
 }
 
 export interface CheckInHistory {

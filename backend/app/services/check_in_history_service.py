@@ -13,8 +13,23 @@ from sqlalchemy.orm import Session
 
 from app.common.exceptions import NotFoundError
 from app.domain.asset import Bucket
-from app.domain.check_in import CheckIn
+from app.domain.check_in import CheckIn, ExpenseEvent
 from app.repository import check_in_repository, expense_repository
+
+
+@dataclass(frozen=True)
+class CheckInExpenseLine:
+    """One expense event funded during a posted check-in, mirroring `ExpenseEvent`'s own fields."""
+
+    kind: str
+    amount: Decimal
+    bucket_amount: Decimal
+    paid_out_of_pocket: Decimal
+    event_date: date
+    comment: str | None
+    source_type: str | None
+    source_id: uuid.UUID | None
+    usage_counter_at_event: int | None
 
 
 @dataclass(frozen=True)
@@ -32,6 +47,7 @@ class CheckInHistoryRow:
     paid_out_of_pocket: Decimal
     net: Decimal
     balance: Decimal
+    expenses: list[CheckInExpenseLine]
 
 
 @dataclass(frozen=True)
@@ -55,7 +71,8 @@ class CheckInHistoryService:
         check_ins = check_in_repository.list_posted_check_ins(self._session, asset_id)
         allocation_totals = check_in_repository.sum_allocation_amounts_by_check_in(self._session, bucket.id)
         expense_totals = expense_repository.sum_expense_funding_by_check_in(self._session, bucket.id)
-        rows = self._build_rows(check_ins, allocation_totals, expense_totals)
+        expense_lines_by_check_in = expense_repository.list_expenses_by_check_in(self._session, bucket.id)
+        rows = self._build_rows(check_ins, allocation_totals, expense_totals, expense_lines_by_check_in)
         return CheckInHistory(asset_id=asset_id, currency=bucket.currency, rows=rows)
 
     def _owned_bucket(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> Bucket:
@@ -72,6 +89,7 @@ class CheckInHistoryService:
         check_ins: list[CheckIn],
         allocation_totals: dict[uuid.UUID, Decimal],
         expense_totals: dict[uuid.UUID, expense_repository.ExpenseFundingTotals],
+        expense_lines_by_check_in: dict[uuid.UUID, list[ExpenseEvent]],
     ) -> list[CheckInHistoryRow]:
         """Walk posted check-ins in period order, accumulating the running bucket balance."""
         rows: list[CheckInHistoryRow] = []
@@ -84,6 +102,20 @@ class CheckInHistoryService:
             )
             net = allocated - funding.bucket_amount
             balance = max(balance + net, Decimal(0))
+            expenses = [
+                CheckInExpenseLine(
+                    kind=expense.kind,
+                    amount=expense.amount,
+                    bucket_amount=expense.bucket_amount,
+                    paid_out_of_pocket=expense.paid_out_of_pocket,
+                    event_date=expense.event_date,
+                    comment=expense.comment,
+                    source_type=expense.source_type,
+                    source_id=expense.source_id,
+                    usage_counter_at_event=expense.usage_counter_at_event,
+                )
+                for expense in expense_lines_by_check_in.get(check_in.id, [])
+            ]
             rows.append(
                 CheckInHistoryRow(
                     check_in_id=check_in.id,
@@ -97,6 +129,7 @@ class CheckInHistoryService:
                     paid_out_of_pocket=funding.paid_out_of_pocket,
                     net=net,
                     balance=balance,
+                    expenses=expenses,
                 )
             )
         return rows

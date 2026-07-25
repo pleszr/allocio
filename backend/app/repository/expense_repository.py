@@ -106,3 +106,19 @@ def sum_expense_funding_by_check_in(
         )
         for check_in_id, amount, bucket_amount, paid_out_of_pocket in session.execute(stmt).all()
     }
+
+
+def list_expenses_by_check_in(session: Session, bucket_id: uuid.UUID) -> dict[uuid.UUID, list[ExpenseEvent]]:
+    """Return each check-in's linked expense events, ordered by `event_date`.
+
+    A check-in absent from the returned dict has no linked expense events.
+    """
+    stmt = (
+        select(ExpenseEvent)
+        .where(ExpenseEvent.bucket_id == bucket_id, ExpenseEvent.check_in_id.is_not(None))
+        .order_by(ExpenseEvent.event_date)
+    )
+    expenses_by_check_in: dict[uuid.UUID, list[ExpenseEvent]] = {}
+    for expense in session.scalars(stmt).all():
+        expenses_by_check_in.setdefault(expense.check_in_id, []).append(expense)
+    return expenses_by_check_in
