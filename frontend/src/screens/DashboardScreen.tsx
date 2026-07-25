@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
-import type { ActivityItem, CheckInHistoryRow, MaintenanceItem, UpcomingExpense } from "../api/types";
+import type { ActivityItem, MaintenanceItem, UpcomingExpense } from "../api/types";
 import type { CostsTab } from "../routes";
 import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
@@ -30,7 +30,6 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const detail = useAsync(() => api.getAsset(assetId), [assetId]);
   const [months, setMonths] = useState(12);
   const history = useAsync(() => api.getBalanceHistory(assetId, months), [assetId, months]);
-  const checkInHistory = useAsync(() => api.getCheckInHistory(assetId), [assetId]);
 
   if (detail.loading) return <LoadingState label={t("dashboard.loading")} />;
   if (detail.error || !detail.data) {
@@ -45,7 +44,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const dueSoon = e.maintenance_items.filter((m) => m.status && m.status !== "ok");
   const activeMaintenance = e.maintenance_items.filter((m) => m.is_active);
   const annualService = activeMaintenance.find((m) => m.technical_key === "annual_service");
-  const averageAllocation = calculateAverageAllocation(checkInHistory.data?.rows ?? []);
+  const averageAllocation = e.average_allocation;
   const upcomingTotal = e.upcoming_expenses.reduce((sum, item) => sum + item.amount, 0);
   const costCount = e.maintenance_items.length;
 
@@ -84,16 +83,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           </div>
           <div>
             <div className="hero-stat-label">{t("dashboard.average_allocation")}</div>
-            {checkInHistory.loading ? (
-              <div className="hero-stat-val">{t("common.loading")}</div>
-            ) : checkInHistory.error ? (
-              <>
-                <div className="hero-stat-val">{t("dashboard.allocation_history_unavailable")}</div>
-                <button className="btn btn-ghost btn-sm" onClick={checkInHistory.reload} style={{ marginTop: 6 }}>
-                  {t("states.try_again")}
-                </button>
-              </>
-            ) : averageAllocation.amount === null ? (
+            {averageAllocation.amount === null ? (
               <div className="hero-stat-val">{t("dashboard.no_allocation_history")}</div>
             ) : (
               <>
@@ -367,51 +357,4 @@ function TxRow({ tx }: { tx: ActivityItem }) {
       </div>
     </div>
   );
-}
-
-type AverageAllocation = {
-  months: 3 | 6 | 12;
-  amount: number | null;
-};
-
-function calculateAverageAllocation(rows: CheckInHistoryRow[], today = new Date()): AverageAllocation {
-  const todayIso = localDateIso(today);
-  const cutoffs = {
-    3: subtractMonthsClamped(today, 3),
-    6: subtractMonthsClamped(today, 6),
-    12: subtractMonthsClamped(today, 12),
-  };
-  const oldestPeriodEnd = rows.reduce<string | null>(
-    (oldest, row) => (oldest === null || row.period_end < oldest ? row.period_end : oldest),
-    null,
-  );
-  const months: 3 | 6 | 12 =
-    oldestPeriodEnd !== null && oldestPeriodEnd <= cutoffs[12]
-      ? 12
-      : oldestPeriodEnd !== null && oldestPeriodEnd <= cutoffs[6]
-        ? 6
-        : 3;
-  const selectedRows = rows.filter((row) => row.period_end >= cutoffs[months] && row.period_end <= todayIso);
-  const amount =
-    selectedRows.length === 0
-      ? null
-      : selectedRows.reduce((sum, row) => sum + row.allocated, 0) / selectedRows.length;
-
-  return { months, amount };
-}
-
-function subtractMonthsClamped(today: Date, months: number): string {
-  const firstOfTargetMonth = new Date(Date.UTC(today.getFullYear(), today.getMonth() - months, 1));
-  const targetYear = firstOfTargetMonth.getUTCFullYear();
-  const targetMonth = firstOfTargetMonth.getUTCMonth();
-  const finalDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
-  return datePartsIso(targetYear, targetMonth, Math.min(today.getDate(), finalDay));
-}
-
-function localDateIso(date: Date): string {
-  return datePartsIso(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function datePartsIso(year: number, zeroBasedMonth: number, day: number): string {
-  return `${year}-${String(zeroBasedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }

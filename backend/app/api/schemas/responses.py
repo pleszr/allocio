@@ -370,6 +370,15 @@ class ManualExtraResponse(BaseModel):
     manual_extra_monthly: Decimal = Field(description="The updated manual extra monthly buffer.")
 
 
+class AverageAllocationResponse(BaseModel):
+    """Adaptive trailing average of posted allocation totals for the dashboard."""
+
+    months: Literal[3, 6, 12] = Field(description="Selected trailing history window in months.")
+    amount: Decimal | None = Field(
+        description="Arithmetic mean of posted check-in allocation totals inside the selected window; null when empty."
+    )
+
+
 class AssetDetailResponse(BaseModel):
     """One asset's composed dashboard payload: derived figures, usage, maintenance, and recent activity."""
 
@@ -395,6 +404,9 @@ class AssetDetailResponse(BaseModel):
     )
     average_monthly_usage: Decimal = Field(
         description="Trailing average usage per month across all posted check-ins; zero without enough data."
+    )
+    average_allocation: AverageAllocationResponse = Field(
+        description="Backend-derived adaptive 3/6/12-month average of posted check-in allocation totals."
     )
     daily_accrual: Decimal = Field(
         description="Per-day accrual derived as recommended_monthly_allocation * 12 / 365, quantized to currency."

@@ -114,7 +114,14 @@ def test_create_bucket_and_check_in_workflow(
     assert final_overview.status_code == 200
     assert any(asset["id"] == asset_id for asset in final_overview.json()["assets"])
 
-    # 10. The History tab lists the posted check-in with the same balance the preview promised —
+    # 10. The Dashboard reads the backend-owned adaptive allocation signal from asset detail.
+    dashboard_detail = client.get(f"/api/assets/{asset_id}")
+    assert dashboard_detail.status_code == 200
+    average_allocation = dashboard_detail.json()["average_allocation"]
+    assert average_allocation["months"] == 3
+    assert Decimal(average_allocation["amount"]) == expected_allocated
+
+    # 11. The History tab lists the posted check-in with the same balance the preview promised —
     #    guards the exact frontend/backend contract HistoryScreen.tsx depends on.
     history = client.get(f"/api/assets/{asset_id}/check-in-history")
     assert history.status_code == 200

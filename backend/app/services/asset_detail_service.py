@@ -6,6 +6,7 @@ commits or flushes; an unknown or unowned asset raises `NotFoundError`.
 """
 
 import uuid
+from calendar import monthrange
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
@@ -47,6 +48,14 @@ class ActivityItem:
 
 
 @dataclass(frozen=True)
+class AverageAllocation:
+    """Adaptive trailing average of posted check-in allocation totals for the dashboard."""
+
+    months: Literal[3, 6, 12]
+    amount: Decimal | None
+
+
+@dataclass(frozen=True)
 class AssetDetail:
     """The composed detail payload for one asset's dashboard screen."""
 
@@ -67,6 +76,7 @@ class AssetDetail:
     manual_extra_monthly: Decimal
     manual_extra_recommended: Decimal
     average_monthly_usage: Decimal
+    average_allocation: AverageAllocation
 
 
 class AssetDetailService:
@@ -77,8 +87,9 @@ class AssetDetailService:
         self._workspace = WorkspaceService(session)
         self._costs = CostService(session)
 
-    def get_detail(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> AssetDetail:
+    def get_detail(self, user_id: uuid.UUID, asset_id: uuid.UUID, as_of: date | None = None) -> AssetDetail:
         """Compose one owned asset's detail payload; raises `NotFoundError` when unknown or unowned."""
+        today = as_of or date.today()
         summary = self._workspace.summarize_asset(user_id, asset_id)
         asset = check_in_repository.get_owned_asset(self._session, user_id, asset_id)
         if asset is None:
@@ -103,6 +114,34 @@ class AssetDetailService:
             manual_extra_monthly=asset.manual_extra_monthly,
             manual_extra_recommended=self._manual_extra_recommendation(asset_id),
             average_monthly_usage=self._workspace.monthly_usage_rate(asset_id),
+            average_allocation=self._average_allocation(asset_id, today),
+        )
+
+    def _average_allocation(self, asset_id: uuid.UUID, as_of: date) -> AverageAllocation:
+        """Average posted check-in allocation totals over the longest eligible 3/6/12-month window."""
+        check_ins = check_in_repository.list_posted_check_ins(self._session, asset_id)
+        if not check_ins:
+            return AverageAllocation(months=3, amount=None)
+
+        cutoffs = {months: _subtract_months_clamped(as_of, months) for months in (3, 6, 12)}
+        oldest_period_end = check_ins[0].period_end
+        months: Literal[3, 6, 12] = (
+            12 if oldest_period_end <= cutoffs[12] else 6 if oldest_period_end <= cutoffs[6] else 3
+        )
+        selected = [
+            check_in for check_in in check_ins if cutoffs[months] <= check_in.period_end <= as_of
+        ]
+        if not selected:
+            return AverageAllocation(months=months, amount=None)
+
+        bucket = expense_repository.get_bucket_for_asset(self._session, asset_id)
+        if bucket is None:
+            return AverageAllocation(months=months, amount=None)
+        totals = check_in_repository.sum_allocation_amounts_by_check_in(self._session, bucket.id)
+        total = sum((totals.get(check_in.id, Decimal(0)) for check_in in selected), Decimal(0))
+        return AverageAllocation(
+            months=months,
+            amount=calculator.quantize_currency(total / Decimal(len(selected))),
         )
 
     def _manual_extra_recommendation(self, asset_id: uuid.UUID) -> Decimal:
@@ -250,3 +289,11 @@ class AssetDetailService:
         if view.remaining_months is not None:
             return view.remaining_months * _MONTH_DAYS
         return None
+
+
+def _subtract_months_clamped(value: date, months: int) -> date:
+    """Move a date back by whole calendar months, clamping its day to the target month's final day."""
+    target_month_index = value.year * 12 + value.month - 1 - months
+    target_year, zero_based_month = divmod(target_month_index, 12)
+    target_month = zero_based_month + 1
+    return date(target_year, target_month, min(value.day, monthrange(target_year, target_month)[1]))

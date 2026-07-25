@@ -71,7 +71,6 @@
     "average_allocation": "Average allocation",
     "average_allocation_meta": "Average over the last {{months}} months",
     "no_allocation_history": "No allocation history",
-    "allocation_history_unavailable": "Allocation history unavailable",
     "run_checkin": "Run check-in",
     "balance_history": "Balance history",
     "balance_history_sub": "How {{name}}'s bucket has tracked over time",

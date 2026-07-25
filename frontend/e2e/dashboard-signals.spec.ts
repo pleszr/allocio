@@ -1,34 +1,30 @@
 import { expect, test, type Page } from "@playwright/test";
 
-type HistoryRow = {
-  check_in_id: string;
-  period_end: string;
-  usage_end: number;
-  usage_since_last: number;
-  elapsed_days: number;
-  allocated: number;
-  spent: number;
-  covered_by_bucket: number;
-  paid_out_of_pocket: number;
-  net: number;
-  balance: number;
+type AverageAllocation = {
+  months: 3 | 6 | 12;
+  amount: number | null;
 };
 
-test("dashboard derives adaptive allocation and annual-service signals", async ({ page }) => {
+test("dashboard renders backend-derived allocation and annual-service signals", async ({ page }) => {
   const bucketName = "E2E Dashboard Signals Car";
-  const today = new Date();
-  let historyRows = threeMonthRows(today);
-  let historyUnavailable = false;
+  let averageAllocation: AverageAllocation = { amount: 200, months: 3 };
 
-  await page.route("**/api/assets/*/check-in-history", async (route) => {
-    if (historyUnavailable) {
-      await route.fulfill({ status: 503, json: { detail: "History temporarily unavailable" } });
+  await page.route("**/api/assets/*", async (route) => {
+    const request = route.request();
+    const pathParts = new URL(request.url()).pathname.split("/").filter(Boolean);
+    const isAssetDetail =
+      request.method() === "GET" &&
+      pathParts.length === 3 &&
+      pathParts[0] === "api" &&
+      pathParts[1] === "assets";
+    if (!isAssetDetail) {
+      await route.continue();
       return;
     }
-    await route.fulfill({
-      status: 200,
-      json: { asset_id: "dashboard-signals-test", currency: "HUF", rows: historyRows },
-    });
+
+    const response = await route.fetch();
+    const detail = await response.json();
+    await route.fulfill({ response, json: { ...detail, average_allocation: averageAllocation } });
   });
 
   const assetId = await createVehicleBucket(page, bucketName);
@@ -40,29 +36,17 @@ test("dashboard derives adaptive allocation and annual-service signals", async (
   await expect(dashboard.getByText("Next allocation", { exact: true })).toHaveCount(0);
   await expect(annualServiceKpi).toContainText("Set the last service odometer");
 
-  historyRows = sixMonthRows(today);
+  averageAllocation = { amount: 1200, months: 6 };
   await reloadDashboard(page, bucketName);
   await assertAverage(page.locator(".entity-hero"), "1,200 Ft", 6);
 
-  historyRows = twelveMonthRows(today);
+  averageAllocation = { amount: 2400, months: 12 };
   await reloadDashboard(page, bucketName);
   await assertAverage(page.locator(".entity-hero"), "2,400 Ft", 12);
 
-  historyRows = [];
+  averageAllocation = { amount: null, months: 3 };
   await reloadDashboard(page, bucketName);
   await expect(page.locator(".entity-hero").getByText("No allocation history", { exact: true })).toBeVisible();
-
-  historyUnavailable = true;
-  await reloadDashboard(page, bucketName);
-  const unavailableBlock = page.locator(".entity-hero");
-  await expect(unavailableBlock.getByText("Allocation history unavailable", { exact: true })).toBeVisible();
-  const retry = unavailableBlock.getByRole("button", { name: "Try again" });
-  await expect(retry).toHaveClass(/btn-ghost/);
-
-  historyRows = threeMonthRows(today);
-  historyUnavailable = false;
-  await retry.click();
-  await assertAverage(unavailableBlock, "200 Ft", 3);
 
   const detailResponse = await page.request.get(`/api/assets/${assetId}`);
   expect(detailResponse.ok()).toBeTruthy();
@@ -127,60 +111,4 @@ async function reloadDashboard(page: Page, bucketName: string): Promise<void> {
 async function assertAverage(block: ReturnType<Page["locator"]>, amount: string, months: 3 | 6 | 12): Promise<void> {
   await expect(block.getByText(amount, { exact: true })).toBeVisible();
   await expect(block.getByText(`Average over the last ${months} months`, { exact: true })).toBeVisible();
-}
-
-function threeMonthRows(today: Date): HistoryRow[] {
-  return [
-    historyRow("three-boundary", subtractMonthsClamped(today, 5), 900),
-    historyRow("three-current", localDateIso(today), 100),
-    historyRow("three-two-months", subtractMonthsClamped(today, 2), 300),
-  ];
-}
-
-function sixMonthRows(today: Date): HistoryRow[] {
-  return [
-    historyRow("six-boundary", subtractMonthsClamped(today, 6), 600),
-    historyRow("six-current", localDateIso(today), 1200),
-    historyRow("six-two-months", subtractMonthsClamped(today, 2), 1800),
-  ];
-}
-
-function twelveMonthRows(today: Date): HistoryRow[] {
-  return [
-    historyRow("twelve-boundary", subtractMonthsClamped(today, 12), 1200),
-    historyRow("twelve-current", localDateIso(today), 2400),
-    historyRow("twelve-five-months", subtractMonthsClamped(today, 5), 3600),
-  ];
-}
-
-function historyRow(checkInId: string, periodEnd: string, allocated: number): HistoryRow {
-  return {
-    check_in_id: checkInId,
-    period_end: periodEnd,
-    usage_end: 120000,
-    usage_since_last: 0,
-    elapsed_days: 30,
-    allocated,
-    spent: 0,
-    covered_by_bucket: 0,
-    paid_out_of_pocket: 0,
-    net: allocated,
-    balance: allocated,
-  };
-}
-
-function subtractMonthsClamped(today: Date, months: number): string {
-  const firstOfTargetMonth = new Date(Date.UTC(today.getFullYear(), today.getMonth() - months, 1));
-  const targetYear = firstOfTargetMonth.getUTCFullYear();
-  const targetMonth = firstOfTargetMonth.getUTCMonth();
-  const finalDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
-  return datePartsIso(targetYear, targetMonth, Math.min(today.getDate(), finalDay));
-}
-
-function localDateIso(date: Date): string {
-  return datePartsIso(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function datePartsIso(year: number, zeroBasedMonth: number, day: number): string {
-  return `${year}-${String(zeroBasedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }

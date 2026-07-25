@@ -71,7 +71,6 @@
     "average_allocation": "Átlagos allokáció",
     "average_allocation_meta": "Az elmúlt {{months}} hónap átlaga",
     "no_allocation_history": "Nincs allokációs előzmény",
-    "allocation_history_unavailable": "Az allokációs előzmények nem érhetők el",
     "run_checkin": "Elszámolás indítása",
     "balance_history": "Egyenleg előzményei",
     "balance_history_sub": "Hogyan alakult {{name}} perselye az idő során",
