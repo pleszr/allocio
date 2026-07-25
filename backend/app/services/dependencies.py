@@ -11,6 +11,7 @@ from app.services.asset_service import AssetService
 from app.services.asset_template_service import AssetTemplateService
 from app.services.auth_service import AuthService
 from app.services.balance_history_service import BalanceHistoryService
+from app.services.check_in_history_service import CheckInHistoryService
 from app.services.check_in_service import CheckInService
 from app.services.cost_service import CostService
 from app.services.expense_service import ExpenseService
@@ -69,6 +70,11 @@ def get_workspace_service(session: Session = Depends(get_session)) -> WorkspaceS
 def get_balance_history_service(session: Session = Depends(get_session)) -> BalanceHistoryService:
     """Provide a `BalanceHistoryService` for the read-only balance-history route over the request-scoped session."""
     return BalanceHistoryService(session)
+
+
+def get_check_in_history_service(session: Session = Depends(get_session)) -> CheckInHistoryService:
+    """Provide a `CheckInHistoryService` for the read-only check-in-history route over the request-scoped session."""
+    return CheckInHistoryService(session)
 
 
 def get_asset_detail_service(session: Session = Depends(get_session)) -> AssetDetailService:
