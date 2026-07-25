@@ -15,7 +15,8 @@ router = APIRouter(prefix="/api", tags=["expenses"])
 @router.post(
     "/assets/{asset_id}/expenses",
     summary="Log an expense against an asset",
-    description="Posts an immutable expense event to the asset's bucket. A `modeled` expense links a "
+    description="Posts an immutable expense with a server-derived split between the bucket balance "
+    "available on its event date and an out-of-pocket remainder. A `modeled` expense links a "
     "cost/maintenance source row; an `other` expense is a manual entry with no source. Returns the "
     "created event and its canonical `Location`.",
     response_model=ExpenseEventResponse,

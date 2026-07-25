@@ -7,7 +7,7 @@ import { ErrorState, LoadingState } from "../components/StateView";
 import { tracksUsage } from "../utils/assetType";
 import { useCurrency } from "../utils/currency";
 import { daysBetween, fmtDate, fmtNumber, todayIso } from "../utils/format";
-import { maintenancePill } from "../utils/health";
+import { maintenancePill } from "../utils/maintenanceStatus";
 import { useAsync } from "../utils/useAsync";
 
 const TIRE_TYPES: TireType[] = ["summer", "winter", "all_season"];
@@ -53,11 +53,13 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
   const [activeTireType, setActiveTireType] = useState<TireType | null>(null);
   const [draftExpenses, setDraftExpenses] = useState<DraftExpense[]>([]);
   const nextExpenseKey = useRef(0);
+  const previewRequestId = useRef(0);
   const [preview, setPreview] = useState<CheckInPreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [posting, setPosting] = useState(false);
   const [posted, setPosted] = useState(false);
+  const [showOutOfPocketDialog, setShowOutOfPocketDialog] = useState(false);
 
   const usageTracked = detail.data ? tracksUsage(detail.data.type, detail.data.current_usage) : false;
 
@@ -69,6 +71,7 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
       expenses: ExpenseDraft[],
       seedTireType: boolean,
     ) => {
+      const requestId = ++previewRequestId.current;
       setLoadingPreview(true);
       setPreviewError(null);
       try {
@@ -78,15 +81,17 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
           active_tire_type: tireType,
           expenses,
         });
+        if (requestId !== previewRequestId.current) return;
         setPreview(result);
         if (seedTireType) {
           setActiveTireType((result.active_tire_type as TireType | null) ?? null);
         }
       } catch (err) {
+        if (requestId !== previewRequestId.current) return;
         setPreview(null);
         setPreviewError(err instanceof ApiError ? err.message : t("checkin.preview_failed"));
       } finally {
-        setLoadingPreview(false);
+        if (requestId === previewRequestId.current) setLoadingPreview(false);
       }
     },
     [assetId],
@@ -116,7 +121,17 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
   const activeMaintenanceItems = e.maintenance_items.filter((m) => m.is_active);
   const hasInvalidExpense = draftExpenses.some(isDraftExpenseInvalid);
 
+  const invalidatePreview = () => {
+    previewRequestId.current += 1;
+    setLoadingPreview(false);
+    setPreview(null);
+    setPreviewError(null);
+    setPosted(false);
+    setShowOutOfPocketDialog(false);
+  };
+
   const addExpense = () => {
+    invalidatePreview();
     setDraftExpenses((rows) => [
       ...rows,
       { key: nextExpenseKey.current++, kind: "other", amount: "", comment: "", maintenanceItemId: "" },
@@ -124,10 +139,12 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
   };
 
   const updateExpense = (key: number, changes: Partial<DraftExpense>) => {
+    invalidatePreview();
     setDraftExpenses((rows) => rows.map((row) => (row.key === key ? { ...row, ...changes } : row)));
   };
 
   const removeExpense = (key: number) => {
+    invalidatePreview();
     setDraftExpenses((rows) => rows.filter((row) => row.key !== key));
   };
 
@@ -142,6 +159,7 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
         expenses: toExpenseDrafts(draftExpenses),
       });
       setPosted(true);
+      setShowOutOfPocketDialog(false);
       onPosted();
     } catch (err) {
       setPreviewError(err instanceof ApiError ? err.message : t("checkin.posting_failed"));
@@ -202,7 +220,10 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
                     type="date"
                     max={todayIso()}
                     value={periodEnd}
-                    onChange={(ev) => setPeriodEnd(ev.target.value)}
+                    onChange={(ev) => {
+                      invalidatePreview();
+                      setPeriodEnd(ev.target.value);
+                    }}
                   />
                 </div>
                 {usageTracked && (
@@ -216,7 +237,10 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
                         className="input mono"
                         type="number"
                         value={usageEnd}
-                        onChange={(ev) => setUsageEnd(ev.target.value)}
+                        onChange={(ev) => {
+                          invalidatePreview();
+                          setUsageEnd(ev.target.value);
+                        }}
                       />
                       <span className="input-suffix">km</span>
                     </div>
@@ -231,7 +255,10 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
                       id="checkin-tire-type"
                       className="input"
                       value={activeTireType ?? ""}
-                      onChange={(ev) => setActiveTireType((ev.target.value || null) as TireType | null)}
+                      onChange={(ev) => {
+                        invalidatePreview();
+                        setActiveTireType((ev.target.value || null) as TireType | null);
+                      }}
                     >
                       <option value="">{t("checkin.tire_type_placeholder")}</option>
                       {TIRE_TYPES.map((tire) => (
@@ -332,6 +359,20 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
                     {fmt(-preview.total_expense, { decimals: 2 })}
                   </span>
                 </div>
+                <div className="checkin-line">
+                  <div>{t("checkin.covered_by_bucket")}</div>
+                  <span></span>
+                  <span className="checkin-line-amt">
+                    {fmt(-preview.total_bucket_expense, { decimals: 2 })}
+                  </span>
+                </div>
+                <div className="checkin-line">
+                  <div>{t("checkin.paid_out_of_pocket")}</div>
+                  <span></span>
+                  <span className="checkin-line-amt">
+                    {fmt(preview.paid_out_of_pocket, { decimals: 2 })}
+                  </span>
+                </div>
                 <div className="totals-row">
                   <div>
                     <div className="label">{t("checkin.net_change")}</div>
@@ -386,6 +427,14 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
             <div className="stack" style={{ gap: 8 }}>
               <RowKV k={t("checkin.allocations")} v={preview ? fmt(preview.total_allocation, { decimals: 2, sign: true }) : "—"} />
               <RowKV k={t("checkin.expenses")} v={preview ? fmt(-preview.total_expense, { decimals: 2 }) : "—"} />
+              <RowKV
+                k={t("checkin.covered_by_bucket")}
+                v={preview ? fmt(-preview.total_bucket_expense, { decimals: 2 }) : "—"}
+              />
+              <RowKV
+                k={t("checkin.paid_out_of_pocket")}
+                v={preview ? fmt(preview.paid_out_of_pocket, { decimals: 2 }) : "—"}
+              />
               <RowKV k={t("checkin.bucket_before")} v={preview ? fmt(preview.balance_before, { decimals: 2 }) : "—"} />
               <RowKV k={t("checkin.bucket_after")} v={preview ? fmt(preview.balance_after, { decimals: 2 }) : "—"} bold />
             </div>
@@ -397,7 +446,13 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
               className="btn btn-primary"
               style={{ width: "100%", marginTop: 14, height: 38, justifyContent: "center" }}
               disabled={!preview || posting || posted || hasInvalidExpense}
-              onClick={post}
+              onClick={() => {
+                if (preview && preview.paid_out_of_pocket > 0) {
+                  setShowOutOfPocketDialog(true);
+                } else {
+                  void post();
+                }
+              }}
             >
               {posted ? (
                 <>
@@ -414,6 +469,38 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
           </div>
         </div>
       </div>
+      {showOutOfPocketDialog && preview && (
+        <div className="modal-backdrop">
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="paid-out-of-pocket-title"
+            aria-describedby="paid-out-of-pocket-description"
+          >
+            <h2 id="paid-out-of-pocket-title" className="h2">
+              {t("checkin.out_of_pocket_dialog_title")}
+            </h2>
+            <p id="paid-out-of-pocket-description" className="muted" style={{ lineHeight: 1.6, marginTop: 12 }}>
+              {t("checkin.out_of_pocket_dialog_body", {
+                amount: fmt(preview.paid_out_of_pocket, { decimals: 2 }),
+              })}
+            </p>
+            <div className="modal-actions">
+              <button
+                className="btn btn-outline"
+                disabled={posting}
+                onClick={() => setShowOutOfPocketDialog(false)}
+              >
+                {t("checkin.out_of_pocket_back")}
+              </button>
+              <button className="btn btn-primary" disabled={posting} autoFocus onClick={() => void post()}>
+                {posting ? t("checkin.posting") : t("checkin.out_of_pocket_confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

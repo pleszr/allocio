@@ -1,7 +1,7 @@
 # Allocio Domain Model
 
 Status: Draft v1
-Last updated: 2026-07-24
+Last updated: 2026-07-25
 
 ## Purpose
 
@@ -86,13 +86,21 @@ A posted event that moves value into the bucket.
 
 ### Expense event
 
-A posted event that moves value out of the bucket.
+A posted real-world expense with a persisted split between the amount covered by the virtual bucket
+and the amount paid outside it.
+
+### Paid out of pocket
+
+The one-time remainder of an expense that exceeds the money available in the bucket, including the
+allocation created by the same check-in. It is derived automatically, never entered by the user, and
+does not make the virtual bucket negative. Hungarian product copy: `Kifizettük zsebből`.
 
 ## Domain Principles
 
 - historical truth comes from posted events
 - current editable rows drive future calculations only
-- bucket balance is derived, not primary source data
+- bucket balance is derived from allocations and bucket-covered expense portions, not primary source data
+- bucket balance is never negative; an uncovered expense remainder is recorded as paid out of pocket
 - the current usage counter (the odometer for a vehicle) is derived from the latest posted check-in, not stored as an independent source of truth
 - maintenance status is derived, not stored as canonical truth
 - users can remove or deactivate defaults, but historical references must remain auditable
@@ -120,7 +128,8 @@ Rules:
 - `type` is free-form; `vehicle` is the type set by the built-in vehicle template, not the only allowed value
 - `name` is the sole asset and bucket-facing identifier
 - one asset has one bucket in MVP
-- `manual_extra_monthly` defaults to `0` and is user-adjustable; it is added to the recommended monthly allocation alongside time-based and usage-based accruals
+- `manual_extra_monthly` defaults to `0` and is user-adjustable; it is added to the recommended
+  monthly allocation and posts as a dedicated check-in allocation prorated across elapsed days
 - the app may derive a recommended `manual_extra_monthly` from the gap between an asset's last 12 months of posted expenses and posted allocations; that recommendation is derived guidance, not canonical stored truth, and never overwrites the stored value without an explicit user action
 
 ### `vehicle_profile`
@@ -157,7 +166,7 @@ Rules:
 
 - one bucket per asset in MVP
 - stored balance, if introduced for performance later, is a cache only
-- canonical balance is the sum of posted allocation and expense events
+- canonical balance is the sum of posted allocations minus the bucket-covered portions of posted expenses
 
 ### `time_based_cost`
 
@@ -303,12 +312,14 @@ Fields:
 
 Rules:
 
-- examples of `source_type`: `time_based_cost`, `usage_based_cost`
+- examples of `source_type`: `time_based_cost`, `usage_based_cost`, `manual_extra`
+- a positive `manual_extra_monthly` emits one `manual_extra` allocation per positive-length
+  check-in period, prorated as `manual_extra_monthly * 12 / 365 * elapsed_days`
 - events are immutable after posting, except for explicit admin repair workflows if such workflows are added later
 
 ### `expense_event`
 
-Posted value moving out of the bucket.
+Posted real-world expense whose bucket-covered portion moves value out of the bucket.
 
 Fields:
 
@@ -319,6 +330,7 @@ Fields:
 - `usage_counter_at_event`
 - `kind`
 - `amount`
+- `paid_out_of_pocket`
 - `comment`
 - `source_type`
 - `source_id`
@@ -327,10 +339,16 @@ Fields:
 Rules:
 
 - `kind` supports both modeled expenses and manual `Other`
+- `amount` is the full real-world expense and remains the reference amount for future cost rollover
+- `paid_out_of_pocket` is derived at preview/post time, is non-negative, and cannot exceed `amount`
+- `bucket_amount = amount - paid_out_of_pocket`
+- check-in expenses consume `balance_before + current check-in allocations` in submitted order
+- a standalone expense consumes at most the bucket balance available on its `event_date`
+- any remainder is paid out of pocket, so a newly posted event never makes the bucket negative
 - `usage_counter_at_event` is optional but should be supported for vehicle service and replacement history
 - a modeled expense linked to a `time_based_cost` may become the new reference amount for future accrual periods for that source row
 - `source_type` and `source_id` are nullable for manual `Other`
-- posted expenses must remain sufficient to reconstruct balance history
+- posted expenses and their funding split must remain sufficient to reconstruct balance history
 
 ## Relationships
 
@@ -356,10 +374,12 @@ Stored:
 - check-in records
 - posted allocation events
 - posted expense events
+- each expense event's derived, persisted out-of-pocket funding split
 
 Derived:
 
 - current bucket balance
+- each expense event's bucket-covered amount (`amount - paid_out_of_pocket`)
 - current usage counter
 - monthly allocation suggestion
 - recommendation for usage-based reserve rate
@@ -488,9 +508,8 @@ The following concepts exist in the spreadsheet model but are intentionally defe
 
 - vehicle depreciation (`autó értékcsökkenés`)
 - alternative vehicle cost (`autó alternatív ktg`)
-- out-of-pocket payments (`Kifizettuk zsebbol`)
 
-These may be added later as separate planning or reconciliation concepts, but they should not shape the first schema and calculator pass.
+These remain deferred and should not shape the current schema or calculator.
 
 ## Technical Identifier Note
 

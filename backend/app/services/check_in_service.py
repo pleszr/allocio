@@ -83,7 +83,7 @@ class CheckInService:
         context = self._derive_period(asset)
         self._validate_period(context, period_end, usage_end)
         resolved_tire_type = active_tire_type if active_tire_type is not None else context.previous_active_tire_type
-        computation = self._compute(asset_id, bucket, context, period_end, usage_end, expenses)
+        computation = self._compute(asset, bucket, context, period_end, usage_end, expenses)
         return CheckInPreview(
             asset_id=asset_id,
             period_start=context.period_start,
@@ -111,7 +111,7 @@ class CheckInService:
         self._validate_period(context, period_end, usage_end)
         self._require_expense_sources_exist(asset_id, expenses)
         resolved_tire_type = active_tire_type if active_tire_type is not None else context.previous_active_tire_type
-        computation = self._compute(asset_id, bucket, context, period_end, usage_end, expenses)
+        computation = self._compute(asset, bucket, context, period_end, usage_end, expenses)
         return self._persist(bucket, context, period_end, usage_end, resolved_tire_type, notes, expenses, computation)
 
     def _require_owned_asset(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> Asset:
@@ -173,7 +173,7 @@ class CheckInService:
 
     def _compute(
         self,
-        asset_id: uuid.UUID,
+        asset: Asset,
         bucket: Bucket,
         context: _PeriodContext,
         period_end: date,
@@ -187,11 +187,12 @@ class CheckInService:
             period_end=period_end,
             usage_start=context.usage_start,
             usage_end=usage_end,
-            time_based_costs=self._time_based_inputs(asset_id, posted_expenses),
-            usage_based_costs=self._usage_based_inputs(asset_id),
+            time_based_costs=self._time_based_inputs(asset.id, posted_expenses),
+            usage_based_costs=self._usage_based_inputs(asset.id),
+            manual_extra_monthly=asset.manual_extra_monthly,
             expense_drafts=self._expense_inputs(expenses),
             prior_allocation_amounts=check_in_repository.list_posted_allocation_amounts(self._session, bucket.id),
-            prior_expense_amounts=[row.amount for row in posted_expenses],
+            prior_expense_amounts=[row.bucket_amount for row in posted_expenses],
         )
 
     def _time_based_inputs(
@@ -329,6 +330,7 @@ class CheckInService:
                 usage_counter_at_event=line.usage_counter_at_event,
                 kind=line.kind,
                 amount=line.amount,
+                paid_out_of_pocket=line.paid_out_of_pocket,
                 comment=line.comment,
                 source_type=line.source_type,
                 source_id=line.source_id,

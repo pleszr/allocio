@@ -89,11 +89,11 @@ def create_asset(
 
 @router.get(
     "/assets",
-    summary="List assets with balances and health",
+    summary="List assets with balances and monthly allocations",
     description="""Returns every asset the authenticated user owns with its calculator-derived bucket
-    balance, recommended monthly allocation, and deterministic health status, plus the workspace
-    totals the Home screen needs — all in one call, with no per-asset follow-up request. An empty
-    workspace returns a 200 with an empty list and zeroed totals.""",
+    balance and recommended monthly allocation, plus the workspace totals the Home screen needs —
+    all in one call, with no per-asset follow-up request. An empty workspace returns a 200 with an
+    empty list and zeroed totals.""",
     response_model=WorkspaceOverviewResponse,
     status_code=status.HTTP_200_OK,
     responses={
@@ -115,10 +115,10 @@ def list_assets(
     summary="Reconstruct an asset's monthly bucket-balance history",
     description="""Returns an ordered (oldest → newest) monthly series of event-derived bucket balances
     for one owned asset, suitable for a dashboard sparkline. Each point is the cumulative balance
-    (sum of allocations minus expenses) as of that month; the newest point is a live snapshot as of
-    today. The default window is 12 months, overridable with `?months=N` (1-60); assets younger than
-    the window return a shorter valid series, and an asset with no events returns a single
-    current-month zero point.""",
+    (sum of allocations minus bucket-covered expense portions) as of that month; the newest point
+    is a live snapshot as of today. The default window is 12 months, overridable with `?months=N`
+    (1-60); assets younger than the window return a shorter valid series, and an asset with no
+    events returns a single current-month zero point.""",
     response_model=BalanceHistoryResponse,
     status_code=status.HTTP_200_OK,
     responses={
@@ -143,8 +143,8 @@ def get_balance_history(
     "/assets/{asset_id}/check-in-history",
     summary="List an asset's posted check-ins as a running ledger",
     description="""Returns every posted check-in for one owned asset, ordered oldest → newest, each
-    row carrying its usage, posted allocation and expense totals, net change, and the running bucket
-    balance after that check-in. An asset with no posted check-ins returns a 200 with an empty list.""",
+    row carrying its usage, allocation total, full/covered/out-of-pocket expense split, bucket net
+    change, and running balance. An asset with no posted check-ins returns a 200 with an empty list.""",
     response_model=CheckInHistoryResponse,
     status_code=status.HTTP_200_OK,
     responses={
@@ -168,7 +168,7 @@ def get_check_in_history(
     summary="Replace an asset's manual extra monthly buffer",
     description="""Full-replace write for the flat monthly buffer added on top of an asset's modeled
     time- and usage-based accruals. The new value folds into recommended_monthly_allocation
-    everywhere it's shown (workspace list, asset detail, health status).""",
+    everywhere it's shown and is prorated into future check-in allocations.""",
     response_model=ManualExtraResponse,
     status_code=status.HTTP_200_OK,
     responses={
@@ -193,9 +193,10 @@ def update_manual_extra(
     "/assets/{asset_id}",
     summary="Read one asset's detail payload",
     description="""Returns the composed dashboard payload for one owned asset: derived balance,
-    recommended monthly and daily accrual, funding health, current usage and last check-in, every
-    maintenance item with its computed status, and a merged recent-activity feed. Type-agnostic —
-    usage fields are null for assets without a usage counter. Unknown or unowned assets return 404.""",
+    recommended monthly and daily accrual, current usage and last check-in, every maintenance item
+    with its computed status, and a merged recent-activity feed including out-of-pocket expense
+    funding. Type-agnostic — usage fields are null for assets without a usage counter. Unknown or
+    unowned assets return 404.""",
     response_model=AssetDetailResponse,
     status_code=status.HTTP_200_OK,
     responses={
@@ -225,13 +226,18 @@ def _to_asset_detail_response(detail: AssetDetail) -> AssetDetailResponse:
         balance=detail.balance,
         recommended_monthly_allocation=detail.recommended_monthly_allocation,
         daily_accrual=detail.daily_accrual,
-        health=detail.health,
         current_usage=detail.current_usage,
         usage_since_last_check_in=detail.usage_since_last_check_in,
         last_check_in_date=detail.last_check_in_date,
         maintenance_items=[_serialize_maintenance(view) for view in detail.maintenance_items],
         recent_activity=[
-            ActivityItemResponse(event_date=item.date, kind=item.kind, label=item.label, amount=item.amount)
+            ActivityItemResponse(
+                event_date=item.date,
+                kind=item.kind,
+                label=item.label,
+                amount=item.amount,
+                paid_out_of_pocket=item.paid_out_of_pocket,
+            )
             for item in detail.recent_activity
         ],
         upcoming_expenses=[
@@ -276,6 +282,8 @@ def _to_check_in_history_response(history: CheckInHistory) -> CheckInHistoryResp
                 elapsed_days=row.elapsed_days,
                 allocated=row.allocated,
                 expense=row.expense,
+                bucket_expense=row.bucket_expense,
+                paid_out_of_pocket=row.paid_out_of_pocket,
                 net=row.net,
                 balance=row.balance,
             )
@@ -296,13 +304,11 @@ def _to_overview_response(overview: WorkspaceOverview) -> WorkspaceOverviewRespo
                 currency=summary.currency,
                 balance=summary.balance,
                 recommended_monthly_allocation=summary.recommended_monthly_allocation,
-                health=summary.health,
             )
             for summary in overview.assets
         ],
         totals=WorkspaceTotalsResponse(
             total_balance=overview.totals.total_balance,
             total_recommended_monthly_allocation=overview.totals.total_recommended_monthly_allocation,
-            alert_count=overview.totals.alert_count,
         ),
     )

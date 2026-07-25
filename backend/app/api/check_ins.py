@@ -23,8 +23,9 @@ router = APIRouter(prefix="/api", tags=["check-ins"])
 @router.post(
     "/assets/{asset_id}/check-ins/preview",
     summary="Preview a check-in period",
-    description="Computes the period's allocation lines, expense lines, and bucket balance change without "
-    "writing any records. Deterministic for the same input and stored state, and the exact basis for posting.",
+    description="Computes allocation lines, full/covered/out-of-pocket expense splits, and a "
+    "non-negative bucket balance without writing records. Deterministic for the same input and "
+    "stored state, and the exact basis for posting.",
     response_model=CheckInPreviewResponse,
     status_code=status.HTTP_200_OK,
     responses={
@@ -129,6 +130,8 @@ def _to_preview_response(preview: CheckInPreview) -> CheckInPreviewResponse:
             ExpenseLineResponse(
                 kind=line.kind,
                 amount=line.amount,
+                bucket_amount=line.bucket_amount,
+                paid_out_of_pocket=line.paid_out_of_pocket,
                 event_date=line.event_date,
                 comment=line.comment,
                 source_type=line.source_type,
@@ -140,6 +143,8 @@ def _to_preview_response(preview: CheckInPreview) -> CheckInPreviewResponse:
         balance_before=computation.balance_before,
         total_allocation=computation.total_allocation,
         total_expense=computation.total_expense,
+        total_bucket_expense=computation.total_bucket_expense,
+        paid_out_of_pocket=computation.paid_out_of_pocket,
         net_bucket_change=computation.net_bucket_change,
         balance_after=computation.balance_after,
     )

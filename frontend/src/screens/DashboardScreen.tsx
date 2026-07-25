@@ -10,7 +10,7 @@ import { ErrorState, LoadingState } from "../components/StateView";
 import { illoBg, illoKind } from "../utils/assetType";
 import { useCurrency } from "../utils/currency";
 import { fmtDateShort, fmtMonthYear, fmtNumber, mockNextAllocation } from "../utils/format";
-import { healthPill, maintenancePill } from "../utils/health";
+import { maintenancePill } from "../utils/maintenanceStatus";
 import { useAsync } from "../utils/useAsync";
 
 interface DashboardScreenProps {
@@ -38,7 +38,6 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
 
   const e = detail.data;
   const kind = illoKind(e.type);
-  const pill = healthPill(e.health);
   const points = history.data?.points ?? [];
   const balances = points.map((p) => p.balance);
   const delta = balances.length >= 2 ? balances[balances.length - 1] - balances[balances.length - 2] : 0;
@@ -62,7 +61,6 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
             <h1 className="h1" style={{ fontSize: 24 }}>
               {e.name}
             </h1>
-            <span className={`pill ${pill.cls}`}>{pill.label}</span>
           </div>
           <div className="muted" style={{ fontSize: 13.5, marginBottom: 4 }}>
             {t("dashboard.bucket_balance")}
@@ -327,6 +325,13 @@ function TxRow({ tx }: { tx: ActivityItem }) {
         <div className="row-meta" style={{ marginTop: 2 }}>
           {fmtDateShort(tx.event_date)} · {tx.kind === "allocation" ? t("dashboard.into_bucket") : t("dashboard.from_bucket")}
         </div>
+        {tx.paid_out_of_pocket > 0 && (
+          <div className="row-meta" style={{ marginTop: 2 }}>
+            {t("dashboard.paid_out_of_pocket", {
+              amount: fmt(tx.paid_out_of_pocket, { decimals: 2 }),
+            })}
+          </div>
+        )}
       </div>
       <div
         style={{

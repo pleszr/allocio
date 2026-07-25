@@ -11,9 +11,10 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.common.exceptions import NotFoundError, ValidationError
+from app.domain import calculator
 from app.domain.asset import Asset
 from app.domain.check_in import ExpenseEvent
-from app.repository import expense_repository
+from app.repository import check_in_repository, expense_repository
 
 
 class ExpenseService:
@@ -48,19 +49,30 @@ class ExpenseService:
             self._session, asset_id, source_type, source_id
         ):
             raise ValidationError("Source row not found for this asset.")
+        resolved_event_date = event_date or date.today()
+        available = max(self._balance_on(bucket.id, resolved_event_date), Decimal(0))
+        bucket_amount = min(amount, available)
         row = ExpenseEvent(
             bucket_id=bucket.id,
             check_in_id=check_in_id,
-            event_date=event_date or date.today(),
+            event_date=resolved_event_date,
             usage_counter_at_event=usage_counter_at_event,
             kind=kind,
             amount=amount,
+            paid_out_of_pocket=amount - bucket_amount,
             comment=comment,
             source_type=source_type,
             source_id=source_id,
             metadata_json=None,
         )
         return self._add_and_commit(row)
+
+    def _balance_on(self, bucket_id: uuid.UUID, as_of: date) -> Decimal:
+        """Reconstruct the covered bucket balance as of one date."""
+        allocations = check_in_repository.list_posted_allocation_events(self._session, bucket_id)
+        expenses = expense_repository.list_bucket_expense_movements(self._session, bucket_id)
+        signed = allocations + [(event_date, -amount) for event_date, amount in expenses]
+        return calculator.balance_at_dates(signed, [as_of])[0]
 
     def list_expenses(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> list[ExpenseEvent]:
         """Return all posted expense events for an owned asset's bucket. Read-only."""

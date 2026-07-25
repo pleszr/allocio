@@ -4,11 +4,9 @@ Read-only. Reuses the pure `app.domain.calculator` helpers for all money math an
 single-asset repository functions. It never commits or flushes; empty history is a valid result
 (a single current-month zero point), not a 404.
 
-The newest point is a live snapshot as of today, so — assuming every posted `event_date` is on or
-before today — its balance equals the live event-derived bucket balance `workspace_service` derives
-(`calculator.bucket_balance`), with no drift. Future-dated events are the one documented exception:
-the live workspace balance sums all events regardless of date, whereas the newest history point
-counts only events dated on or before today, so the two differ when future-dated events exist.
+The newest point is a live snapshot as of today, so — assuming every effective bucket movement date
+is on or before today — it equals the live covered balance `workspace_service` derives. Check-in
+expense coverage moves at period end beside its allocation; standalone coverage moves at event date.
 """
 
 import uuid
@@ -55,7 +53,7 @@ class BalanceHistoryService:
         as_of_dates = calculator.month_anchor_dates(
             date.today(), months, min((event_date for event_date, _ in signed), default=None)
         )
-        balances = calculator.balance_at_dates(signed, as_of_dates)
+        balances = [max(balance, Decimal(0)) for balance in calculator.balance_at_dates(signed, as_of_dates)]
         points = [
             BalancePoint(month=as_of.strftime("%Y-%m"), as_of=as_of, balance=balance)
             for as_of, balance in zip(as_of_dates, balances, strict=True)
@@ -74,7 +72,7 @@ class BalanceHistoryService:
     def _signed_events(self, bucket_id: uuid.UUID) -> list[tuple[date, Decimal]]:
         """Merge posted allocations (positive) and expenses (negative) into signed net `(date, amount)` pairs."""
         allocations = check_in_repository.list_posted_allocation_events(self._session, bucket_id)
-        expenses = expense_repository.list_expenses_for_bucket(self._session, bucket_id)
+        expenses = expense_repository.list_bucket_expense_movements(self._session, bucket_id)
         return [(event_date, amount) for event_date, amount in allocations] + [
-            (expense.event_date, -expense.amount) for expense in expenses
+            (event_date, -amount) for event_date, amount in expenses
         ]

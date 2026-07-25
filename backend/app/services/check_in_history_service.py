@@ -28,6 +28,8 @@ class CheckInHistoryRow:
     elapsed_days: int
     allocated: Decimal
     expense: Decimal
+    bucket_expense: Decimal
+    paid_out_of_pocket: Decimal
     net: Decimal
     balance: Decimal
 
@@ -52,7 +54,7 @@ class CheckInHistoryService:
         bucket = self._owned_bucket(user_id, asset_id)
         check_ins = check_in_repository.list_posted_check_ins(self._session, asset_id)
         allocation_totals = check_in_repository.sum_allocation_amounts_by_check_in(self._session, bucket.id)
-        expense_totals = expense_repository.sum_expense_amounts_by_check_in(self._session, bucket.id)
+        expense_totals = expense_repository.sum_expense_funding_by_check_in(self._session, bucket.id)
         rows = self._build_rows(check_ins, allocation_totals, expense_totals)
         return CheckInHistory(asset_id=asset_id, currency=bucket.currency, rows=rows)
 
@@ -69,16 +71,19 @@ class CheckInHistoryService:
         self,
         check_ins: list[CheckIn],
         allocation_totals: dict[uuid.UUID, Decimal],
-        expense_totals: dict[uuid.UUID, Decimal],
+        expense_totals: dict[uuid.UUID, expense_repository.ExpenseFundingTotals],
     ) -> list[CheckInHistoryRow]:
         """Walk posted check-ins in period order, accumulating the running bucket balance."""
         rows: list[CheckInHistoryRow] = []
         balance = Decimal(0)
         for check_in in check_ins:
             allocated = allocation_totals.get(check_in.id, Decimal(0))
-            expense = expense_totals.get(check_in.id, Decimal(0))
-            net = allocated - expense
-            balance += net
+            funding = expense_totals.get(
+                check_in.id,
+                expense_repository.ExpenseFundingTotals(Decimal(0), Decimal(0), Decimal(0)),
+            )
+            net = allocated - funding.bucket_amount
+            balance = max(balance + net, Decimal(0))
             rows.append(
                 CheckInHistoryRow(
                     check_in_id=check_in.id,
@@ -87,7 +92,9 @@ class CheckInHistoryService:
                     usage_since_last=check_in.usage_amount,
                     elapsed_days=(check_in.period_end - check_in.period_start).days,
                     allocated=allocated,
-                    expense=expense,
+                    expense=funding.amount,
+                    bucket_expense=funding.bucket_amount,
+                    paid_out_of_pocket=funding.paid_out_of_pocket,
                     net=net,
                     balance=balance,
                 )

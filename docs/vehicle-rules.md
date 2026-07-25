@@ -1,7 +1,7 @@
 # Allocio Vehicle Rules
 
 Status: Draft v1
-Last updated: 2026-05-15
+Last updated: 2026-07-25
 
 ## Purpose
 
@@ -36,7 +36,8 @@ The product is a virtual bucket planner.
 
 Each posted check-in answers one question:
 
-- how much value should be added to the bucket for the elapsed period, and what expenses should be recognized against the bucket for that same period
+- how much value should be added to the bucket for the elapsed period, what expenses occurred, and
+  how each expense is split between the virtual bucket and a one-time out-of-pocket payment
 
 Posted history is immutable for normal product flows.
 
@@ -331,6 +332,12 @@ Each expense may include:
 - `source_id`
 - optional `usage_counter_at_event`
 
+Each computed or posted expense exposes:
+
+- `amount`: the full real-world expense
+- `bucket_amount`: the portion funded by the virtual bucket
+- `paid_out_of_pocket`: the derived remainder funded outside the bucket
+
 ### Relation to check-in
 
 For MVP check-in posting:
@@ -340,7 +347,12 @@ For MVP check-in posting:
 Rules:
 
 - each submitted expense becomes its own posted expense event
-- expenses reduce the bucket balance
+- expenses consume the available bucket amount in request order
+- a check-in expense can use both the opening balance and allocations created by that check-in
+- an expense reduces the bucket only by `bucket_amount = amount - paid_out_of_pocket`
+- `paid_out_of_pocket` is derived, cannot be edited, is non-negative, and cannot exceed `amount`
+- a standalone expense is covered only by the bucket balance available on its `event_date`
+- the bucket balance never becomes negative
 - modeled expenses may reference the maintenance or cost row they relate to
 - `Other` may leave `source_type` and `source_id` empty
 - if a modeled expense is linked to a `time_based_cost`, its `amount` may become the new `reference_amount(period)` for future periods as defined above
@@ -367,10 +379,13 @@ Preview must derive:
 - `usage_amount`
 - time-based accrual line items
 - usage-based accrual line items
+- a prorated manual-extra allocation line when `manual_extra_monthly > 0` and `elapsed_days > 0`
 - expense line items
 - `balance_before`
 - `total_allocation`
 - `total_expense`
+- `total_bucket_expense`
+- `paid_out_of_pocket`
 - `net_bucket_change`
 - `balance_after`
 - maintenance statuses at period end
@@ -387,11 +402,19 @@ Preview must derive:
 
 Formula:
 
-- `total_allocation = sum(time_based_line_items) + sum(usage_based_line_items)`
-- `total_expense = sum(expense_line_items)`
-- `net_bucket_change = total_allocation - total_expense`
-- `balance_before = sum(posted_allocation_events) - sum(posted_expense_events)`
-- `balance_after = balance_before + net_bucket_change`
+- `manual_extra_period = quantize_currency(manual_extra_monthly * 12 / 365 * elapsed_days)`
+- `total_allocation = sum(time_based_line_items) + sum(usage_based_line_items) + manual_extra_period`
+- `total_expense = sum(expense_line_item.amount)`
+- `available = balance_before + total_allocation`
+- for each expense in submitted order:
+  - `bucket_amount = min(expense.amount, remaining_available)`
+  - `paid_out_of_pocket = expense.amount - bucket_amount`
+  - `remaining_available = remaining_available - bucket_amount`
+- `total_bucket_expense = sum(expense_line_item.bucket_amount)`
+- `paid_out_of_pocket = sum(expense_line_item.paid_out_of_pocket)`
+- `net_bucket_change = total_allocation - total_bucket_expense`
+- `balance_before = sum(posted_allocation_events) - sum(posted_expense_event.bucket_amount)`
+- `balance_after = max(0, balance_before + net_bucket_change)`
 
 Rules:
 
@@ -408,6 +431,7 @@ Posting a confirmed check-in creates:
 - one `check_in` row
 - one `allocation_event` per active time-based cost
 - one `allocation_event` per active usage-based cost row
+- one `manual_extra` allocation event when the configured monthly extra and elapsed period are positive
 - one `expense_event` per submitted expense
 
 ### Posting formulas
@@ -417,6 +441,10 @@ Posting uses the exact same formulas as preview.
 Rules:
 
 - the posted amounts must match the immediately preceding preview for the same input
+- every posted expense persists its full `amount` and derived `paid_out_of_pocket`; `bucket_amount`
+  remains derivable as their difference
+- the manual-extra event has `source_type = manual_extra`, no `source_id`, and stores the
+  prorated period amount; a zero-length baseline emits no manual-extra event
 - posting is transactional
 - either the check-in and all resulting events are written, or none of them are
 
@@ -449,25 +477,30 @@ Canonical balance is always derived from posted events.
 
 Formula:
 
-- `bucket_balance = sum(allocation_event.amount) - sum(expense_event.amount)`
+- `bucket_balance = sum(allocation_event.amount) - sum(expense_event.amount - expense_event.paid_out_of_pocket)`
 
 Rules:
 
 - read models may cache balance for performance later
 - cached balance is not source of truth
+- balance is never presented below zero for newly posted data
+- a check-in-linked expense keeps its real `event_date` for audit and reference-cost rollover, but
+  its covered bucket movement is recognized on the parent check-in's `period_end`, alongside that
+  check-in's allocations
+- a standalone expense's covered bucket movement is recognized on its own `event_date`
 
 ### Derived monthly series (dashboard sparkline)
 
 `GET /api/assets/{asset_id}/balance-history` reconstructs a monthly time series of this same
-event-derived balance. Each point is the cumulative balance as of one as-of date — the last day of
+event-derived covered balance. Each point is the cumulative balance as of one as-of date — the last day of
 that month, or today for the current (partial) month — so the series is derived entirely from posted
-`allocation_events` and `expense_events`, never stored. This follows the same reconstruction
+`allocation_events` and the bucket-covered portions of `expense_events`, never stored. This follows the same reconstruction
 principle stated in `docs/domain-model.md:361` (balances are derived, not persisted).
 
-The newest point (as of today) equals the live bucket balance above, **assuming every posted
-`event_date` is on or before today**. Future-dated events are the one exception: the live balance
-sums all events regardless of date, whereas the newest history point counts only events dated on or
-before today, so the two differ when future-dated events exist.
+The newest point (as of today) equals the live bucket balance above, assuming every effective bucket
+movement date is on or before today. Future-dated standalone expenses are the one exception: the live
+balance includes every posted event, whereas the newest history point counts only movements dated on
+or before today.
 
 ## Future-Only Effect Of Edits
 
@@ -572,6 +605,7 @@ If the user-configured rate is:
 - preview and posting must share the same calculation functions
 - each posted allocation event should keep enough metadata to explain its source row later
 - each posted expense event should keep enough metadata to explain whether it was modeled or `Other`
+  and how much was covered by the bucket versus paid out of pocket
 
 ## Workspace Overview Derivations
 
@@ -594,21 +628,9 @@ month to keep the bucket funded:
 Workspace totals are plain sums of the per-asset balances and recommended monthly allocations
 (single-currency MVP — all buckets are HUF today).
 
-### Health status
+### Funding health
 
-Each asset's funding health bands its event-derived bucket balance against an `expected_reserve`,
-reusing the same `0.9` / `1.1` ratios as `reserve_guidance` (no new magic numbers):
-
-- `underfunded` when `balance < 0.9 × expected_reserve`
-- `healthy` when `0.9 × expected_reserve ≤ balance ≤ 1.1 × expected_reserve`
-- `overflowing` when `balance > 1.1 × expected_reserve`
-- `healthy` whenever `expected_reserve ≤ 0` (nothing to fund)
-
-`alert_count` in the workspace totals counts the `underfunded` assets.
-
-**v1 definition and limitation:** `expected_reserve = one recommended monthly allocation`. Because
-this compares a stock (the accumulated balance) against a single month's target, a brand-new asset
-(balance `0`) reads `underfunded`, and a bucket saved up over several months trends toward
-`overflowing`. This is an intentional MVP simplification: there is no next-due model for time-based
-costs to anchor an accrued-to-date target. A future issue should replace `expected_reserve` with an
-accrued-to-date target once time-based costs carry a next-due date.
+The former `underfunded` / `healthy` / `overflowing` status and workspace `alert_count` are not part
+of the current contract. They compared accumulated balance with one month's allocation and therefore
+misclassified both new buckets and buckets saved over several months. A future target-based model may
+reintroduce funding health once it can explain the status against accrued-to-date obligations.

@@ -53,7 +53,7 @@ def test_detail_composes_derived_figures_and_usage(
     assert body["current_usage"] == 130000
     assert body["usage_since_last_check_in"] == 130000 - STARTING_ODOMETER
     assert body["last_check_in_date"] == PERIOD_END
-    assert body["health"] in {"underfunded", "healthy", "overflowing"}
+    assert "health" not in body
 
     # daily_accrual = recommended_monthly_allocation * 12 / 365, quantized to cents.
     monthly = Decimal(body["recommended_monthly_allocation"])
@@ -89,10 +89,34 @@ def test_detail_recent_activity_merges_inflows_and_outflows(
     assert any(item["kind"] == "allocation" and Decimal(item["amount"]) > 0 for item in activity)
     expense = next(item for item in activity if item["kind"] == "expense")
     assert Decimal(expense["amount"]) == Decimal("-250")
+    assert Decimal(expense["paid_out_of_pocket"]) == Decimal("0")
     assert expense["label"] == "Brake job"
     # newest first.
     dates = [item["event_date"] for item in activity]
     assert dates == sorted(dates, reverse=True)
+
+
+def test_detail_recent_activity_explains_out_of_pocket_funding(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    asset_id = _create_vehicle(client, backdate_asset_creation)
+    base = {"period_end": PERIOD_END, "usage_end": 130000, "expenses": []}
+    available = Decimal(client.post(f"/api/assets/{asset_id}/check-ins/preview", json=base).json()["total_allocation"])
+    _post_check_in(
+        client,
+        asset_id,
+        usage_end=130000,
+        expenses=[{"kind": "other", "amount": str(available + Decimal("25.00")), "comment": "Engine"}],
+    )
+
+    expense = next(
+        item
+        for item in client.get(f"/api/assets/{asset_id}").json()["recent_activity"]
+        if item["kind"] == "expense"
+    )
+
+    assert Decimal(expense["amount"]) == -available
+    assert Decimal(expense["paid_out_of_pocket"]) == Decimal("25.00")
 
 
 def test_detail_non_vehicle_has_null_usage(client: TestClient) -> None:

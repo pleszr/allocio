@@ -62,17 +62,19 @@ class AllocationLine:
     """One computed allocation (inflow) line: a time-based cost or a usage-based cost component."""
 
     source_type: str
-    source_id: uuid.UUID
+    source_id: uuid.UUID | None
     label: str
     amount: Decimal
 
 
 @dataclass(frozen=True)
 class ExpenseLine:
-    """One computed expense (outflow) line echoing a submitted draft."""
+    """One computed expense split into its bucket-covered and out-of-pocket portions."""
 
     kind: str
     amount: Decimal
+    bucket_amount: Decimal
+    paid_out_of_pocket: Decimal
     event_date: date
     comment: str | None
     source_type: str | None
@@ -91,6 +93,8 @@ class CheckInComputation:
     balance_before: Decimal
     total_allocation: Decimal
     total_expense: Decimal
+    total_bucket_expense: Decimal
+    paid_out_of_pocket: Decimal
     net_bucket_change: Decimal
     balance_after: Decimal
 
@@ -103,6 +107,7 @@ def compute_check_in(
     usage_end: int,
     time_based_costs: Sequence[TimeBasedCostInput],
     usage_based_costs: Sequence[UsageBasedCostInput],
+    manual_extra_monthly: Decimal,
     expense_drafts: Sequence[ExpenseDraftInput],
     prior_allocation_amounts: Sequence[Decimal],
     prior_expense_amounts: Sequence[Decimal],
@@ -127,9 +132,10 @@ def compute_check_in(
         usage_end: Requested usage counter at period end; must be ``>= usage_start``.
         time_based_costs: Active time-based cost rows to accrue.
         usage_based_costs: Active usage-based cost components to accrue; empty when the asset has none.
+        manual_extra_monthly: Configured flat monthly buffer, prorated across the elapsed period.
         expense_drafts: Expenses submitted for the period, each with a resolved ``event_date``.
         prior_allocation_amounts: Amounts of already-posted allocation events (for the opening balance).
-        prior_expense_amounts: Amounts of already-posted expense events (for the opening balance).
+        prior_expense_amounts: Bucket-covered amounts of already-posted expenses (for the opening balance).
 
     Returns:
         The assembled `CheckInComputation`.
@@ -139,14 +145,19 @@ def compute_check_in(
 
     allocation_lines = _time_based_lines(time_based_costs, period_start, elapsed_days)
     allocation_lines.extend(_usage_based_lines(usage_based_costs, usage_amount))
-
-    expense_lines = [_expense_line(draft) for draft in expense_drafts]
+    manual_extra_line = _manual_extra_line(manual_extra_monthly, elapsed_days)
+    if manual_extra_line is not None:
+        allocation_lines.append(manual_extra_line)
 
     total_allocation = sum((line.amount for line in allocation_lines), Decimal(0))
+    balance_before = max(bucket_balance(prior_allocation_amounts, prior_expense_amounts), Decimal(0))
+    available = max(balance_before + total_allocation, Decimal(0))
+    expense_lines = _expense_lines(expense_drafts, available)
     total_expense = sum((line.amount for line in expense_lines), Decimal(0))
-    net_bucket_change = total_allocation - total_expense
-    balance_before = bucket_balance(prior_allocation_amounts, prior_expense_amounts)
-    balance_after = balance_before + net_bucket_change
+    total_bucket_expense = sum((line.bucket_amount for line in expense_lines), Decimal(0))
+    paid_out_of_pocket = sum((line.paid_out_of_pocket for line in expense_lines), Decimal(0))
+    net_bucket_change = total_allocation - total_bucket_expense
+    balance_after = max(balance_before + net_bucket_change, Decimal(0))
 
     return CheckInComputation(
         elapsed_days=elapsed_days,
@@ -156,6 +167,8 @@ def compute_check_in(
         balance_before=balance_before,
         total_allocation=total_allocation,
         total_expense=total_expense,
+        total_bucket_expense=total_bucket_expense,
+        paid_out_of_pocket=paid_out_of_pocket,
         net_bucket_change=net_bucket_change,
         balance_after=balance_after,
     )
@@ -196,14 +209,34 @@ def _usage_based_lines(costs: Sequence[UsageBasedCostInput], usage_amount: int) 
     return lines
 
 
-def _expense_line(draft: ExpenseDraftInput) -> ExpenseLine:
-    """Echo a submitted expense draft as a computed expense line."""
-    return ExpenseLine(
-        kind=draft.kind,
-        amount=draft.amount,
-        event_date=draft.event_date,
-        comment=draft.comment,
-        source_type=draft.source_type,
-        source_id=draft.source_id,
-        usage_counter_at_event=draft.usage_counter_at_event,
-    )
+def _manual_extra_line(manual_extra_monthly: Decimal, elapsed_days: int) -> AllocationLine | None:
+    """Prorate the configured monthly buffer over the period and emit one auditable line."""
+    if manual_extra_monthly <= 0 or elapsed_days <= 0:
+        return None
+    annualized_amount = manual_extra_monthly * Decimal(12)
+    amount = quantize_currency(time_based_period_accrual(annualized_amount, 1, "years", elapsed_days))
+    return AllocationLine(source_type="manual_extra", source_id=None, label="Manual extra", amount=amount)
+
+
+def _expense_lines(drafts: Sequence[ExpenseDraftInput], available: Decimal) -> list[ExpenseLine]:
+    """Split drafts in submitted order, consuming the available bucket amount once."""
+    remaining = available
+    lines: list[ExpenseLine] = []
+    for draft in drafts:
+        bucket_amount = min(draft.amount, remaining)
+        paid_out_of_pocket = draft.amount - bucket_amount
+        lines.append(
+            ExpenseLine(
+                kind=draft.kind,
+                amount=draft.amount,
+                bucket_amount=bucket_amount,
+                paid_out_of_pocket=paid_out_of_pocket,
+                event_date=draft.event_date,
+                comment=draft.comment,
+                source_type=draft.source_type,
+                source_id=draft.source_id,
+                usage_counter_at_event=draft.usage_counter_at_event,
+            )
+        )
+        remaining -= bucket_amount
+    return lines

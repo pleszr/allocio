@@ -171,7 +171,9 @@ class ExpenseEventResponse(BaseModel):
     event_date: date = Field(description="Date the expense occurred.")
     usage_counter_at_event: int | None = Field(description="Usage reading at the time of the expense, if supplied.")
     kind: str = Field(description="'modeled' for a cost/maintenance expense or 'other' for a manual entry.")
-    amount: Decimal = Field(description="Outflow amount; stored positive.")
+    amount: Decimal = Field(description="Full real-world expense amount; stored positive.")
+    bucket_amount: Decimal = Field(description="Portion of the expense covered by the virtual bucket.")
+    paid_out_of_pocket: Decimal = Field(description="Derived remainder paid outside the virtual bucket.")
     comment: str | None = Field(description="Free-text note describing the expense, if any.")
     source_type: str | None = Field(description="Source table for a modeled expense, else null.")
     source_id: uuid.UUID | None = Field(description="Id of the linked source row for a modeled expense, else null.")
@@ -181,7 +183,9 @@ class ExpenseEventResponse(BaseModel):
 class AllocationLineResponse(BaseModel):
     """One previewed allocation (inflow) line for a check-in period."""
 
-    source_type: str = Field(description="Source table of the accrual: 'time_based_cost' or 'usage_based_cost'.")
+    source_type: str = Field(
+        description="Accrual source: 'time_based_cost', 'usage_based_cost', or 'manual_extra'."
+    )
     source_id: uuid.UUID | None = Field(description="Id of the cost row that produced this line.")
     label: str = Field(description="Human-readable label of the source cost row.", examples=["Vehicle inspection"])
     amount: Decimal = Field(description="Accrual added to the bucket for this line, rounded to currency.")
@@ -191,7 +195,9 @@ class ExpenseLineResponse(BaseModel):
     """One previewed expense (outflow) line echoing a submitted draft, with `event_date` resolved."""
 
     kind: str = Field(description="'modeled' for a cost/maintenance expense or 'other' for a manual entry.")
-    amount: Decimal = Field(description="Outflow amount; stored positive.")
+    amount: Decimal = Field(description="Full real-world expense amount; stored positive.")
+    bucket_amount: Decimal = Field(description="Portion covered by the virtual bucket.")
+    paid_out_of_pocket: Decimal = Field(description="Derived remainder paid outside the virtual bucket.")
     event_date: date = Field(description="Date the expense occurred; resolved to today when the draft omitted it.")
     comment: str | None = Field(description="Free-text note describing the expense, if any.")
     source_type: str | None = Field(description="Source table for a modeled expense, else null.")
@@ -214,9 +220,11 @@ class CheckInPreviewResponse(BaseModel):
     expense_lines: list[ExpenseLineResponse] = Field(description="Expense lines recognized for the period.")
     balance_before: Decimal = Field(description="Bucket balance from posted events before this period.")
     total_allocation: Decimal = Field(description="Sum of allocation line amounts.")
-    total_expense: Decimal = Field(description="Sum of expense line amounts.")
-    net_bucket_change: Decimal = Field(description="total_allocation - total_expense.")
-    balance_after: Decimal = Field(description="balance_before + net_bucket_change.")
+    total_expense: Decimal = Field(description="Sum of full real-world expense amounts.")
+    total_bucket_expense: Decimal = Field(description="Sum of expense portions covered by the bucket.")
+    paid_out_of_pocket: Decimal = Field(description="Sum of expense remainders paid outside the bucket.")
+    net_bucket_change: Decimal = Field(description="total_allocation - total_bucket_expense.")
+    balance_after: Decimal = Field(description="Non-negative bucket balance after covered expenses.")
 
 
 class AllocationEventResponse(BaseModel):
@@ -228,7 +236,9 @@ class AllocationEventResponse(BaseModel):
     bucket_id: uuid.UUID = Field(description="Bucket the allocation is added to.")
     check_in_id: uuid.UUID = Field(description="Check-in that posted this allocation.")
     event_date: date = Field(description="Date the allocation is recognized (the period end).")
-    source_type: str = Field(description="Source table of the accrual: 'time_based_cost' or 'usage_based_cost'.")
+    source_type: str = Field(
+        description="Accrual source: 'time_based_cost', 'usage_based_cost', or 'manual_extra'."
+    )
     source_id: uuid.UUID | None = Field(description="Id of the cost row that produced this allocation.")
     amount: Decimal = Field(description="Allocation amount added to the bucket.")
     metadata_json: dict | None = Field(description="Auditing metadata explaining the source row, e.g. its label.")
@@ -261,23 +271,19 @@ class CheckInPostResponse(BaseModel):
 
 
 class AssetSummaryResponse(BaseModel):
-    """One owned asset with its derived balance, recommended monthly allocation, and health status."""
+    """One owned asset with its derived balance and recommended monthly allocation."""
 
     id: uuid.UUID = Field(description="Server-generated asset id.")
     type: str = Field(description="Asset type, e.g. 'vehicle' or 'house'.", examples=["vehicle"])
     name: str = Field(description="Human-readable asset name.", examples=["My Car"])
     status: str = Field(description="Lifecycle status of the asset.", examples=["active"])
     currency: str = Field(description="ISO currency code of the asset's bucket.", examples=["HUF"])
-    balance: Decimal = Field(description="Event-derived bucket balance: sum(allocations) - sum(expenses).")
+    balance: Decimal = Field(
+        description="Event-derived balance: sum(allocations) - sum(bucket-covered expense portions)."
+    )
     recommended_monthly_allocation: Decimal = Field(
         description="Suggested monthly saving: active time-based monthly accruals plus usage-based monthly, quantized."
     )
-    health: str = Field(
-        description="Funding health versus one recommended monthly allocation: 'underfunded', 'healthy', or 'overflowing'.",
-        examples=["healthy"],
-    )
-
-
 class WorkspaceTotalsResponse(BaseModel):
     """Workspace-wide totals the Home header renders."""
 
@@ -285,9 +291,6 @@ class WorkspaceTotalsResponse(BaseModel):
     total_recommended_monthly_allocation: Decimal = Field(
         description="Sum of every asset's recommended monthly allocation (single-currency MVP)."
     )
-    alert_count: int = Field(description="Number of assets whose health is 'underfunded'.", examples=[1])
-
-
 class WorkspaceOverviewResponse(BaseModel):
     """Every owned asset summary plus workspace totals, returned in one workspace read."""
 
@@ -303,7 +306,7 @@ class BalancePointResponse(BaseModel):
         description="Date the balance was evaluated at; the newest point is today (partial current month)."
     )
     balance: Decimal = Field(
-        description="Event-derived bucket balance as of this date: sum(allocations) - sum(expenses)."
+        description="Event-derived balance as of this date: allocations minus covered expense portions."
     )
 
 
@@ -324,8 +327,10 @@ class CheckInHistoryRowResponse(BaseModel):
     usage_since_last: int | None = Field(description="Usage counted during this period, or null.")
     elapsed_days: int = Field(description="Whole calendar days covered by this period.")
     allocated: Decimal = Field(description="Total posted allocation amount for this check-in.")
-    expense: Decimal = Field(description="Total posted expense amount for this check-in.")
-    net: Decimal = Field(description="allocated - expense for this check-in.")
+    expense: Decimal = Field(description="Full real-world expense total for this check-in.")
+    bucket_expense: Decimal = Field(description="Expense total covered by the virtual bucket.")
+    paid_out_of_pocket: Decimal = Field(description="Expense total paid outside the virtual bucket.")
+    net: Decimal = Field(description="allocated - bucket_expense for this check-in.")
     balance: Decimal = Field(description="Running bucket balance after this check-in.")
 
 
@@ -345,7 +350,8 @@ class ActivityItemResponse(BaseModel):
         description="'allocation' for an inflow into the bucket, 'expense' for an outflow."
     )
     label: str = Field(description="Human-readable label: allocation source or expense comment.")
-    amount: Decimal = Field(description="Signed amount: positive for allocations, negative for expenses.")
+    amount: Decimal = Field(description="Signed covered bucket movement.")
+    paid_out_of_pocket: Decimal = Field(description="Expense remainder paid outside the bucket; zero for allocations.")
 
 
 class UpcomingExpenseResponse(BaseModel):
@@ -372,7 +378,9 @@ class AssetDetailResponse(BaseModel):
     name: str = Field(description="Human-readable asset name.", examples=["My Car"])
     status: str = Field(description="Lifecycle status of the asset.", examples=["active"])
     currency: str = Field(description="ISO currency code of the asset's bucket.", examples=["HUF"])
-    balance: Decimal = Field(description="Event-derived bucket balance: sum(allocations) - sum(expenses).")
+    balance: Decimal = Field(
+        description="Event-derived balance: sum(allocations) - sum(bucket-covered expense portions)."
+    )
     recommended_monthly_allocation: Decimal = Field(
         description="Suggested monthly saving; also the 'next allocation' amount the dashboard shows. Includes "
         "the active time-based and usage-based accruals plus manual_extra_monthly. The next-allocation date and "
@@ -390,10 +398,6 @@ class AssetDetailResponse(BaseModel):
     )
     daily_accrual: Decimal = Field(
         description="Per-day accrual derived as recommended_monthly_allocation * 12 / 365, quantized to currency."
-    )
-    health: str = Field(
-        description="Funding health versus one recommended monthly allocation: 'underfunded', 'healthy', or 'overflowing'.",
-        examples=["healthy"],
     )
     current_usage: int | None = Field(
         description="Current usage counter (latest posted check-in usage_end, else vehicle starting odometer); "
