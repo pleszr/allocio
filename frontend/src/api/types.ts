@@ -99,6 +99,10 @@ export interface AssetDetail {
   balance: number;
   recommended_monthly_allocation: number;
   daily_accrual: number;
+  vehicle_age_years: number | null;
+  tracked_in_app_months: number;
+  average_monthly_cost: number;
+  next_maintenance: { label: string; remaining_km: number } | null;
   tracks_usage: boolean;
   current_usage: number | null;
   usage_since_last_check_in: number | null;
@@ -259,6 +263,7 @@ export interface AssetTemplateCatalog {
 // ── Request bodies ────────────────────────────────────────────────────
 export interface VehicleDetailsInput {
   starting_odometer?: number;
+  manufacture_year?: number | null;
 }
 
 export interface TemplateCostOverride {

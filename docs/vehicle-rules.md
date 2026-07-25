@@ -618,6 +618,24 @@ If the user-configured rate is:
 - each posted expense event should keep enough metadata to explain whether it was modeled or `Other`
   and how much was covered by the bucket versus paid out of pocket
 
+## Vehicle Dashboard Signals
+
+`GET /api/assets/{asset_id}` derives the vehicle summary cards at an injected `as_of` date:
+
+- **Vehicle age** is `as_of.year - manufacture_year`. It is null when no vehicle profile or
+  manufacture year exists.
+- **Tracked in app** is the count of complete calendar months from `asset.created_at.date()` through
+  `as_of`, using `whole_months`.
+- **Average monthly cost** is one twelfth of all posted allocation-event amounts plus only the
+  `paid_out_of_pocket` portions of expense events inside the inclusive trailing 12-calendar-month
+  window. The cutoff is `as_of` shifted back 12 calendar months with day clamping. All allocation
+  source types are included, including `manual_extra`; older and future-dated events are excluded.
+  The result is currency-quantized and is zero when the window has no qualifying history.
+- **Next maintenance** is the active maintenance view with the smallest non-null `remaining_km`.
+  This excludes month-only rows and kilometer rows without a comparable current-usage/service
+  baseline. Overdue distance remains clamped to zero. Equal distances sort by case-insensitive
+  label and then row UUID, and no eligible row yields null.
+
 ## Workspace Overview Derivations
 
 The workspace overview (`GET /api/assets`) derives, per asset and workspace-wide, from the same

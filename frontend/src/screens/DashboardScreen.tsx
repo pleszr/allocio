@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
 import type { ActivityItem, MaintenanceItem, UpcomingExpense } from "../api/types";
@@ -43,7 +44,9 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const delta = balances.length >= 2 ? balances[balances.length - 1] - balances[balances.length - 2] : 0;
   const dueSoon = e.maintenance_items.filter((m) => m.status && m.status !== "ok");
   const activeMaintenance = e.maintenance_items.filter((m) => m.is_active);
-  const annualService = activeMaintenance.find((m) => m.technical_key === "annual_service");
+  const annualService = e.tracks_usage
+    ? undefined
+    : activeMaintenance.find((m) => m.technical_key === "annual_service");
   const averageAllocation = e.average_allocation;
   const upcomingTotal = e.upcoming_expenses.reduce((sum, item) => sum + item.amount, 0);
   const costCount = e.maintenance_items.length;
@@ -104,13 +107,38 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
 
       {/* KPI grid */}
       <div className="kpi-grid" style={{ marginBottom: 24 }}>
-        <div className="kpi">
-          <div className="kpi-label">{t("dashboard.daily_accrual")}</div>
-          <div className="num-lg">{fmt(e.daily_accrual, { decimals: 2 })}</div>
-          <div className="kpi-sub">
-            {t("dashboard.per_mo_recommended", { amount: fmt(e.recommended_monthly_allocation, { decimals: 0 }) })}
+        {e.tracks_usage ? (
+          <div className="kpi">
+            <div className="kpi-label">{t("dashboard.vehicle_overview")}</div>
+            <div className="kpi-copy">
+              {e.vehicle_age_years !== null && (
+                <div className="kpi-copy-line">
+                  {t("dashboard.vehicle_age", { count: e.vehicle_age_years })}
+                </div>
+              )}
+              <div className="kpi-copy-line">
+                {t("dashboard.tracked_in_app", {
+                  duration: formatTrackedDuration(e.tracked_in_app_months, t),
+                })}
+              </div>
+              <div className="kpi-copy-line">
+                {t("dashboard.average_monthly_cost", {
+                  amount: fmt(e.average_monthly_cost, { decimals: 0 }),
+                })}
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="kpi">
+            <div className="kpi-label">{t("dashboard.daily_accrual")}</div>
+            <div className="num-lg">{fmt(e.daily_accrual, { decimals: 2 })}</div>
+            <div className="kpi-sub">
+              {t("dashboard.per_mo_recommended", {
+                amount: fmt(e.recommended_monthly_allocation, { decimals: 0 }),
+              })}
+            </div>
+          </div>
+        )}
         {e.tracks_usage && e.current_usage !== null ? (
           <div className="kpi">
             <div className="kpi-label">{t("dashboard.current_usage")}</div>
@@ -132,20 +160,39 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
             </div>
           </div>
         )}
-        <div className="kpi">
-          <div className="kpi-label">{t("dashboard.until_annual_service")}</div>
-          {annualService?.remaining_km !== null && annualService?.remaining_km !== undefined ? (
-            <div className="num-lg">
-              {fmtNumber(annualService.remaining_km)} <span className="muted" style={{ fontSize: 14 }}>km</span>
+        {e.tracks_usage ? (
+          <div className="kpi">
+            <div className="kpi-label">{t("dashboard.next_maintenance")}</div>
+            <div className="kpi-copy">
+              <div className="kpi-copy-line">
+                {e.next_maintenance
+                  ? t("dashboard.next_maintenance_detail", {
+                      name: e.next_maintenance.label,
+                      km: fmtNumber(e.next_maintenance.remaining_km),
+                    })
+                  : t("dashboard.next_maintenance_empty")}
+              </div>
             </div>
-          ) : (
-            <div className="kpi-sub">
-              {annualService
-                ? t("dashboard.annual_service_baseline_missing")
-                : t("dashboard.annual_service_not_configured")}
-            </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="kpi">
+            <div className="kpi-label">{t("dashboard.until_annual_service")}</div>
+            {annualService?.remaining_km !== null && annualService?.remaining_km !== undefined ? (
+              <div className="num-lg">
+                {fmtNumber(annualService.remaining_km)}{" "}
+                <span className="muted" style={{ fontSize: 14 }}>
+                  km
+                </span>
+              </div>
+            ) : (
+              <div className="kpi-sub">
+                {annualService
+                  ? t("dashboard.annual_service_baseline_missing")
+                  : t("dashboard.annual_service_not_configured")}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Maintenance + upcoming expenses + recent activity + balance history */}
@@ -264,6 +311,18 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
       </div>
     </div>
   );
+}
+
+function formatTrackedDuration(totalMonths: number, t: TFunction): string {
+  if (totalMonths < 24) {
+    return t("dashboard.duration_month", { count: totalMonths });
+  }
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+  return t("dashboard.duration_years_and_months", {
+    years: t("dashboard.duration_year", { count: years }),
+    months: t("dashboard.duration_month", { count: months }),
+  });
 }
 
 function MaintCompactRow({ item }: { item: MaintenanceItem }) {

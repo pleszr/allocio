@@ -5,10 +5,15 @@ type AverageAllocation = {
   amount: number | null;
 };
 
-test("dashboard renders backend-derived allocation and annual-service signals", async ({ page }) => {
+test("dashboard renders backend-derived vehicle overview and next-maintenance signals", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const bucketName = "E2E Dashboard Signals Car";
   let averageAllocation: AverageAllocation = { amount: 200, months: 3 };
+  let trackedInAppMonths = 23;
+  let nextMaintenance: { label: string; remaining_km: number } | null = {
+    label: "Oil service",
+    remaining_km: 1500,
+  };
 
   await page.route("**/api/assets/*", async (route) => {
     const request = route.request();
@@ -25,17 +30,39 @@ test("dashboard renders backend-derived allocation and annual-service signals", 
 
     const response = await route.fetch();
     const detail = await response.json();
-    await route.fulfill({ response, json: { ...detail, average_allocation: averageAllocation } });
+    await route.fulfill({
+      response,
+      json: {
+        ...detail,
+        average_allocation: averageAllocation,
+        vehicle_age_years: 6,
+        tracked_in_app_months: trackedInAppMonths,
+        average_monthly_cost: 1200,
+        next_maintenance: nextMaintenance,
+        current_usage: 121012,
+        usage_since_last_check_in: 1012,
+      },
+    });
   });
 
   const assetId = await createVehicleBucket(page, bucketName);
   const dashboard = page.locator(".content");
   const averageBlock = dashboard.locator(".entity-hero");
-  const annualServiceKpi = dashboard.locator(".kpi").filter({ hasText: "Until annual service" });
+  const overviewKpi = dashboard.locator(".kpi").filter({ hasText: "Vehicle overview" });
+  const currentUsageKpi = dashboard.locator(".kpi").filter({ hasText: "Current usage" });
+  const nextMaintenanceKpi = dashboard.locator(".kpi").filter({ hasText: "Next maintenance" });
 
   await assertAverage(averageBlock, "200 Ft", 3);
   await expect(dashboard.getByText("Next allocation", { exact: true })).toHaveCount(0);
-  await expect(annualServiceKpi).toContainText("Set the last service odometer");
+  await expect(overviewKpi).toContainText("Vehicle is 6 years old.");
+  await expect(overviewKpi).toContainText("It has been tracked in the app for 23 months.");
+  await expect(overviewKpi).toContainText("Average monthly cost over the last 12 months was 1,200 Ft.");
+  await expect(currentUsageKpi).toContainText("121,012");
+  await expect(currentUsageKpi).toContainText("+1,012 km since last check-in");
+  await expect(nextMaintenanceKpi).toContainText(
+    "Next maintenance is Oil service and it is 1,500 km away.",
+  );
+  await expect(dashboard.getByText("Until annual service", { exact: true })).toHaveCount(0);
   await assertDashboardWidgetLayout(page, dashboard);
 
   const threeMonthHistory = page.waitForRequest((request) => {
@@ -46,7 +73,7 @@ test("dashboard renders backend-derived allocation and annual-service signals", 
   await threeMonthHistory;
   await expect(dashboard.getByRole("button", { name: "3M", exact: true })).toHaveAttribute("aria-pressed", "true");
 
-  await page.setViewportSize({ width: 800, height: 1000 });
+  await page.setViewportSize({ width: 700, height: 1000 });
   await assertDashboardWidgetLayout(page, dashboard, true);
   await page.setViewportSize({ width: 1440, height: 1000 });
 
@@ -62,30 +89,14 @@ test("dashboard renders backend-derived allocation and annual-service signals", 
   await reloadDashboard(page, bucketName);
   await expect(page.locator(".entity-hero").getByText("No allocation history", { exact: true })).toBeVisible();
 
-  const detailResponse = await page.request.get(`/api/assets/${assetId}`);
-  expect(detailResponse.ok()).toBeTruthy();
-  const detail = await detailResponse.json();
-  const annualService = detail.maintenance_items.find(
-    (item: { technical_key: string | null }) => item.technical_key === "annual_service",
-  );
-  expect(annualService).toBeTruthy();
-
-  const baselineResponse = await page.request.patch(
-    `/api/assets/${assetId}/maintenance-items/${annualService.id}`,
-    { data: { last_serviced_at_odometer: 120000 } },
-  );
-  expect(baselineResponse.ok()).toBeTruthy();
+  trackedInAppMonths = 24;
+  nextMaintenance = null;
   await reloadDashboard(page, bucketName);
-  await expect(page.locator(".kpi").filter({ hasText: "Until annual service" })).toContainText("12,000 km");
-
-  const deactivateResponse = await page.request.patch(
-    `/api/assets/${assetId}/maintenance-items/${annualService.id}`,
-    { data: { is_active: false } },
+  await expect(page.locator(".kpi").filter({ hasText: "Vehicle overview" })).toContainText(
+    "It has been tracked in the app for 2 years and 0 months.",
   );
-  expect(deactivateResponse.ok()).toBeTruthy();
-  await reloadDashboard(page, bucketName);
-  await expect(page.locator(".kpi").filter({ hasText: "Until annual service" })).toContainText(
-    "Annual service not configured",
+  await expect(page.locator(".kpi").filter({ hasText: "Next maintenance" })).toContainText(
+    "No upcoming kilometer-based maintenance is available.",
   );
 });
 
@@ -100,6 +111,7 @@ async function createVehicleBucket(page: Page, name: string): Promise<string> {
   await page.getByRole("button", { name: /Vehicle/ }).click();
   await catalogFetched;
   await page.getByTestId("bucket-name-input").fill(name);
+  await page.getByLabel("Manufacture year (optional)").fill("2020");
   await page.getByLabel("Current odometer").fill("120000");
   await page.getByRole("button", { name: /Continue/ }).click();
   await page.getByRole("button", { name: /Continue/ }).click();

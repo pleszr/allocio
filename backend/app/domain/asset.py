@@ -39,6 +39,7 @@ class VehicleProfile(Base):
         UUID(as_uuid=True), ForeignKey("assets.id"), primary_key=True, nullable=False
     )
     starting_odometer: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    manufacture_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class Bucket(Base):

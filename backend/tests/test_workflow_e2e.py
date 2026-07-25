@@ -13,7 +13,7 @@ in `conftest.py`, so it stays fast and leaves no residue. The browser Playwright
 
 from collections.abc import Callable
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi.testclient import TestClient
 
@@ -23,7 +23,7 @@ from fastapi.testclient import TestClient
 VEHICLE_BODY = {
     "name": "My Car",
     "template": "vehicle",
-    "vehicle": {"starting_odometer": 120000},
+    "vehicle": {"starting_odometer": 120000, "manufacture_year": 2020},
     "selected_cost_keys": ["mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"],
     "cost_overrides": [
         {"technical_key": "mandatory_liability_insurance", "amount": 50119, "interval_value": 12, "interval_unit": "months"},
@@ -76,6 +76,7 @@ def test_create_bucket_and_check_in_workflow(
     assert created.status_code == 201
     asset_id = created.json()["asset"]["id"]
     assert created.headers["Location"] == f"/api/assets/{asset_id}"
+    assert created.json()["profile"]["manufacture_year"] == 2020
     backdate_asset_creation(asset_id)
 
     # 5. The frontend navigates to the new bucket's detail — the step most likely to 404 if the
@@ -135,9 +136,17 @@ def test_create_bucket_and_check_in_workflow(
     # 11. The Dashboard reads the backend-owned adaptive allocation signal from asset detail.
     dashboard_detail = client.get(f"/api/assets/{asset_id}")
     assert dashboard_detail.status_code == 200
-    average_allocation = dashboard_detail.json()["average_allocation"]
+    dashboard_body = dashboard_detail.json()
+    average_allocation = dashboard_body["average_allocation"]
     assert average_allocation["months"] == 3
     assert Decimal(average_allocation["amount"]) == expected_allocated
+    assert dashboard_body["vehicle_age_years"] == date.today().year - 2020
+    assert dashboard_body["tracked_in_app_months"] >= 2
+    expected_average_cost = ((expected_allocated + Decimal("100.00")) / 12).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+    assert Decimal(dashboard_body["average_monthly_cost"]) == expected_average_cost
+    assert dashboard_body["next_maintenance"] is None
 
     # 12. The History tab lists the posted check-in with the same balance the preview promised —
     #    guards the exact frontend/backend contract HistoryScreen.tsx depends on.

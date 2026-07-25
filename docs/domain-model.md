@@ -141,13 +141,16 @@ Fields:
 
 - `asset_id`
 - `starting_odometer`
+- `manufacture_year`
 
 Rules:
 
 - `vehicle_profile` exists only for `asset.type = vehicle`
 - the presence of `vehicle_profile`, not the free-form `asset.type` text, is the domain capability
   that enables usage-counter workflows
-- `starting_odometer` is the only vehicle-specific metadata collected at creation
+- `manufacture_year` is optional and stores the vehicle's calendar year of manufacture
+- manufacture year is used only to derive display age; existing vehicle profiles without it remain valid
+- `starting_odometer` seeds current usage until the first check-in is posted
 - `current_odometer` is derived from the latest posted check-in
 - no `trim`
 - no odometer unit field in MVP

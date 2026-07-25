@@ -28,3 +28,7 @@ def test_all_vehicle_schema_tables_registered():
 def test_maintenance_interval_check_constraint_present():
     constraints = {constraint.name for constraint in Base.metadata.tables["maintenance_items"].constraints}
     assert "ck_maintenance_items_interval_present" in constraints
+
+
+def test_vehicle_manufacture_year_is_nullable():
+    assert Base.metadata.tables["vehicle_profiles"].columns["manufacture_year"].nullable is True

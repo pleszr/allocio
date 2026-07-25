@@ -101,6 +101,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   const [step, setStep] = useState(1);
   const [type, setType] = useState<TypeOption | null>(null);
   const [name, setName] = useState("");
+  const [manufactureYear, setManufactureYear] = useState("");
   const [odometer, setOdometer] = useState("");
   const [costs, setCosts] = useState<DraftCost[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -263,14 +264,15 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   const updateCost = (id: string, patch: Partial<DraftCost>) =>
     setCosts((arr) => arr.map((c) => (c.id === id ? { ...c, ...patch } : c)));
 
-  const canNext = step === 1 ? !!type : step === 2 ? !!name.trim() : true;
+  const manufactureYearValid = !isVehicle || isValidManufactureYear(manufactureYear);
+  const canNext = step === 1 ? !!type : step === 2 ? !!name.trim() && manufactureYearValid : true;
 
   const submit = async () => {
     if (!type) return;
     setSubmitting(true);
     setError(null);
     try {
-      const req = buildCreateRequest(type, name, odometer, selectedKeys, catalogOverrides);
+      const req = buildCreateRequest(type, name, manufactureYear, odometer, selectedKeys, catalogOverrides);
       const created = await api.createAsset(req);
       const id = created.asset.id;
       // Only genuinely custom draft rows are posted here; catalog rows are cloned server-side
@@ -328,6 +330,8 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
             type={type!}
             name={name}
             setName={setName}
+            manufactureYear={manufactureYear}
+            setManufactureYear={setManufactureYear}
             odometer={odometer}
             setOdometer={setOdometer}
           />
@@ -448,11 +452,13 @@ function buildEstimateRequest(
 function buildCreateRequest(
   type: TypeOption,
   name: string,
+  manufactureYear: string,
   odometer: string,
   selectedKeys: Set<string>,
   catalogOverrides: Record<string, { amount: number; interval_value?: number; interval_unit?: IntervalUnit }>,
 ): CreateAssetRequest {
   if (type.kind === "car") {
+    const trimmedManufactureYear = manufactureYear.trim();
     const costOverrides: TemplateCostOverride[] = Array.from(selectedKeys)
       .filter((key) => key in catalogOverrides)
       .map((key) => {
@@ -465,6 +471,9 @@ function buildCreateRequest(
       name,
       template: "vehicle",
       vehicle: {
+        ...(trimmedManufactureYear && isValidManufactureYear(trimmedManufactureYear)
+          ? { manufacture_year: Number(trimmedManufactureYear) }
+          : {}),
         starting_odometer: odometer ? Number(odometer.replace(/[^\d]/g, "")) : 0,
       },
       // Catalog rows are cloned server-side from these keys; only the chosen rows are created.
@@ -476,6 +485,14 @@ function buildCreateRequest(
     name,
     type: type.assetType,
   };
+}
+
+function isValidManufactureYear(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  if (!/^\d+$/.test(trimmed)) return false;
+  const year = Number(trimmed);
+  return Number.isInteger(year) && year >= 1886 && year <= new Date().getFullYear();
 }
 
 function WizardSteps({ step, steps }: { step: number; steps: string[] }) {
@@ -529,16 +546,22 @@ function Step2({
   type,
   name,
   setName,
+  manufactureYear,
+  setManufactureYear,
   odometer,
   setOdometer,
 }: {
   type: TypeOption;
   name: string;
   setName: (v: string) => void;
+  manufactureYear: string;
+  setManufactureYear: (value: string) => void;
   odometer: string;
   setOdometer: (value: string) => void;
 }) {
   const { t } = useTranslation();
+  const currentYear = new Date().getFullYear();
+  const manufactureYearInvalid = !isValidManufactureYear(manufactureYear);
 
   return (
     <div className="card card-pad">
@@ -565,22 +588,46 @@ function Step2({
           />
         </div>
         {type.kind === "car" && (
-          <div className="field">
-            <label className="field-label" htmlFor="bucket-odometer">
-              {t("newBucket.field_odometer")}
-            </label>
-            <div className="input-prefix-wrap">
+          <>
+            <div className="field">
+              <label className="field-label" htmlFor="bucket-manufacture-year">
+                {t("newBucket.field_manufacture_year")}
+              </label>
               <input
-                id="bucket-odometer"
+                id="bucket-manufacture-year"
                 className="input"
+                type="number"
                 inputMode="numeric"
-                placeholder="47213"
-                value={odometer}
-                onChange={(e) => setOdometer(e.target.value)}
+                min={1886}
+                max={currentYear}
+                value={manufactureYear}
+                onChange={(e) => setManufactureYear(e.target.value)}
+                aria-invalid={manufactureYearInvalid}
+                aria-describedby={manufactureYearInvalid ? "bucket-manufacture-year-error" : undefined}
               />
-              <span className="input-suffix">km</span>
+              {manufactureYearInvalid && (
+                <div id="bucket-manufacture-year-error" className="field-error">
+                  {t("newBucket.manufacture_year_invalid", { currentYear })}
+                </div>
+              )}
             </div>
-          </div>
+            <div className="field">
+              <label className="field-label" htmlFor="bucket-odometer">
+                {t("newBucket.field_odometer")}
+              </label>
+              <div className="input-prefix-wrap">
+                <input
+                  id="bucket-odometer"
+                  className="input"
+                  inputMode="numeric"
+                  placeholder="47213"
+                  value={odometer}
+                  onChange={(e) => setOdometer(e.target.value)}
+                />
+                <span className="input-suffix">km</span>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>

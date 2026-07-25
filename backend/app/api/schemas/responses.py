@@ -54,6 +54,9 @@ class VehicleProfileResponse(BaseModel):
 
     asset_id: uuid.UUID = Field(description="Owning asset id (also the primary key).")
     starting_odometer: int = Field(description="Odometer reading in kilometers at creation time.", examples=[120000])
+    manufacture_year: int | None = Field(
+        description="Optional calendar year when the vehicle was manufactured.", examples=[2020]
+    )
 
 
 class BucketResponse(BaseModel):
@@ -387,6 +390,13 @@ class AverageAllocationResponse(BaseModel):
     )
 
 
+class NextMaintenanceResponse(BaseModel):
+    """Nearest active kilometer-based maintenance item for the dashboard."""
+
+    label: str = Field(description="Asset-owned maintenance label, returned exactly as stored.")
+    remaining_km: int = Field(description="Kilometers remaining until maintenance; 0 when overdue.")
+
+
 class AssetDetailResponse(BaseModel):
     """One asset's composed dashboard payload: derived figures, usage, maintenance, and recent activity."""
 
@@ -418,6 +428,20 @@ class AssetDetailResponse(BaseModel):
     )
     daily_accrual: Decimal = Field(
         description="Per-day accrual derived as recommended_monthly_allocation * 12 / 365, quantized to currency."
+    )
+    vehicle_age_years: int | None = Field(
+        description="Detail as-of year minus manufacture year; null without a vehicle profile or manufacture year."
+    )
+    tracked_in_app_months: int = Field(
+        description="Complete calendar months from the asset creation date through the detail snapshot's as-of date."
+    )
+    average_monthly_cost: Decimal = Field(
+        description="Every posted allocation amount plus every expense's paid-out-of-pocket amount inside the "
+        "inclusive, calendar-month-clamped trailing 12-month window, divided by 12 and currency-quantized."
+    )
+    next_maintenance: NextMaintenanceResponse | None = Field(
+        description="Active maintenance item with the smallest non-null remaining_km, tied by case-insensitive "
+        "label then UUID; null when no kilometer-comparable item qualifies."
     )
     tracks_usage: bool = Field(
         description="Whether this asset has a usage-tracking profile and should collect a usage counter."
