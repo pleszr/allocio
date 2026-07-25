@@ -9,6 +9,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from typing import Literal
 
 from sqlalchemy.orm import Session
 
@@ -19,6 +20,19 @@ from app.services.cost_service import CostService, MaintenanceItemView
 from app.services.workspace_service import WorkspaceService
 
 _ACTIVITY_LIMIT = 20
+_UPCOMING_HORIZON_DAYS = 90
+_MONTH_DAYS = 30
+
+
+@dataclass(frozen=True)
+class UpcomingExpense:
+    """One forecasted cost within the 90-day dashboard window, soonest first."""
+
+    name: str
+    category: Literal["time_based", "maintenance"]
+    days_until: int
+    amount: Decimal
+    overdue: bool
 
 
 @dataclass(frozen=True)
@@ -49,6 +63,7 @@ class AssetDetail:
     last_check_in_date: date | None
     maintenance_items: list[MaintenanceItemView]
     recent_activity: list[ActivityItem]
+    upcoming_expenses: list[UpcomingExpense]
 
 
 class AssetDetailService:
@@ -66,6 +81,7 @@ class AssetDetailService:
         if asset is None:
             raise NotFoundError("Asset not found.")
         latest = check_in_repository.get_latest_posted_check_in(self._session, asset_id)
+        maintenance_items = self._costs.list_maintenance_item_views(user_id, asset_id)
         return AssetDetail(
             asset_id=asset.id,
             type=summary.type,
@@ -79,8 +95,9 @@ class AssetDetailService:
             current_usage=self._costs.current_asset_usage(user_id, asset_id),
             usage_since_last_check_in=latest.usage_amount if latest is not None else None,
             last_check_in_date=latest.period_end if latest is not None else None,
-            maintenance_items=self._costs.list_maintenance_item_views(user_id, asset_id),
+            maintenance_items=maintenance_items,
             recent_activity=self._recent_activity(asset_id),
+            upcoming_expenses=self._upcoming_expenses(user_id, asset_id, maintenance_items),
         )
 
     def _recent_activity(self, asset_id: uuid.UUID) -> list[ActivityItem]:
@@ -135,3 +152,78 @@ class AssetDetailService:
             return comment
         source_type = getattr(expense, "source_type", None)
         return "Expense" if not source_type else str(source_type).replace("_", " ").capitalize()
+
+    def _upcoming_expenses(
+        self, user_id: uuid.UUID, asset_id: uuid.UUID, maintenance_items: list[MaintenanceItemView]
+    ) -> list[UpcomingExpense]:
+        """Forecast active time-based costs due soon plus overdue/soon maintenance, within the 90-day window."""
+        today = date.today()
+        items = self._upcoming_time_based(user_id, asset_id, today)
+        items += self._upcoming_maintenance(asset_id, maintenance_items)
+        return sorted(items, key=lambda item: item.days_until)
+
+    def _upcoming_time_based(
+        self, user_id: uuid.UUID, asset_id: uuid.UUID, today: date
+    ) -> list[UpcomingExpense]:
+        """Active time-based costs whose next-due date falls within the forecast window."""
+        items: list[UpcomingExpense] = []
+        for cost in self._costs.list_time_based_costs(user_id, asset_id):
+            if not cost.is_active:
+                continue
+            next_due = self._costs.next_due_for(cost)
+            if next_due is None:
+                continue
+            days = (next_due - today).days
+            if 0 <= days <= _UPCOMING_HORIZON_DAYS:
+                items.append(
+                    UpcomingExpense(name=cost.label, category="time_based", days_until=days, amount=cost.amount, overdue=False)
+                )
+        return items
+
+    def _upcoming_maintenance(
+        self, asset_id: uuid.UUID, maintenance_items: list[MaintenanceItemView]
+    ) -> list[UpcomingExpense]:
+        """Active maintenance items that are overdue (now) or due/soon (projected) within the forecast window."""
+        items: list[UpcomingExpense] = []
+        daily_rate: Decimal | None = None
+        for view in maintenance_items:
+            if not view.row.is_active:
+                continue
+            cost = view.row.estimated_cost or Decimal(0)
+            if view.status == "overdue":
+                items.append(UpcomingExpense(name=view.row.label, category="maintenance", days_until=0, amount=cost, overdue=True))
+            elif view.status in ("due", "soon"):
+                if daily_rate is None:
+                    daily_rate = self._daily_usage_rate(asset_id)
+                days = self._estimated_days_until(view, daily_rate)
+                if days is not None and days <= _UPCOMING_HORIZON_DAYS:
+                    items.append(
+                        UpcomingExpense(name=view.row.label, category="maintenance", days_until=days, amount=cost, overdue=False)
+                    )
+        return items
+
+    def _daily_usage_rate(self, asset_id: uuid.UUID) -> Decimal:
+        """Average usage per day across all posted check-ins, or zero without enough data to estimate.
+
+        Day-granular counterpart of `workspace_service._usage_based_monthly`'s whole-months-based rate —
+        this forecast window is measured in days, not months. Reuses the same repository totals query.
+        """
+        total_usage, first_start, last_end = check_in_repository.get_posted_usage_totals(self._session, asset_id)
+        if first_start is None or last_end is None or total_usage <= 0:
+            return Decimal(0)
+        span_days = (last_end - first_start).days
+        if span_days <= 0:
+            return Decimal(0)
+        return Decimal(total_usage) / Decimal(span_days)
+
+    def _estimated_days_until(self, view: MaintenanceItemView, daily_rate: Decimal) -> int | None:
+        """Project a days-until-due estimate for a due/soon item, or `None` when there's no data to project from.
+
+        Prefers a usage-rate-based estimate from `remaining_km`; falls back to a coarse 30-days-per-month
+        approximation from `remaining_months`. Never fabricates a default usage rate when none is posted yet.
+        """
+        if view.remaining_km is not None and daily_rate > 0:
+            return round(view.remaining_km / daily_rate)
+        if view.remaining_months is not None:
+            return view.remaining_months * _MONTH_DAYS
+        return None

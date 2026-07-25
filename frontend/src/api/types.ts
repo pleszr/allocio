@@ -79,6 +79,14 @@ export interface ActivityItem {
   amount: number;
 }
 
+export interface UpcomingExpense {
+  name: string;
+  category: "time_based" | "maintenance";
+  days_until: number;
+  amount: number;
+  overdue: boolean;
+}
+
 export interface AssetDetail {
   id: string;
   type: string;
@@ -94,6 +102,7 @@ export interface AssetDetail {
   last_check_in_date: string | null;
   maintenance_items: MaintenanceItem[];
   recent_activity: ActivityItem[];
+  upcoming_expenses: UpcomingExpense[];
 }
 
 // ── Balance history (GET /api/assets/{id}/balance-history) ─────────────

@@ -326,6 +326,16 @@ class ActivityItemResponse(BaseModel):
     amount: Decimal = Field(description="Signed amount: positive for allocations, negative for expenses.")
 
 
+class UpcomingExpenseResponse(BaseModel):
+    """One forecasted cost within the dashboard's 90-day upcoming-expenses window."""
+
+    name: str = Field(description="Human-readable label of the cost or maintenance item.")
+    category: Literal["time_based", "maintenance"] = Field(description="What kind of cost this forecast row is.")
+    days_until: int = Field(description="Days until due; 0 means due now or already overdue.")
+    amount: Decimal = Field(description="Forecasted cost amount.")
+    overdue: bool = Field(description="True for an already-overdue maintenance item.")
+
+
 class AssetDetailResponse(BaseModel):
     """One asset's composed dashboard payload: derived figures, usage, maintenance, and recent activity."""
 
@@ -361,6 +371,9 @@ class AssetDetailResponse(BaseModel):
     )
     recent_activity: list[ActivityItemResponse] = Field(
         description="Merged allocation and expense movements, newest first, capped for the activity feed."
+    )
+    upcoming_expenses: list[UpcomingExpenseResponse] = Field(
+        description="Forecasted costs due within 90 days, ordered soonest first."
     )
 
 

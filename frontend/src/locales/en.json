@@ -104,7 +104,15 @@
     "maint_current_km": "{{current}} / {{total}} km",
     "maint_current_mo": "{{current}} / {{total}} mo",
     "maint_remaining_km": "{{km}} km left",
-    "maint_remaining_mo": "{{months}} mo left"
+    "maint_remaining_mo": "{{months}} mo left",
+    "upcoming_title": "Upcoming expenses",
+    "upcoming_sub": "Forecasted over the next 3 months",
+    "upcoming_empty": "Nothing forecasted in this window.",
+    "category_time_based": "Time-based",
+    "category_maintenance": "Maintenance",
+    "due_overdue": "overdue now",
+    "due_now": "due now",
+    "due_in_days": "in ~{{days}}d"
   },
   "costs": {
     "loading": "Loading costs…",
