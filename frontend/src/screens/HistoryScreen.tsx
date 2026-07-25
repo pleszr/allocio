@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
 import type { CheckInHistoryRow } from "../api/types";
+import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { useCurrency } from "../utils/currency";
 import { fmtDate, fmtNumber } from "../utils/format";
@@ -105,43 +107,81 @@ function usageHeat(rate: number | null, avg: number): string | null {
 function HistoryRow({ row, avgRate }: { row: CheckInHistoryRow; avgRate: number }) {
   const { t } = useTranslation();
   const fmt = useCurrency();
+  const [expanded, setExpanded] = useState(false);
   const rate = kmPerDay(row);
   const heat = usageHeat(rate, avgRate);
   const irregularCadence = row.elapsed_days !== 0 && (row.elapsed_days < 27 || row.elapsed_days > 32);
+  const hasExpenses = row.expenses.length > 0;
 
   return (
-    <tr>
-      <td className="col-name">
-        {fmtDate(row.period_end)}
-        {irregularCadence && (
-          <span
-            title={t("history.irregular_cadence", { days: row.elapsed_days })}
-            style={{ marginLeft: 6, color: "var(--warn)", fontSize: 11, verticalAlign: "middle" }}
-          >
-            ●
-          </span>
-        )}
-      </td>
-      <td className="col-num">{row.usage_end != null ? fmtNumber(row.usage_end) : "—"}</td>
-      <td className="col-num row-meta">
-        {row.usage_since_last != null ? `+${fmtNumber(row.usage_since_last)} km` : "—"}
-      </td>
-      <td
-        className="col-num"
-        style={{ background: heat ?? "transparent", fontWeight: heat ? 600 : 400, borderRadius: 6 }}
-      >
-        {rate != null ? rate.toFixed(1) : "—"}
-      </td>
-      <td className="col-num row-meta">{fmt(row.allocated, { decimals: 2, sign: true })}</td>
-      <td className="col-num row-meta">{fmt(-row.expense, { decimals: 2 })}</td>
-      <td className="col-num row-meta">{fmt(-row.bucket_expense, { decimals: 2 })}</td>
-      <td className="col-num row-meta">{fmt(row.paid_out_of_pocket, { decimals: 2 })}</td>
-      <td className="col-num" style={{ fontWeight: 500, color: row.net >= 0 ? "var(--good)" : "var(--bad)" }}>
-        {fmt(row.net, { decimals: 2, sign: true })}
-      </td>
-      <td className="col-num" style={{ fontWeight: 600 }}>
-        {fmt(row.balance, { decimals: 2 })}
-      </td>
-    </tr>
+    <>
+      <tr>
+        <td className="col-name">
+          {hasExpenses && (
+            <button
+              type="button"
+              className={`history-row-toggle${expanded ? " history-row-toggle-open" : ""}`}
+              aria-expanded={expanded}
+              aria-label={t(expanded ? "history.collapse_expenses" : "history.expand_expenses")}
+              onClick={() => setExpanded((v) => !v)}
+            >
+              <Icon name="chevronRight" />
+            </button>
+          )}
+          {fmtDate(row.period_end)}
+          {irregularCadence && (
+            <span
+              title={t("history.irregular_cadence", { days: row.elapsed_days })}
+              style={{ marginLeft: 6, color: "var(--warn)", fontSize: 11, verticalAlign: "middle" }}
+            >
+              ●
+            </span>
+          )}
+        </td>
+        <td className="col-num">{row.usage_end != null ? fmtNumber(row.usage_end) : "—"}</td>
+        <td className="col-num row-meta">
+          {row.usage_since_last != null ? `+${fmtNumber(row.usage_since_last)} km` : "—"}
+        </td>
+        <td
+          className="col-num"
+          style={{ background: heat ?? "transparent", fontWeight: heat ? 600 : 400, borderRadius: 6 }}
+        >
+          {rate != null ? rate.toFixed(1) : "—"}
+        </td>
+        <td className="col-num row-meta">{fmt(row.allocated, { decimals: 2, sign: true })}</td>
+        <td className="col-num row-meta">{fmt(-row.expense, { decimals: 2 })}</td>
+        <td className="col-num row-meta">{fmt(-row.bucket_expense, { decimals: 2 })}</td>
+        <td className="col-num row-meta">{fmt(row.paid_out_of_pocket, { decimals: 2 })}</td>
+        <td className="col-num" style={{ fontWeight: 500, color: row.net >= 0 ? "var(--good)" : "var(--bad)" }}>
+          {fmt(row.net, { decimals: 2, sign: true })}
+        </td>
+        <td className="col-num" style={{ fontWeight: 600 }}>
+          {fmt(row.balance, { decimals: 2 })}
+        </td>
+      </tr>
+      {expanded && (
+        <tr className="history-detail-row">
+          <td colSpan={10}>
+            <ul className="history-expense-list">
+              {row.expenses.map((line, index) => (
+                <li key={index} className="history-expense-line">
+                  <span className="history-expense-comment">
+                    {line.comment ?? t("history.expense_line_fallback")}
+                  </span>
+                  <span className="history-expense-amount">{fmt(-line.amount, { decimals: 2 })}</span>
+                  {line.paid_out_of_pocket > 0 && (
+                    <span className="history-expense-split">
+                      {t("history.th_bucket_expense")}: {fmt(line.bucket_amount, { decimals: 2 })} ·{" "}
+                      {t("history.th_paid_out_of_pocket")}: {fmt(line.paid_out_of_pocket, { decimals: 2 })}
+                    </span>
+                  )}
+                  <span className="history-expense-date">{fmtDate(line.event_date)}</span>
+                </li>
+              ))}
+            </ul>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }

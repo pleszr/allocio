@@ -270,7 +270,10 @@
     "th_paid_out_of_pocket": "Zsebből fizetve",
     "th_net": "Nettó",
     "th_balance": "Egyenleg",
-    "irregular_cadence": "{{days}} nap telt el az előző elszámolás óta — kívül esik a szokásos ~30 napos ütemen"
+    "irregular_cadence": "{{days}} nap telt el az előző elszámolás óta — kívül esik a szokásos ~30 napos ütemen",
+    "expand_expenses": "Kiadás-bontás megjelenítése",
+    "collapse_expenses": "Kiadás-bontás elrejtése",
+    "expense_line_fallback": "Kiadás"
   },
   "newBucket": {
     "title": "Új persely",

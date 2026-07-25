@@ -337,6 +337,9 @@ class CheckInHistoryRowResponse(BaseModel):
     paid_out_of_pocket: Decimal = Field(description="Expense total paid outside the virtual bucket.")
     net: Decimal = Field(description="allocated - bucket_expense for this check-in.")
     balance: Decimal = Field(description="Running bucket balance after this check-in.")
+    expenses: list[ExpenseLineResponse] = Field(
+        description="Individual expense line items funded during this check-in, oldest first."
+    )
 
 
 class CheckInHistoryResponse(BaseModel):

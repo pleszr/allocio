@@ -362,62 +362,62 @@
           "functions": [
             {
               "name": "_to_asset_detail_response",
-              "line_start": 234,
-              "line_end": 277,
+              "line_start": 235,
+              "line_end": 278,
               "hash": "814837c91127c535"
             },
             {
               "name": "_to_balance_history_response",
-              "line_start": 280,
-              "line_end": 289,
+              "line_start": 281,
+              "line_end": 290,
               "hash": "0eb152e94e7e09a6"
             },
             {
               "name": "_to_check_in_history_response",
-              "line_start": 292,
-              "line_end": 313,
-              "hash": "b17eb2de44cb92a9"
+              "line_start": 293,
+              "line_end": 328,
+              "hash": "b77202123462d06f"
             },
             {
               "name": "_to_overview_response",
-              "line_start": 316,
-              "line_end": 335,
+              "line_start": 331,
+              "line_end": 350,
               "hash": "13bfb5c03c54d633"
             },
             {
               "name": "create_asset",
-              "line_start": 59,
-              "line_end": 103,
+              "line_start": 60,
+              "line_end": 104,
               "hash": "1c0aecd11188137d"
             },
             {
               "name": "get_asset_detail",
-              "line_start": 224,
-              "line_end": 231,
+              "line_start": 225,
+              "line_end": 232,
               "hash": "a360a7a8e715f686"
             },
             {
               "name": "get_balance_history",
-              "line_start": 147,
-              "line_end": 155,
+              "line_start": 148,
+              "line_end": 156,
               "hash": "40e3d7bdb5a0f3b6"
             },
             {
               "name": "get_check_in_history",
-              "line_start": 172,
-              "line_end": 179,
+              "line_start": 173,
+              "line_end": 180,
               "hash": "135600154f34af2c"
             },
             {
               "name": "list_assets",
-              "line_start": 120,
-              "line_end": 126,
+              "line_start": 121,
+              "line_end": 127,
               "hash": "2a8c9bf0b483986a"
             },
             {
               "name": "update_manual_extra",
-              "line_start": 197,
-              "line_end": 205,
+              "line_start": 198,
+              "line_end": 206,
               "hash": "041cb26c6b7666df"
             }
           ],
@@ -427,48 +427,48 @@
               "method": "get",
               "path": "/assets",
               "handler": "list_assets",
-              "line_start": 120,
-              "line_end": 126,
+              "line_start": 121,
+              "line_end": 127,
               "hash": "2a8c9bf0b483986a"
             },
             {
               "method": "post",
               "path": "/assets",
               "handler": "create_asset",
-              "line_start": 59,
-              "line_end": 103,
+              "line_start": 60,
+              "line_end": 104,
               "hash": "1c0aecd11188137d"
             },
             {
               "method": "get",
               "path": "/assets/{asset_id}",
               "handler": "get_asset_detail",
-              "line_start": 224,
-              "line_end": 231,
+              "line_start": 225,
+              "line_end": 232,
               "hash": "a360a7a8e715f686"
             },
             {
               "method": "get",
               "path": "/assets/{asset_id}/balance-history",
               "handler": "get_balance_history",
-              "line_start": 147,
-              "line_end": 155,
+              "line_start": 148,
+              "line_end": 156,
               "hash": "40e3d7bdb5a0f3b6"
             },
             {
               "method": "get",
               "path": "/assets/{asset_id}/check-in-history",
               "handler": "get_check_in_history",
-              "line_start": 172,
-              "line_end": 179,
+              "line_start": 173,
+              "line_end": 180,
               "hash": "135600154f34af2c"
             },
             {
               "method": "put",
               "path": "/assets/{asset_id}/manual-extra",
               "handler": "update_manual_extra",
-              "line_start": 197,
-              "line_end": 205,
+              "line_start": 198,
+              "line_end": 206,
               "hash": "041cb26c6b7666df"
             }
           ]
@@ -1032,22 +1032,22 @@
           "classes": [
             {
               "name": "ActivityItemResponse",
-              "line_start": 350,
-              "line_end": 359,
+              "line_start": 353,
+              "line_end": 362,
               "hash": "0cf1ef78538fda27",
               "methods": []
             },
             {
               "name": "AllocationEstimateLineResponse",
-              "line_start": 492,
-              "line_end": 500,
+              "line_start": 495,
+              "line_end": 503,
               "hash": "b27e012ce2d01b55",
               "methods": []
             },
             {
               "name": "AllocationEstimateResponse",
-              "line_start": 503,
-              "line_end": 510,
+              "line_start": 506,
+              "line_end": 513,
               "hash": "1be1ae9f2ff0cc32",
               "methods": []
             },
@@ -1067,8 +1067,8 @@
             },
             {
               "name": "AssetDetailResponse",
-              "line_start": 387,
-              "line_end": 440,
+              "line_start": 390,
+              "line_end": 443,
               "hash": "bba57f570ce4df4a",
               "methods": []
             },
@@ -1088,15 +1088,15 @@
             },
             {
               "name": "AssetTemplateCatalogResponse",
-              "line_start": 481,
-              "line_end": 489,
+              "line_start": 484,
+              "line_end": 492,
               "hash": "4a72e4925b14f5fb",
               "methods": []
             },
             {
               "name": "AverageAllocationResponse",
-              "line_start": 378,
-              "line_end": 384,
+              "line_start": 381,
+              "line_end": 387,
               "hash": "f7236274ed18e8f5",
               "methods": []
             },
@@ -1123,16 +1123,16 @@
             },
             {
               "name": "CheckInHistoryResponse",
-              "line_start": 342,
-              "line_end": 347,
+              "line_start": 345,
+              "line_end": 350,
               "hash": "d055a4fb46576ecc",
               "methods": []
             },
             {
               "name": "CheckInHistoryRowResponse",
               "line_start": 326,
-              "line_end": 339,
-              "hash": "63ec83a924a93d38",
+              "line_end": 342,
+              "hash": "b8e31f6ebf204ae5",
               "methods": []
             },
             {
@@ -1158,8 +1158,8 @@
             },
             {
               "name": "CreateAssetResponse",
-              "line_start": 513,
-              "line_end": 526,
+              "line_start": 516,
+              "line_end": 529,
               "hash": "c6a982f195b870cf",
               "methods": []
             },
@@ -1200,29 +1200,29 @@
             },
             {
               "name": "ManualExtraResponse",
-              "line_start": 372,
-              "line_end": 375,
+              "line_start": 375,
+              "line_end": 378,
               "hash": "6934a1609bf6a88b",
               "methods": []
             },
             {
               "name": "TemplateMaintenanceItem",
-              "line_start": 468,
-              "line_end": 478,
+              "line_start": 471,
+              "line_end": 481,
               "hash": "3433b0aa940e310d",
               "methods": []
             },
             {
               "name": "TemplateTimeBasedCostItem",
-              "line_start": 443,
-              "line_end": 453,
+              "line_start": 446,
+              "line_end": 456,
               "hash": "60c23097b18f0c7a",
               "methods": []
             },
             {
               "name": "TemplateUsageBasedCostItem",
-              "line_start": 456,
-              "line_end": 465,
+              "line_start": 459,
+              "line_end": 468,
               "hash": "ef7415cbd2bc72b3",
               "methods": []
             },
@@ -1235,8 +1235,8 @@
             },
             {
               "name": "UpcomingExpenseResponse",
-              "line_start": 362,
-              "line_end": 369,
+              "line_start": 365,
+              "line_end": 372,
               "hash": "a6137f135ae15aa2",
               "methods": []
             },
@@ -2229,6 +2229,12 @@
               "hash": "73891021f8e4efac"
             },
             {
+              "name": "list_expenses_by_check_in",
+              "line_start": 111,
+              "line_end": 124,
+              "hash": "d89e23bc06f8baf0"
+            },
+            {
               "name": "list_expenses_for_bucket",
               "line_start": 64,
               "line_end": 67,
@@ -2837,48 +2843,55 @@
           "functions": [],
           "classes": [
             {
+              "name": "CheckInExpenseLine",
+              "line_start": 21,
+              "line_end": 32,
+              "hash": "37d5b4566f90ba57",
+              "methods": []
+            },
+            {
               "name": "CheckInHistory",
-              "line_start": 38,
-              "line_end": 43,
+              "line_start": 54,
+              "line_end": 59,
               "hash": "9a991720f525b576",
               "methods": []
             },
             {
               "name": "CheckInHistoryRow",
-              "line_start": 21,
-              "line_end": 34,
-              "hash": "0689bd779e2e205a",
+              "line_start": 36,
+              "line_end": 50,
+              "hash": "c4c6515ac2ae1d0e",
               "methods": []
             },
             {
               "name": "CheckInHistoryService",
-              "line_start": 46,
-              "line_end": 102,
+              "line_start": 62,
+              "line_end": 135,
               "hash": "f3316c61ad6a87e8",
               "methods": [
                 {
                   "name": "__init__",
-                  "line_start": 49,
-                  "line_end": 50,
+                  "line_start": 65,
+                  "line_end": 66,
                   "hash": "2c8f2810305a160d"
                 },
                 {
                   "name": "_build_rows",
-                  "line_start": 70,
-                  "line_end": 102,
-                  "hash": "5ab6eacf07cd1aa4"
+                  "line_start": 87,
+                  "line_end": 135,
+                  "hash": "fceb51051d3ee2af"
                 },
                 {
                   "name": "_owned_bucket",
-                  "line_start": 61,
-                  "line_end": 68,
+                  "line_start": 78,
+                  "line_end": 85,
                   "hash": "f0271e450a62e420"
                 },
                 {
                   "name": "check_in_history",
-                  "line_start": 52,
-                  "line_end": 59,
-                  "hash": "ef5b4ca8397ea41b"
+                  "line_start": 68,
+                  "line_end": 76,
+                  "hash": "a8bc208a0e0e70ac"
                 }
               ]
             }
@@ -4514,10 +4527,12 @@
           "imports": [
             "../api/client",
             "../api/types",
+            "../components/Icon",
             "../components/StateView",
             "../utils/currency",
             "../utils/format",
             "../utils/useAsync",
+            "react",
             "react-i18next"
           ],
           "exports": [
@@ -4526,32 +4541,32 @@
           "functions": [
             {
               "name": "HistoryRow",
-              "line_start": 105,
-              "line_end": 147,
-              "hash": "c12952e4260be9c0"
+              "line_start": 107,
+              "line_end": 187,
+              "hash": "033f624bdba2588b"
             },
             {
               "name": "HistoryScreen",
-              "line_start": 13,
-              "line_end": 76,
+              "line_start": 15,
+              "line_end": 78,
               "hash": "e31bd83bbc3f6857"
             },
             {
               "name": "averageKmPerDay",
-              "line_start": 81,
-              "line_end": 87,
+              "line_start": 83,
+              "line_end": 89,
               "hash": "87227d29bcf7009b"
             },
             {
               "name": "kmPerDay",
-              "line_start": 89,
-              "line_end": 92,
+              "line_start": 91,
+              "line_end": 94,
               "hash": "a0c541b64da600fe"
             },
             {
               "name": "usageHeat",
-              "line_start": 96,
-              "line_end": 103,
+              "line_start": 98,
+              "line_end": 105,
               "hash": "742b16c371d0cb2d"
             }
           ],
@@ -4559,15 +4574,15 @@
           "components": [
             {
               "name": "HistoryRow",
-              "line_start": 105,
-              "line_end": 147,
-              "hash": "c12952e4260be9c0",
+              "line_start": 107,
+              "line_end": 187,
+              "hash": "033f624bdba2588b",
               "kind": "function"
             },
             {
               "name": "HistoryScreen",
-              "line_start": 13,
-              "line_end": 76,
+              "line_start": 15,
+              "line_end": 78,
               "hash": "e31bd83bbc3f6857",
               "kind": "function"
             }

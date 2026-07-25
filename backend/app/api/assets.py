@@ -15,6 +15,7 @@ from app.api.schemas.responses import (
     CheckInHistoryResponse,
     CheckInHistoryRowResponse,
     CreateAssetResponse,
+    ExpenseLineResponse,
     ManualExtraResponse,
     UpcomingExpenseResponse,
     WorkspaceOverviewResponse,
@@ -307,6 +308,20 @@ def _to_check_in_history_response(history: CheckInHistory) -> CheckInHistoryResp
                 paid_out_of_pocket=row.paid_out_of_pocket,
                 net=row.net,
                 balance=row.balance,
+                expenses=[
+                    ExpenseLineResponse(
+                        kind=line.kind,
+                        amount=line.amount,
+                        bucket_amount=line.bucket_amount,
+                        paid_out_of_pocket=line.paid_out_of_pocket,
+                        event_date=line.event_date,
+                        comment=line.comment,
+                        source_type=line.source_type,
+                        source_id=line.source_id,
+                        usage_counter_at_event=line.usage_counter_at_event,
+                    )
+                    for line in row.expenses
+                ],
             )
             for row in history.rows
         ],

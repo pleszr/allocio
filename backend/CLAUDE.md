@@ -11,6 +11,7 @@ FastAPI backend for Allocio. Python 3.14, SQLAlchemy 2.x, Alembic, psycopg 3, an
 - `app/domain/` — domain and persistence models
 - `app/common/` — shared exceptions, logger, and messages
 - `alembic/` — schema migrations; see `alembic/CLAUDE.md`
+- `scripts/` — one-off, run-once data scripts (e.g. personal data imports). Not part of the `app/` layering and not scanned by `tools/code_map.py`; run as a module (`uv run python -m scripts.<name>`) so `app.*` imports resolve
 
 ## Commands
 
