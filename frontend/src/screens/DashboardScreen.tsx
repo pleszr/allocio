@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
-import type { ActivityItem, MaintenanceItem } from "../api/types";
+import type { ActivityItem, MaintenanceItem, UpcomingExpense } from "../api/types";
+import type { CostsTab } from "../routes";
 import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
 import { Sparkline } from "../components/Sparkline";
@@ -14,7 +15,7 @@ import { useAsync } from "../utils/useAsync";
 
 interface DashboardScreenProps {
   assetId: string;
-  onTab: (tab: "costs" | "checkin") => void;
+  onTab: (tab: "costs" | "checkin", costsSubTab?: CostsTab) => void;
 }
 
 const RANGES: { label: string; months: number }[] = [
@@ -42,6 +43,8 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const balances = points.map((p) => p.balance);
   const delta = balances.length >= 2 ? balances[balances.length - 1] - balances[balances.length - 2] : 0;
   const dueSoon = e.maintenance_items.filter((m) => m.status && m.status !== "ok");
+  const activeMaintenance = e.maintenance_items.filter((m) => m.is_active);
+  const upcomingTotal = e.upcoming_expenses.reduce((sum, item) => sum + item.amount, 0);
   const next = mockNextAllocation();
   const nextLabel = new Date(next.dateIso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const pending = e.daily_accrual * next.daysUntil;
@@ -116,7 +119,14 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
             <div className="row-meta">{t("dashboard.no_history")}</div>
           ) : (
             <>
-              <Sparkline data={balances} width={900} height={130} padding={12} />
+              <Sparkline
+                data={balances}
+                width={900}
+                height={130}
+                padding={12}
+                months={points.map((p) => fmtMonthYear(p.as_of))}
+                fmtValue={(v) => fmt(v, { decimals: 0 })}
+              />
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
                 <span className="row-meta">{fmtMonthYear(points[0].as_of)}</span>
                 <span className="row-meta">{fmtMonthYear(points[points.length - 1].as_of)}</span>
@@ -165,7 +175,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
         </div>
       </div>
 
-      {/* Maintenance + recent activity */}
+      {/* Maintenance + upcoming expenses + recent activity */}
       <div className="col-3-2">
         <div className="card">
           <div className="card-hd">
@@ -179,38 +189,60 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
                     : t("dashboard.no_maintenance_items")}
               </div>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={() => onTab("costs")}>
+            <button className="btn btn-ghost btn-sm" onClick={() => onTab("costs", "maint")}>
               {t("dashboard.manage")} <Icon name="chevronRight" size={12} />
             </button>
           </div>
-          <div style={{ marginTop: 14, paddingBottom: 6 }}>
-            {e.maintenance_items.slice(0, 5).map((m) => (
-              <MaintRow key={m.id} item={m} />
-            ))}
-            {e.maintenance_items.length === 0 && (
-              <div className="row-meta" style={{ padding: "12px var(--pad)" }}>
-                {t("dashboard.add_maintenance_costs_tab")}
-              </div>
-            )}
-          </div>
+          {activeMaintenance.length > 0 ? (
+            <div className="maint-grid">
+              {activeMaintenance.map((m) => (
+                <MaintCompactRow key={m.id} item={m} />
+              ))}
+            </div>
+          ) : (
+            <div className="row-meta" style={{ padding: "12px var(--pad)" }}>
+              {t("dashboard.add_maintenance_costs_tab")}
+            </div>
+          )}
         </div>
 
-        <div className="card">
-          <div className="card-hd">
-            <div>
-              <div className="card-title">{t("dashboard.recent_activity")}</div>
-              <div className="card-sub">{t("dashboard.recent_activity_sub")}</div>
+        <div className="stack">
+          <div className="card">
+            <div className="card-hd">
+              <div>
+                <div className="card-title">{t("dashboard.upcoming_title")}</div>
+                <div className="card-sub">{t("dashboard.upcoming_sub")}</div>
+              </div>
+              {upcomingTotal > 0 && <span className="pill pill-accent">{fmt(upcomingTotal, { decimals: 0 })}</span>}
+            </div>
+            <div style={{ marginTop: 10, paddingBottom: 6 }}>
+              {e.upcoming_expenses.length === 0 ? (
+                <div className="row-meta" style={{ padding: "10px var(--pad) 14px" }}>
+                  {t("dashboard.upcoming_empty")}
+                </div>
+              ) : (
+                e.upcoming_expenses.map((item, i) => <UpcomingRow key={i} item={item} />)
+              )}
             </div>
           </div>
-          <div style={{ marginTop: 14, paddingBottom: 6 }}>
-            {e.recent_activity.slice(0, 6).map((tx, i) => (
-              <TxRow key={i} tx={tx} />
-            ))}
-            {e.recent_activity.length === 0 && (
-              <div className="row-meta" style={{ padding: "12px var(--pad)" }}>
-                {t("dashboard.no_activity")}
+
+          <div className="card">
+            <div className="card-hd">
+              <div>
+                <div className="card-title">{t("dashboard.recent_activity")}</div>
+                <div className="card-sub">{t("dashboard.recent_activity_sub")}</div>
               </div>
-            )}
+            </div>
+            <div style={{ marginTop: 14, paddingBottom: 6 }}>
+              {e.recent_activity.slice(0, 6).map((tx, i) => (
+                <TxRow key={i} tx={tx} />
+              ))}
+              {e.recent_activity.length === 0 && (
+                <div className="row-meta" style={{ padding: "12px var(--pad)" }}>
+                  {t("dashboard.no_activity")}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -218,34 +250,60 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   );
 }
 
-function MaintRow({ item }: { item: MaintenanceItem }) {
+function MaintCompactRow({ item }: { item: MaintenanceItem }) {
   const { t } = useTranslation();
   const pill = maintenancePill(item.status);
   const progress = Math.min(1, Math.max(item.km_progress ?? 0, item.month_progress ?? 0));
   const byKm = item.interval_km !== null;
-  const currentText = byKm
-    ? t("dashboard.maint_current_km", { current: fmtNumber(item.km_since_service ?? 0), total: fmtNumber(item.interval_km ?? 0) })
-    : t("dashboard.maint_current_mo", { current: item.months_since_service ?? 0, total: item.interval_months ?? 0 });
   const remainingText =
     item.status === "overdue"
       ? t("dashboard.overdue")
       : byKm
         ? t("dashboard.maint_remaining_km", { km: fmtNumber(item.remaining_km ?? 0) })
         : t("dashboard.maint_remaining_mo", { months: item.remaining_months ?? 0 });
+  const rowCls = item.status === "overdue" ? "row-overdue" : item.status === "due" || item.status === "soon" ? "row-soon" : "";
+  const statusCls = pill.fill ? `maint-cell-status ${pill.fill}` : "maint-cell-status";
 
   return (
-    <div style={{ padding: "12px var(--pad)", borderTop: "1px solid var(--line-soft)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-        <span style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</span>
-        <span className={`pill ${pill.cls}`}>{pill.label}</span>
+    <div className={`maint-cell ${rowCls}`}>
+      <div className="maint-cell-top">
+        <span className="maint-cell-name">{item.label}</span>
+        <span className={statusCls}>{remainingText}</span>
       </div>
       <div className="bar-track">
         <div className={`bar-fill ${pill.fill}`} style={{ ["--pct" as string]: `${progress * 100}%` }} />
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-        <span className="row-meta">{currentText}</span>
-        <span className="row-meta">{remainingText}</span>
+    </div>
+  );
+}
+
+function UpcomingRow({ item }: { item: UpcomingExpense }) {
+  const { t } = useTranslation();
+  const fmt = useCurrency();
+  const dueText = item.overdue
+    ? t("dashboard.due_overdue")
+    : item.days_until === 0
+      ? t("dashboard.due_now")
+      : t("dashboard.due_in_days", { days: item.days_until });
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr auto",
+        gap: 12,
+        padding: "9px var(--pad)",
+        borderTop: "1px solid var(--line-soft)",
+        alignItems: "center",
+      }}
+    >
+      <div>
+        <div style={{ fontSize: 13.5, fontWeight: 500 }}>{item.name}</div>
+        <div className="row-meta" style={{ marginTop: 2 }}>
+          {item.category === "time_based" ? t("dashboard.category_time_based") : t("dashboard.category_maintenance")} ·{" "}
+          {item.overdue ? <span style={{ color: "var(--bad)", fontWeight: 600 }}>{dueText}</span> : dueText}
+        </div>
       </div>
+      <div style={{ fontSize: 14, fontWeight: 600, fontFeatureSettings: '"tnum"' }}>{fmt(item.amount, { decimals: 0 })}</div>
     </div>
   );
 }

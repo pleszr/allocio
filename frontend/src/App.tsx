@@ -10,7 +10,7 @@ import { TopBar } from "./components/TopBar";
 import i18n, { resolveLanguage } from "./i18n";
 import { CurrencyProvider } from "./utils/currency";
 import { useAsync, type AsyncState } from "./utils/useAsync";
-import type { Route } from "./routes";
+import type { AssetTab, CostsTab, Route } from "./routes";
 import { CheckInScreen } from "./screens/CheckInScreen";
 import { CostsScreen } from "./screens/CostsScreen";
 import { DashboardScreen } from "./screens/DashboardScreen";
@@ -64,6 +64,13 @@ function Workspace({ user }: { user: CurrentUser }) {
     }
   }, [route, workspace.data, workspace.loading, assets]);
 
+  // Shared by the Tabs bar and the Dashboard's "Manage" button: landing on Costs through the tab
+  // bar itself (no costsSubTab argument) always resets to "time"; only an explicit deep link (e.g.
+  // Dashboard -> Manage) preserves a specific sub-tab.
+  const onAssetTabChange = (tab: AssetTab, costsSubTab?: CostsTab) => {
+    setRoute((r) => (r.kind === "asset" ? { ...r, tab, ...(tab === "costs" ? { costsSubTab: costsSubTab ?? "time" } : {}) } : r));
+  };
+
   const crumbs = buildCrumbs(route, assets, t);
 
   // Gate the workspace on the initial settings load so money never flashes the wrong currency in
@@ -89,7 +96,7 @@ function Workspace({ user }: { user: CurrentUser }) {
           {route.kind === "asset" && (
             <Tabs
               value={route.tab}
-              onChange={(tab) => setRoute({ ...route, tab })}
+              onChange={onAssetTabChange}
               items={[
                 { value: "dashboard", label: t("tabs.dashboard") },
                 { value: "costs", label: t("tabs.costs") },
@@ -98,7 +105,7 @@ function Workspace({ user }: { user: CurrentUser }) {
               ]}
             />
           )}
-          <Content route={route} setRoute={setRoute} workspace={workspace} />
+          <Content route={route} setRoute={setRoute} workspace={workspace} onAssetTabChange={onAssetTabChange} />
         </main>
       </div>
     </CurrencyProvider>
@@ -109,10 +116,12 @@ function Content({
   route,
   setRoute,
   workspace,
+  onAssetTabChange,
 }: {
   route: Route;
   setRoute: (r: Route) => void;
   workspace: AsyncState<WorkspaceOverview>;
+  onAssetTabChange: (tab: AssetTab, costsSubTab?: CostsTab) => void;
 }) {
   const { t } = useTranslation();
   if (route.kind === "new") {
@@ -129,10 +138,17 @@ function Content({
 
   if (route.kind === "asset") {
     if (route.tab === "dashboard") {
-      return <DashboardScreen assetId={route.assetId} onTab={(tab) => setRoute({ ...route, tab })} />;
+      return <DashboardScreen assetId={route.assetId} onTab={onAssetTabChange} />;
     }
     if (route.tab === "costs") {
-      return <CostsScreen assetId={route.assetId} onChanged={() => workspace.reload()} />;
+      return (
+        <CostsScreen
+          key={route.costsSubTab ?? "time"}
+          assetId={route.assetId}
+          initialTab={route.costsSubTab ?? "time"}
+          onChanged={() => workspace.reload()}
+        />
+      );
     }
     if (route.tab === "history") {
       return <HistoryScreen assetId={route.assetId} />;

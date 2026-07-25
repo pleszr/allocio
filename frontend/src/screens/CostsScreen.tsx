@@ -12,14 +12,15 @@ import { useAsync } from "../utils/useAsync";
 interface CostsScreenProps {
   assetId: string;
   onChanged: () => void;
+  initialTab?: CostTab;
 }
 
 type CostTab = "time" | "usage" | "maint";
 
-export function CostsScreen({ assetId, onChanged }: CostsScreenProps) {
+export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps) {
   const { t } = useTranslation();
   const fmt = useCurrency();
-  const [tab, setTab] = useState<CostTab>("time");
+  const [tab, setTab] = useState<CostTab>(initialTab ?? "time");
   const asset = useAsync(() => api.getAsset(assetId), [assetId]);
   const time = useAsync(() => api.listTimeBasedCosts(assetId), [assetId]);
   const usage = useAsync(() => api.listUsageBasedCosts(assetId), [assetId]);

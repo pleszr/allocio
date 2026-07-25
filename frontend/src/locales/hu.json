@@ -105,7 +105,15 @@
     "maint_current_km": "{{current}} / {{total}} km",
     "maint_current_mo": "{{current}} / {{total}} hó",
     "maint_remaining_km": "{{km}} km van hátra",
-    "maint_remaining_mo": "{{months}} hó van hátra"
+    "maint_remaining_mo": "{{months}} hó van hátra",
+    "upcoming_title": "Közelgő kiadások",
+    "upcoming_sub": "A következő 3 hónapra előrejelezve",
+    "upcoming_empty": "Ebben az időszakban nincs előrejelzett kiadás.",
+    "category_time_based": "Idő alapú",
+    "category_maintenance": "Karbantartás",
+    "due_overdue": "már lejárt",
+    "due_now": "most esedékes",
+    "due_in_days": "kb. {{days}} nap múlva"
   },
   "costs": {
     "loading": "Költségek betöltése…",

@@ -279,56 +279,56 @@
           "functions": [
             {
               "name": "_to_asset_detail_response",
-              "line_start": 189,
-              "line_end": 209,
-              "hash": "8ad9f65c5e9dffdb"
+              "line_start": 190,
+              "line_end": 220,
+              "hash": "9b480cb221f58f3a"
             },
             {
               "name": "_to_balance_history_response",
-              "line_start": 212,
-              "line_end": 221,
+              "line_start": 223,
+              "line_end": 232,
               "hash": "0eb152e94e7e09a6"
             },
             {
               "name": "_to_check_in_history_response",
-              "line_start": 224,
-              "line_end": 243,
+              "line_start": 235,
+              "line_end": 254,
               "hash": "6c6f95220d5fd19a"
             },
             {
               "name": "_to_overview_response",
-              "line_start": 246,
-              "line_end": 267,
+              "line_start": 257,
+              "line_end": 278,
               "hash": "79f969c11cca3bbf"
             },
             {
               "name": "create_asset",
-              "line_start": 54,
-              "line_end": 85,
+              "line_start": 55,
+              "line_end": 86,
               "hash": "540e1d5a6eb28efd"
             },
             {
               "name": "get_asset_detail",
-              "line_start": 179,
-              "line_end": 186,
+              "line_start": 180,
+              "line_end": 187,
               "hash": "56d433826e8ab22c"
             },
             {
               "name": "get_balance_history",
-              "line_start": 129,
-              "line_end": 137,
+              "line_start": 130,
+              "line_end": 138,
               "hash": "a1f20da6d002471e"
             },
             {
               "name": "get_check_in_history",
-              "line_start": 154,
-              "line_end": 161,
+              "line_start": 155,
+              "line_end": 162,
               "hash": "56edcf6ccfc2e514"
             },
             {
               "name": "list_assets",
-              "line_start": 102,
-              "line_end": 108,
+              "line_start": 103,
+              "line_end": 109,
               "hash": "bb85515e6e4360af"
             }
           ],
@@ -338,40 +338,40 @@
               "method": "get",
               "path": "/assets",
               "handler": "list_assets",
-              "line_start": 102,
-              "line_end": 108,
+              "line_start": 103,
+              "line_end": 109,
               "hash": "bb85515e6e4360af"
             },
             {
               "method": "post",
               "path": "/assets",
               "handler": "create_asset",
-              "line_start": 54,
-              "line_end": 85,
+              "line_start": 55,
+              "line_end": 86,
               "hash": "540e1d5a6eb28efd"
             },
             {
               "method": "get",
               "path": "/assets/{asset_id}",
               "handler": "get_asset_detail",
-              "line_start": 179,
-              "line_end": 186,
+              "line_start": 180,
+              "line_end": 187,
               "hash": "56d433826e8ab22c"
             },
             {
               "method": "get",
               "path": "/assets/{asset_id}/balance-history",
               "handler": "get_balance_history",
-              "line_start": 129,
-              "line_end": 137,
+              "line_start": 130,
+              "line_end": 138,
               "hash": "a1f20da6d002471e"
             },
             {
               "method": "get",
               "path": "/assets/{asset_id}/check-in-history",
               "handler": "get_check_in_history",
-              "line_start": 154,
-              "line_end": 161,
+              "line_start": 155,
+              "line_end": 162,
               "hash": "56edcf6ccfc2e514"
             }
           ]
@@ -929,9 +929,9 @@
             },
             {
               "name": "AssetDetailResponse",
-              "line_start": 351,
-              "line_end": 386,
-              "hash": "204801a23d4b0679",
+              "line_start": 361,
+              "line_end": 399,
+              "hash": "b6e0271b9efe50e2",
               "methods": []
             },
             {
@@ -950,8 +950,8 @@
             },
             {
               "name": "AssetTemplateCatalogResponse",
-              "line_start": 427,
-              "line_end": 435,
+              "line_start": 440,
+              "line_end": 448,
               "hash": "4a72e4925b14f5fb",
               "methods": []
             },
@@ -1013,8 +1013,8 @@
             },
             {
               "name": "CreateAssetResponse",
-              "line_start": 438,
-              "line_end": 451,
+              "line_start": 451,
+              "line_end": 464,
               "hash": "c6a982f195b870cf",
               "methods": []
             },
@@ -1055,22 +1055,22 @@
             },
             {
               "name": "TemplateMaintenanceItem",
-              "line_start": 414,
-              "line_end": 424,
+              "line_start": 427,
+              "line_end": 437,
               "hash": "3433b0aa940e310d",
               "methods": []
             },
             {
               "name": "TemplateTimeBasedCostItem",
-              "line_start": 389,
-              "line_end": 399,
+              "line_start": 402,
+              "line_end": 412,
               "hash": "60c23097b18f0c7a",
               "methods": []
             },
             {
               "name": "TemplateUsageBasedCostItem",
-              "line_start": 402,
-              "line_end": 411,
+              "line_start": 415,
+              "line_end": 424,
               "hash": "ef7415cbd2bc72b3",
               "methods": []
             },
@@ -1079,6 +1079,13 @@
               "line_start": 70,
               "line_end": 88,
               "hash": "641cc35d7e2a6ae3",
+              "methods": []
+            },
+            {
+              "name": "UpcomingExpenseResponse",
+              "line_start": 351,
+              "line_end": 358,
+              "hash": "a6137f135ae15aa2",
               "methods": []
             },
             {
@@ -2117,73 +2124,111 @@
             "datetime",
             "decimal",
             "sqlalchemy.orm",
+            "typing",
             "uuid"
           ],
           "functions": [],
           "classes": [
             {
               "name": "ActivityItem",
-              "line_start": 25,
-              "line_end": 31,
+              "line_start": 39,
+              "line_end": 45,
               "hash": "c9ffa02bea6203f3",
               "methods": []
             },
             {
               "name": "AssetDetail",
-              "line_start": 35,
-              "line_end": 51,
-              "hash": "5c9742ab6875e303",
+              "line_start": 49,
+              "line_end": 66,
+              "hash": "431f3ead6888815c",
               "methods": []
             },
             {
               "name": "AssetDetailService",
-              "line_start": 54,
-              "line_end": 137,
+              "line_start": 69,
+              "line_end": 229,
               "hash": "c65708019479c220",
               "methods": [
                 {
                   "name": "__init__",
-                  "line_start": 57,
-                  "line_end": 60,
+                  "line_start": 72,
+                  "line_end": 75,
                   "hash": "5187b0c23f2c697c"
                 },
                 {
                   "name": "_allocation_items",
-                  "line_start": 95,
-                  "line_end": 106,
+                  "line_start": 112,
+                  "line_end": 123,
                   "hash": "1595d278f62417b0"
                 },
                 {
                   "name": "_allocation_label",
-                  "line_start": 121,
-                  "line_end": 129,
+                  "line_start": 138,
+                  "line_end": 146,
                   "hash": "b87552229381efd7"
                 },
                 {
+                  "name": "_daily_usage_rate",
+                  "line_start": 205,
+                  "line_end": 217,
+                  "hash": "bbfd9b7751854755"
+                },
+                {
+                  "name": "_estimated_days_until",
+                  "line_start": 219,
+                  "line_end": 229,
+                  "hash": "c52a322eef87a01d"
+                },
+                {
                   "name": "_expense_items",
-                  "line_start": 108,
-                  "line_end": 119,
+                  "line_start": 125,
+                  "line_end": 136,
                   "hash": "51213425cf00bb11"
                 },
                 {
                   "name": "_expense_label",
-                  "line_start": 131,
-                  "line_end": 137,
+                  "line_start": 148,
+                  "line_end": 154,
                   "hash": "d82494c4f87c5b98"
                 },
                 {
                   "name": "_recent_activity",
-                  "line_start": 86,
-                  "line_end": 93,
+                  "line_start": 103,
+                  "line_end": 110,
                   "hash": "d9fc6103a5be9cca"
                 },
                 {
+                  "name": "_upcoming_expenses",
+                  "line_start": 156,
+                  "line_end": 163,
+                  "hash": "ec81c5137577fbac"
+                },
+                {
+                  "name": "_upcoming_maintenance",
+                  "line_start": 183,
+                  "line_end": 203,
+                  "hash": "bf1f75ec81fc574a"
+                },
+                {
+                  "name": "_upcoming_time_based",
+                  "line_start": 165,
+                  "line_end": 181,
+                  "hash": "b2ee95eeffc10d20"
+                },
+                {
                   "name": "get_detail",
-                  "line_start": 62,
-                  "line_end": 84,
-                  "hash": "350d3887ff4c435b"
+                  "line_start": 77,
+                  "line_end": 101,
+                  "hash": "0ae462c90a9ed53e"
                 }
               ]
+            },
+            {
+              "name": "UpcomingExpense",
+              "line_start": 28,
+              "line_end": 35,
+              "hash": "c68c94a2fae884e2",
+              "methods": []
             }
           ],
           "routes": []
@@ -3177,26 +3222,26 @@
             },
             {
               "name": "Content",
-              "line_start": 108,
-              "line_end": 162,
-              "hash": "63851c0fbdaa191c"
+              "line_start": 115,
+              "line_end": 178,
+              "hash": "206a156d3ae0f725"
             },
             {
               "name": "Workspace",
               "line_start": 36,
-              "line_end": 106,
-              "hash": "83ae89c00bc95067"
+              "line_end": 113,
+              "hash": "4a627789cbad0b66"
             },
             {
               "name": "buildCrumbs",
-              "line_start": 164,
-              "line_end": 169,
+              "line_start": 180,
+              "line_end": 185,
               "hash": "88208ecc2c765102"
             },
             {
               "name": "useOsTheme",
-              "line_start": 173,
-              "line_end": 183,
+              "line_start": 189,
+              "line_end": 199,
               "hash": "650066bfe2459e51"
             }
           ],
@@ -3211,16 +3256,16 @@
             },
             {
               "name": "Content",
-              "line_start": 108,
-              "line_end": 162,
-              "hash": "63851c0fbdaa191c",
+              "line_start": 115,
+              "line_end": 178,
+              "hash": "206a156d3ae0f725",
               "kind": "function"
             },
             {
               "name": "Workspace",
               "line_start": 36,
-              "line_end": 106,
-              "hash": "83ae89c00bc95067",
+              "line_end": 113,
+              "hash": "4a627789cbad0b66",
               "kind": "function"
             }
           ]
@@ -3304,6 +3349,7 @@
             "TemplateUsageBasedCostItem",
             "TimeBasedCost",
             "TireType",
+            "UpcomingExpense",
             "UsageBasedCost",
             "UserSettings",
             "VehicleDetailsInput",
@@ -3454,25 +3500,27 @@
         {
           "path": "frontend/src/components/Sparkline.tsx",
           "language": "typescript",
-          "imports": [],
+          "imports": [
+            "react"
+          ],
           "exports": [
             "Sparkline"
           ],
           "functions": [
             {
               "name": "Sparkline",
-              "line_start": 9,
-              "line_end": 47,
-              "hash": "d819e88e7e519323"
+              "line_start": 16,
+              "line_end": 131,
+              "hash": "7f3170040cce3f6a"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "Sparkline",
-              "line_start": 9,
-              "line_end": 47,
-              "hash": "d819e88e7e519323",
+              "line_start": 16,
+              "line_end": 131,
+              "hash": "7f3170040cce3f6a",
               "kind": "function"
             }
           ]
@@ -3674,6 +3722,7 @@
           "imports": [],
           "exports": [
             "AssetTab",
+            "CostsTab",
             "Route"
           ],
           "functions": [],
@@ -3790,92 +3839,92 @@
           "functions": [
             {
               "name": "ActiveToggle",
-              "line_start": 627,
-              "line_end": 635,
+              "line_start": 628,
+              "line_end": 636,
               "hash": "ef34fd4f7587900c"
             },
             {
               "name": "CostsScreen",
-              "line_start": 19,
-              "line_end": 121,
-              "hash": "6ab459080fb209e9"
+              "line_start": 20,
+              "line_end": 122,
+              "hash": "9e9e9d5349e8c3e7"
             },
             {
               "name": "EditActions",
-              "line_start": 601,
-              "line_end": 625,
+              "line_start": 602,
+              "line_end": 626,
               "hash": "2aca5443da9c1705"
             },
             {
               "name": "LabeledInput",
-              "line_start": 568,
-              "line_end": 587,
+              "line_start": 569,
+              "line_end": 588,
               "hash": "7f8fe7d5b0379745"
             },
             {
               "name": "LabeledMoney",
-              "line_start": 589,
-              "line_end": 599,
+              "line_start": 590,
+              "line_end": 600,
               "hash": "2fd6ac9280c6f385"
             },
             {
               "name": "MaintCreateRow",
-              "line_start": 528,
-              "line_end": 565,
+              "line_start": 529,
+              "line_end": 566,
               "hash": "f0659bcbc4840995"
             },
             {
               "name": "MaintEditRow",
-              "line_start": 486,
-              "line_end": 526,
+              "line_start": 487,
+              "line_end": 527,
               "hash": "e7b61db02754f407"
             },
             {
               "name": "MaintTable",
-              "line_start": 423,
-              "line_end": 484,
+              "line_start": 424,
+              "line_end": 485,
               "hash": "09039ed524d3dda3"
             },
             {
               "name": "TimeCreateRow",
-              "line_start": 264,
-              "line_end": 307,
+              "line_start": 265,
+              "line_end": 308,
               "hash": "581cdd817ab1deb0"
             },
             {
               "name": "TimeEditRow",
-              "line_start": 206,
-              "line_end": 262,
+              "line_start": 207,
+              "line_end": 263,
               "hash": "094d860b453d0cea"
             },
             {
               "name": "TimeTable",
-              "line_start": 145,
-              "line_end": 204,
+              "line_start": 146,
+              "line_end": 205,
               "hash": "ab50318137f924a6"
             },
             {
               "name": "UsageCreateRow",
-              "line_start": 394,
-              "line_end": 420,
+              "line_start": 395,
+              "line_end": 421,
               "hash": "aa3946f85e7372f2"
             },
             {
               "name": "UsageEditRow",
-              "line_start": 361,
-              "line_end": 392,
+              "line_start": 362,
+              "line_end": 393,
               "hash": "48a385c2b3ecbad4"
             },
             {
               "name": "UsageTable",
-              "line_start": 310,
-              "line_end": 359,
+              "line_start": 311,
+              "line_end": 360,
               "hash": "666caaf0fa9f22ea"
             },
             {
               "name": "useMutation",
-              "line_start": 124,
-              "line_end": 142,
+              "line_start": 125,
+              "line_end": 143,
               "hash": "d5ef544cd4cf10e0"
             }
           ],
@@ -3883,99 +3932,99 @@
           "components": [
             {
               "name": "ActiveToggle",
-              "line_start": 627,
-              "line_end": 635,
+              "line_start": 628,
+              "line_end": 636,
               "hash": "ef34fd4f7587900c",
               "kind": "function"
             },
             {
               "name": "CostsScreen",
-              "line_start": 19,
-              "line_end": 121,
-              "hash": "6ab459080fb209e9",
+              "line_start": 20,
+              "line_end": 122,
+              "hash": "9e9e9d5349e8c3e7",
               "kind": "function"
             },
             {
               "name": "EditActions",
-              "line_start": 601,
-              "line_end": 625,
+              "line_start": 602,
+              "line_end": 626,
               "hash": "2aca5443da9c1705",
               "kind": "function"
             },
             {
               "name": "LabeledInput",
-              "line_start": 568,
-              "line_end": 587,
+              "line_start": 569,
+              "line_end": 588,
               "hash": "7f8fe7d5b0379745",
               "kind": "function"
             },
             {
               "name": "LabeledMoney",
-              "line_start": 589,
-              "line_end": 599,
+              "line_start": 590,
+              "line_end": 600,
               "hash": "2fd6ac9280c6f385",
               "kind": "function"
             },
             {
               "name": "MaintCreateRow",
-              "line_start": 528,
-              "line_end": 565,
+              "line_start": 529,
+              "line_end": 566,
               "hash": "f0659bcbc4840995",
               "kind": "function"
             },
             {
               "name": "MaintEditRow",
-              "line_start": 486,
-              "line_end": 526,
+              "line_start": 487,
+              "line_end": 527,
               "hash": "e7b61db02754f407",
               "kind": "function"
             },
             {
               "name": "MaintTable",
-              "line_start": 423,
-              "line_end": 484,
+              "line_start": 424,
+              "line_end": 485,
               "hash": "09039ed524d3dda3",
               "kind": "function"
             },
             {
               "name": "TimeCreateRow",
-              "line_start": 264,
-              "line_end": 307,
+              "line_start": 265,
+              "line_end": 308,
               "hash": "581cdd817ab1deb0",
               "kind": "function"
             },
             {
               "name": "TimeEditRow",
-              "line_start": 206,
-              "line_end": 262,
+              "line_start": 207,
+              "line_end": 263,
               "hash": "094d860b453d0cea",
               "kind": "function"
             },
             {
               "name": "TimeTable",
-              "line_start": 145,
-              "line_end": 204,
+              "line_start": 146,
+              "line_end": 205,
               "hash": "ab50318137f924a6",
               "kind": "function"
             },
             {
               "name": "UsageCreateRow",
-              "line_start": 394,
-              "line_end": 420,
+              "line_start": 395,
+              "line_end": 421,
               "hash": "aa3946f85e7372f2",
               "kind": "function"
             },
             {
               "name": "UsageEditRow",
-              "line_start": 361,
-              "line_end": 392,
+              "line_start": 362,
+              "line_end": 393,
               "hash": "48a385c2b3ecbad4",
               "kind": "function"
             },
             {
               "name": "UsageTable",
-              "line_start": 310,
-              "line_end": 359,
+              "line_start": 311,
+              "line_end": 360,
               "hash": "666caaf0fa9f22ea",
               "kind": "function"
             }
@@ -3991,6 +4040,7 @@
             "../components/Illustrations",
             "../components/Sparkline",
             "../components/StateView",
+            "../routes",
             "../utils/assetType",
             "../utils/currency",
             "../utils/format",
@@ -4005,44 +4055,57 @@
           "functions": [
             {
               "name": "DashboardScreen",
-              "line_start": 26,
-              "line_end": 219,
-              "hash": "0e61149365779038"
+              "line_start": 27,
+              "line_end": 251,
+              "hash": "8a6e5f1e7b762970"
             },
             {
-              "name": "MaintRow",
-              "line_start": 221,
-              "line_end": 251,
-              "hash": "bf0da473a040cb56"
+              "name": "MaintCompactRow",
+              "line_start": 253,
+              "line_end": 278,
+              "hash": "bf34b2a0d41106f1"
             },
             {
               "name": "TxRow",
-              "line_start": 253,
-              "line_end": 285,
+              "line_start": 311,
+              "line_end": 343,
               "hash": "4264fb29c6820e5b"
+            },
+            {
+              "name": "UpcomingRow",
+              "line_start": 280,
+              "line_end": 309,
+              "hash": "1091459e134e8390"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "DashboardScreen",
-              "line_start": 26,
-              "line_end": 219,
-              "hash": "0e61149365779038",
+              "line_start": 27,
+              "line_end": 251,
+              "hash": "8a6e5f1e7b762970",
               "kind": "function"
             },
             {
-              "name": "MaintRow",
-              "line_start": 221,
-              "line_end": 251,
-              "hash": "bf0da473a040cb56",
+              "name": "MaintCompactRow",
+              "line_start": 253,
+              "line_end": 278,
+              "hash": "bf34b2a0d41106f1",
               "kind": "function"
             },
             {
               "name": "TxRow",
-              "line_start": 253,
-              "line_end": 285,
+              "line_start": 311,
+              "line_end": 343,
               "hash": "4264fb29c6820e5b",
+              "kind": "function"
+            },
+            {
+              "name": "UpcomingRow",
+              "line_start": 280,
+              "line_end": 309,
+              "hash": "1091459e134e8390",
               "kind": "function"
             }
           ]

@@ -14,6 +14,7 @@ from app.api.schemas.responses import (
     CheckInHistoryResponse,
     CheckInHistoryRowResponse,
     CreateAssetResponse,
+    UpcomingExpenseResponse,
     WorkspaceOverviewResponse,
     WorkspaceTotalsResponse,
 )
@@ -205,6 +206,16 @@ def _to_asset_detail_response(detail: AssetDetail) -> AssetDetailResponse:
         recent_activity=[
             ActivityItemResponse(event_date=item.date, kind=item.kind, label=item.label, amount=item.amount)
             for item in detail.recent_activity
+        ],
+        upcoming_expenses=[
+            UpcomingExpenseResponse(
+                name=item.name,
+                category=item.category,
+                days_until=item.days_until,
+                amount=item.amount,
+                overdue=item.overdue,
+            )
+            for item in detail.upcoming_expenses
         ],
     )
 
