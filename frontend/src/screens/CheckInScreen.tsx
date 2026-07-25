@@ -16,6 +16,7 @@ interface DraftExpense {
   key: number;
   kind: "other" | "modeled";
   amount: string;
+  pocketOverride: string;
   comment: string;
   maintenanceItemId: string;
 }
@@ -23,6 +24,10 @@ interface DraftExpense {
 function isDraftExpenseInvalid(draft: DraftExpense): boolean {
   if (draft.amount === "" || Number(draft.amount) <= 0) return true;
   if (draft.kind === "modeled" && draft.maintenanceItemId === "") return true;
+  if (draft.pocketOverride !== "") {
+    const override = Number(draft.pocketOverride);
+    if (!Number.isFinite(override) || override < 0 || override > Number(draft.amount)) return true;
+  }
   return false;
 }
 
@@ -32,6 +37,7 @@ function toExpenseDrafts(drafts: DraftExpense[]): ExpenseDraft[] {
     .map((d) => ({
       kind: d.kind,
       amount: Number(d.amount),
+      paid_out_of_pocket_override: d.pocketOverride === "" ? null : Number(d.pocketOverride),
       comment: d.kind === "other" ? d.comment || null : null,
       source_type: d.kind === "modeled" ? "maintenance_item" : null,
       source_id: d.kind === "modeled" ? d.maintenanceItemId || null : null,
@@ -134,7 +140,7 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
     invalidatePreview();
     setDraftExpenses((rows) => [
       ...rows,
-      { key: nextExpenseKey.current++, kind: "other", amount: "", comment: "", maintenanceItemId: "" },
+      { key: nextExpenseKey.current++, kind: "other", amount: "", pocketOverride: "", comment: "", maintenanceItemId: "" },
     ]);
   };
 
@@ -277,10 +283,12 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
               <hr className="hr" style={{ margin: "16px 0" }} />
               <div style={{ fontSize: 13.5, fontWeight: 500, marginBottom: 10 }}>{t("checkin.expenses_step_title")}</div>
               <div className="stack" style={{ gap: 10 }}>
-                {draftExpenses.map((row) => (
+                {draftExpenses.map((row, index) => (
                   <ExpenseRow
                     key={row.key}
                     row={row}
+                    index={index}
+                    preview={preview}
                     maintenanceItems={activeMaintenanceItems}
                     onChange={(changes) => updateExpense(row.key, changes)}
                     onRemove={() => removeExpense(row.key)}
@@ -507,21 +515,32 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
 
 function ExpenseRow({
   row,
+  index,
+  preview,
   maintenanceItems,
   onChange,
   onRemove,
 }: {
   row: DraftExpense;
+  index: number;
+  preview: CheckInPreview | null;
   maintenanceItems: MaintenanceItem[];
   onChange: (changes: Partial<DraftExpense>) => void;
   onRemove: () => void;
 }) {
   const { t } = useTranslation();
+  const fmt = useCurrency();
   const kindId = `checkin-expense-kind-${row.key}`;
   const commentId = `checkin-expense-comment-${row.key}`;
   const amountId = `checkin-expense-amount-${row.key}`;
+  const pocketId = `checkin-expense-pocket-${row.key}`;
   const isOther = row.kind === "other";
   const selectedValue = isOther ? "other" : row.maintenanceItemId;
+  const previewLine = preview?.expense_lines[index] ?? null;
+  const adjustedAmount =
+    row.pocketOverride !== "" && previewLine && previewLine.paid_out_of_pocket > Number(row.pocketOverride)
+      ? previewLine.paid_out_of_pocket
+      : null;
 
   const handleKindChange = (value: string) => {
     if (value === "other") {
@@ -532,54 +551,73 @@ function ExpenseRow({
   };
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: isOther ? "1fr 1fr 1fr auto" : "1fr 1fr auto", gap: 10, alignItems: "end" }}>
-      <div className="field">
-        <label className="field-label" htmlFor={kindId}>
-          {t("checkin.expense_kind_label")}
-        </label>
-        <select id={kindId} className="input" value={selectedValue} onChange={(ev) => handleKindChange(ev.target.value)}>
-          <option value="other">{t("checkin.expense_kind_other")}</option>
-          {maintenanceItems.length > 0 && (
-            <optgroup label={t("checkin.expense_kind_maintenance")}>
-              {maintenanceItems.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
-      </div>
-      {isOther && (
+    <div className="stack" style={{ gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isOther ? "1fr 1fr 1fr auto" : "1fr 1fr auto", gap: 10, alignItems: "end" }}>
         <div className="field">
-          <label className="field-label" htmlFor={commentId}>
-            {t("checkin.expense_comment")}
+          <label className="field-label" htmlFor={kindId}>
+            {t("checkin.expense_kind_label")}
+          </label>
+          <select id={kindId} className="input" value={selectedValue} onChange={(ev) => handleKindChange(ev.target.value)}>
+            <option value="other">{t("checkin.expense_kind_other")}</option>
+            {maintenanceItems.length > 0 && (
+              <optgroup label={t("checkin.expense_kind_maintenance")}>
+                {maintenanceItems.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        </div>
+        {isOther && (
+          <div className="field">
+            <label className="field-label" htmlFor={commentId}>
+              {t("checkin.expense_comment")}
+            </label>
+            <input
+              id={commentId}
+              className="input"
+              type="text"
+              maxLength={2000}
+              value={row.comment}
+              onChange={(ev) => onChange({ comment: ev.target.value })}
+            />
+          </div>
+        )}
+        <div className="field">
+          <label className="field-label" htmlFor={amountId}>
+            {t("checkin.expense_amount")}
           </label>
           <input
-            id={commentId}
-            className="input"
-            type="text"
-            maxLength={2000}
-            value={row.comment}
-            onChange={(ev) => onChange({ comment: ev.target.value })}
+            id={amountId}
+            className="input mono"
+            type="number"
+            value={row.amount}
+            onChange={(ev) => onChange({ amount: ev.target.value })}
           />
         </div>
-      )}
+        <button className="btn btn-ghost btn-sm" onClick={onRemove}>
+          {t("checkin.remove_expense")}
+        </button>
+      </div>
       <div className="field">
-        <label className="field-label" htmlFor={amountId}>
-          {t("checkin.expense_amount")}
+        <label className="field-label" htmlFor={pocketId}>
+          {t("checkin.expense_pocket_label")}
         </label>
         <input
-          id={amountId}
+          id={pocketId}
           className="input mono"
           type="number"
-          value={row.amount}
-          onChange={(ev) => onChange({ amount: ev.target.value })}
+          min={0}
+          placeholder={t("checkin.expense_pocket_placeholder")}
+          value={row.pocketOverride}
+          onChange={(ev) => onChange({ pocketOverride: ev.target.value })}
         />
+        {adjustedAmount !== null && (
+          <div className="row-meta">{t("checkin.expense_pocket_adjusted", { amount: fmt(adjustedAmount, { decimals: 2 }) })}</div>
+        )}
       </div>
-      <button className="btn btn-ghost btn-sm" onClick={onRemove}>
-        {t("checkin.remove_expense")}
-      </button>
     </div>
   );
 }

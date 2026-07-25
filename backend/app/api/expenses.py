@@ -46,6 +46,7 @@ def log_expense(
         comment=body.comment,
         source_type=body.source_type,
         source_id=body.source_id,
+        paid_out_of_pocket_override=body.paid_out_of_pocket_override,
     )
     response.headers["Location"] = f"/api/assets/{asset_id}/expenses/{row.id}"
     return ExpenseEventResponse.model_validate(row)

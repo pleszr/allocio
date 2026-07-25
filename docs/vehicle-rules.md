@@ -350,7 +350,7 @@ Rules:
 - expenses consume the available bucket amount in request order
 - a check-in expense can use both the opening balance and allocations created by that check-in
 - an expense reduces the bucket only by `bucket_amount = amount - paid_out_of_pocket`
-- `paid_out_of_pocket` is derived, cannot be edited, is non-negative, and cannot exceed `amount`
+- `paid_out_of_pocket` defaults to the derived shortfall; the caller may raise it (never lower it below the derived shortfall) up to `amount`. Always non-negative and never exceeds `amount`.
 - a standalone expense is covered only by the bucket balance available on its `event_date`
 - the bucket balance never becomes negative
 - modeled expenses may reference the maintenance or cost row they relate to
@@ -407,8 +407,10 @@ Formula:
 - `total_expense = sum(expense_line_item.amount)`
 - `available = balance_before + total_allocation`
 - for each expense in submitted order:
-  - `bucket_amount = min(expense.amount, remaining_available)`
-  - `paid_out_of_pocket = expense.amount - bucket_amount`
+  - `natural_bucket_amount = min(expense.amount, remaining_available)`
+  - `natural_paid_out_of_pocket = expense.amount - natural_bucket_amount`
+  - `paid_out_of_pocket = clamp(override, natural_paid_out_of_pocket, expense.amount)` when an override is submitted, else `natural_paid_out_of_pocket`
+  - `bucket_amount = expense.amount - paid_out_of_pocket`
   - `remaining_available = remaining_available - bucket_amount`
 - `total_bucket_expense = sum(expense_line_item.bucket_amount)`
 - `paid_out_of_pocket = sum(expense_line_item.paid_out_of_pocket)`

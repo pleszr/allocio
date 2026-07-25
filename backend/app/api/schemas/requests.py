@@ -256,6 +256,14 @@ class LogExpenseRequest(BaseModel):
     source_id: uuid.UUID | None = Field(
         default=None, description="Id of the source row; required for 'modeled'."
     )
+    paid_out_of_pocket_override: Decimal | None = Field(
+        default=None,
+        ge=0,
+        description="Optional caller-chosen paid-out-of-pocket amount for this expense, raising it above "
+        "the bucket-shortfall default (never below it — the server floors it at the derived amount). "
+        "Omit or null to keep today's fully-derived behavior.",
+        examples=[200000],
+    )
 
     @model_validator(mode="after")
     def _check_source_matches_kind(self) -> "LogExpenseRequest":
@@ -265,6 +273,13 @@ class LogExpenseRequest(BaseModel):
             raise ValueError("A modeled expense requires both source_type and source_id.")
         if self.kind == "other" and (self.source_type is not None or self.source_id is not None):
             raise ValueError("An 'other' expense must not carry a source reference.")
+        return self
+
+    @model_validator(mode="after")
+    def _override_does_not_exceed_amount(self) -> "LogExpenseRequest":
+        """Reject an override above `amount`; the dynamic per-period floor is enforced server-side."""
+        if self.paid_out_of_pocket_override is not None and self.paid_out_of_pocket_override > self.amount:
+            raise ValueError("paid_out_of_pocket_override must not exceed amount.")
         return self
 
 

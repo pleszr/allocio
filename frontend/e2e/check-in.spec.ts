@@ -62,7 +62,14 @@ test("tire-type picker is seeded and expenses are sent with the preview request"
   const previewBody = previewResponse.request().postDataJSON();
   expect(previewBody.active_tire_type).toBe("winter");
   expect(previewBody.expenses).toEqual([
-    { kind: "other", amount: 5000, comment: "Car wash", source_type: null, source_id: null },
+    {
+      kind: "other",
+      amount: 5000,
+      paid_out_of_pocket_override: null,
+      comment: "Car wash",
+      source_type: null,
+      source_id: null,
+    },
   ]);
 
   // Switch the same row to a maintenance-linked expense and re-preview.
@@ -158,4 +165,36 @@ test("out-of-pocket amount requires bilingual confirmation and stays out of the 
   await expect(historyRow.locator("td").nth(6)).toContainText("0.00 Ft");
   await expect(historyRow.locator("td").nth(7)).toContainText("5,000.00 Ft");
   await expect(historyRow.locator("td").nth(9)).toContainText("0.00 Ft");
+});
+
+test("paid-out-of-pocket override forces the full expense out of the bucket in the preview", async ({ page }) => {
+  await createVehicleBucket(page, "E2E Override Car");
+  await page.getByRole("tab", { name: "Check-in" }).click();
+
+  // Advance the odometer (without advancing the calendar day) so the usage-based cost accrues a
+  // positive allocation on this same-day baseline check-in, giving the bucket money available to
+  // cover the upcoming expense naturally -- letting the override prove it forces the full amount
+  // out of pocket anyway, rather than merely reflecting an already-zero bucket.
+  await page.getByLabel("Current usage").fill("120600");
+
+  await page.getByRole("button", { name: /Add expense/ }).click();
+  await page.getByLabel("Amount").fill("3000");
+  await page.getByLabel("Comment").fill("Car wash");
+  await page.getByLabel("Paid out of pocket").fill("3000");
+
+  const previewed = page.waitForResponse((r) => r.url().includes("/check-ins/preview") && r.ok());
+  await page.getByRole("button", { name: /Update preview/ }).click();
+  const previewResponse = await previewed;
+  const previewBody = previewResponse.request().postDataJSON();
+  expect(previewBody.expenses[0].paid_out_of_pocket_override).toBe(3000);
+  const previewResult = await previewResponse.json();
+  // Decimal precision on the wire tracks the operands' own precision (unquantized whole-number
+  // inputs serialize without trailing zeros), so compare numerically rather than by exact string.
+  expect(Number(previewResult.expense_lines[0].paid_out_of_pocket)).toBe(3000);
+  expect(Number(previewResult.expense_lines[0].bucket_amount)).toBe(0);
+
+  const pocketLine = page.locator(".checkin-line").filter({ hasText: "Paid out of pocket" });
+  await expect(pocketLine.locator(".checkin-line-amt")).toHaveText("3,000.00 Ft");
+  const bucketLine = page.locator(".checkin-line").filter({ hasText: "Covered by bucket" });
+  await expect(bucketLine.locator(".checkin-line-amt")).toHaveText("0.00 Ft");
 });

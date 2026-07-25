@@ -300,6 +300,7 @@ export interface CreateMaintenanceItemRequest {
 export interface ExpenseDraft {
   kind: ExpenseKind;
   amount: number;
+  paid_out_of_pocket_override?: number | null;
   event_date?: string | null;
   usage_counter_at_event?: number | null;
   comment?: string | null;

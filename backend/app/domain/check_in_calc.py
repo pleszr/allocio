@@ -55,6 +55,7 @@ class ExpenseDraftInput:
     source_type: str | None
     source_id: uuid.UUID | None
     usage_counter_at_event: int | None
+    paid_out_of_pocket_override: Decimal | None
 
 
 @dataclass(frozen=True)
@@ -133,7 +134,10 @@ def compute_check_in(
         time_based_costs: Active time-based cost rows to accrue.
         usage_based_costs: Active usage-based cost components to accrue; empty when the asset has none.
         manual_extra_monthly: Configured flat monthly buffer, prorated across the elapsed period.
-        expense_drafts: Expenses submitted for the period, each with a resolved ``event_date``.
+        expense_drafts: Expenses submitted for the period, each with a resolved ``event_date``. Each
+            draft's ``paid_out_of_pocket_override`` may raise its ``paid_out_of_pocket`` above the
+            derived bucket-shortfall floor (never below it); omit or ``None`` to keep the fully-derived
+            split.
         prior_allocation_amounts: Amounts of already-posted allocation events (for the opening balance).
         prior_expense_amounts: Bucket-covered amounts of already-posted expenses (for the opening balance).
 
@@ -219,12 +223,20 @@ def _manual_extra_line(manual_extra_monthly: Decimal, elapsed_days: int) -> Allo
 
 
 def _expense_lines(drafts: Sequence[ExpenseDraftInput], available: Decimal) -> list[ExpenseLine]:
-    """Split drafts in submitted order, consuming the available bucket amount once."""
+    """Split drafts in submitted order, consuming the available bucket amount once.
+
+    An override can only raise ``paid_out_of_pocket`` above the natural bucket-shortfall split, never
+    lower it — see `resolve_paid_out_of_pocket`.
+    """
     remaining = available
     lines: list[ExpenseLine] = []
     for draft in drafts:
-        bucket_amount = min(draft.amount, remaining)
-        paid_out_of_pocket = draft.amount - bucket_amount
+        natural_bucket_amount = min(draft.amount, remaining)
+        natural_paid_out_of_pocket = draft.amount - natural_bucket_amount
+        paid_out_of_pocket = resolve_paid_out_of_pocket(
+            draft.amount, natural_paid_out_of_pocket, draft.paid_out_of_pocket_override
+        )
+        bucket_amount = draft.amount - paid_out_of_pocket
         lines.append(
             ExpenseLine(
                 kind=draft.kind,
@@ -240,3 +252,14 @@ def _expense_lines(drafts: Sequence[ExpenseDraftInput], available: Decimal) -> l
         )
         remaining -= bucket_amount
     return lines
+
+
+def resolve_paid_out_of_pocket(amount: Decimal, natural: Decimal, override: Decimal | None) -> Decimal:
+    """Clamp a caller-supplied override into `[natural, amount]`; `None` keeps the fully-derived split.
+
+    Shared by check-in computation and standalone expense logging so both paths apply the same
+    non-negative bucket invariant (see `docs/vehicle-rules.md`).
+    """
+    if override is None:
+        return natural
+    return max(natural, min(override, amount))
