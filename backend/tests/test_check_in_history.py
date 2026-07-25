@@ -78,6 +78,7 @@ def _add_expense(
     amount: str,
     event_date: date,
     paid_out_of_pocket: str = "0",
+    comment: str | None = None,
 ) -> None:
     """Insert one posted expense (outflow) event linked to `check_in_id`."""
     session.add(
@@ -88,6 +89,7 @@ def _add_expense(
             kind="other",
             amount=Decimal(amount),
             paid_out_of_pocket=Decimal(paid_out_of_pocket),
+            comment=comment,
         )
     )
     session.flush()
@@ -189,6 +191,51 @@ def test_check_in_with_no_expense_reports_zero(client: TestClient, db_session: S
     body = _get_history(client, asset.id).json()
 
     assert _dec(body["rows"][0]["expense"]) == Decimal("0")
+    assert body["rows"][0]["expenses"] == []
+
+
+def test_check_in_with_one_expense_returns_its_line_details(client: TestClient, db_session: Session) -> None:
+    asset, bucket = _make_asset(db_session, name="ExpenseLine")
+    today = date.today()
+    check_in = _add_posted_check_in(db_session, asset.id, period_start=today, period_end=today)
+    _add_allocation(db_session, bucket.id, check_in.id, "100.00", today)
+    _add_expense(
+        db_session,
+        bucket.id,
+        check_in.id,
+        "150.00",
+        today,
+        paid_out_of_pocket="50.00",
+        comment="Winter tires",
+    )
+
+    body = _get_history(client, asset.id).json()
+
+    expenses = body["rows"][0]["expenses"]
+    assert len(expenses) == 1
+    line = expenses[0]
+    assert line["kind"] == "other"
+    assert _dec(line["amount"]) == Decimal("150.00")
+    assert _dec(line["bucket_amount"]) == Decimal("100.00")
+    assert _dec(line["paid_out_of_pocket"]) == Decimal("50.00")
+    assert line["event_date"] == today.isoformat()
+    assert line["comment"] == "Winter tires"
+
+
+def test_check_in_expenses_ordered_oldest_event_date_first(client: TestClient, db_session: Session) -> None:
+    asset, bucket = _make_asset(db_session, name="ExpenseOrder")
+    today = date.today()
+    earlier = today - timedelta(days=5)
+    check_in = _add_posted_check_in(db_session, asset.id, period_start=earlier, period_end=today)
+    _add_allocation(db_session, bucket.id, check_in.id, "0.00", today)
+    # Insert newer-dated expense first so insertion order differs from event_date order.
+    _add_expense(db_session, bucket.id, check_in.id, "20.00", today, comment="Later expense")
+    _add_expense(db_session, bucket.id, check_in.id, "10.00", earlier, comment="Earlier expense")
+
+    body = _get_history(client, asset.id).json()
+
+    expenses = body["rows"][0]["expenses"]
+    assert [line["comment"] for line in expenses] == ["Earlier expense", "Later expense"]
 
 
 def test_unowned_asset_returns_404(client: TestClient, db_session: Session) -> None:

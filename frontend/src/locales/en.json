@@ -270,7 +270,10 @@
     "th_paid_out_of_pocket": "Paid out of pocket",
     "th_net": "Net",
     "th_balance": "Balance",
-    "irregular_cadence": "{{days}} days since previous check-in — outside the usual ~30-day cadence"
+    "irregular_cadence": "{{days}} days since previous check-in — outside the usual ~30-day cadence",
+    "expand_expenses": "Show expense breakdown",
+    "collapse_expenses": "Hide expense breakdown",
+    "expense_line_fallback": "Expense"
   },
   "newBucket": {
     "title": "New bucket",
