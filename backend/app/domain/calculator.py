@@ -20,7 +20,6 @@ from typing import Literal, TypeAlias
 IntervalUnit: TypeAlias = Literal["months", "years"]
 MaintenanceStatus: TypeAlias = Literal["ok", "soon", "due", "overdue"]
 ReserveGuidance: TypeAlias = Literal["low", "reasonable", "high"]
-HealthStatus: TypeAlias = Literal["underfunded", "healthy", "overflowing"]
 
 DAYS_PER_YEAR: Decimal = Decimal(365)
 INTERVAL_UNITS: frozenset[str] = frozenset({"months", "years"})
@@ -398,30 +397,6 @@ def usage_based_monthly_accrual(amount_per_unit: Decimal, monthly_usage: Decimal
         The unrounded monthly reserve accrual.
     """
     return amount_per_unit * monthly_usage
-
-
-def health_status(balance: Decimal, expected_reserve: Decimal) -> HealthStatus:
-    """Band a bucket balance against its expected reserve using the guidance ratios.
-
-    Reuses the ``0.9``/``1.1`` bands already blessed for `reserve_guidance`, so no new magic
-    numbers enter the engine. See `docs/vehicle-rules.md` for the v1 definition of
-    ``expected_reserve`` (one recommended monthly allocation) and its documented limitation.
-
-    Args:
-        balance: The bucket's event-derived balance.
-        expected_reserve: The target reserve to compare against; ``<= 0`` means nothing to fund.
-
-    Returns:
-        ``"underfunded"`` below ``0.9x``, ``"overflowing"`` above ``1.1x``, else ``"healthy"``;
-        ``"healthy"`` whenever ``expected_reserve`` is non-positive.
-    """
-    if expected_reserve <= 0:
-        return "healthy"
-    if balance < _GUIDANCE_LOW * expected_reserve:
-        return "underfunded"
-    if balance > _GUIDANCE_HIGH * expected_reserve:
-        return "overflowing"
-    return "healthy"
 
 
 def _month_as_of(anchor: date, months_back: int) -> date:

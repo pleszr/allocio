@@ -111,6 +111,30 @@ def test_preview_covers_every_active_cost(client: TestClient, backdate_asset_cre
     assert _dec(preview["total_allocation"]) == sum((_dec(line["amount"]) for line in lines), Decimal(0))
 
 
+def test_preview_prorates_manual_extra_into_the_check_in_allocation(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    created = _create_vehicle(client, backdate_asset_creation)
+    asset_id = created["asset"]["id"]
+    updated = client.put(f"/api/assets/{asset_id}/manual-extra", json={"amount": "1000.00"})
+    assert updated.status_code == 200
+
+    preview = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(PERIOD_END, STARTING_ODOMETER + 900),
+    ).json()
+
+    manual_line = next(line for line in preview["allocation_lines"] if line["source_type"] == "manual_extra")
+    expected = (Decimal("1000.00") * 12 / 365 * preview["elapsed_days"]).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+    assert manual_line["source_id"] is None
+    assert _dec(manual_line["amount"]) == expected
+    assert _dec(preview["total_allocation"]) == sum(
+        (_dec(line["amount"]) for line in preview["allocation_lines"]), Decimal(0)
+    )
+
+
 def test_preview_balance_totals_reflect_expense(
     client: TestClient, backdate_asset_creation: Callable[[str], None]
 ) -> None:
@@ -125,9 +149,67 @@ def test_preview_balance_totals_reflect_expense(
 
     assert len(preview["expense_lines"]) == 1
     assert _dec(preview["total_expense"]) == Decimal("5000.00")
+    assert _dec(preview["total_bucket_expense"]) == Decimal("5000.00")
+    assert _dec(preview["paid_out_of_pocket"]) == Decimal("0.00")
     assert _dec(preview["balance_before"]) == Decimal("0")
     assert _dec(preview["net_bucket_change"]) == _dec(preview["total_allocation"]) - Decimal("5000.00")
     assert _dec(preview["balance_after"]) == _dec(preview["balance_before"]) + _dec(preview["net_bucket_change"])
+
+
+def test_preview_derives_out_of_pocket_and_never_goes_negative(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    created = _create_vehicle(client, backdate_asset_creation)
+    asset_id = created["asset"]["id"]
+    base_body = _preview_body(PERIOD_END, STARTING_ODOMETER + 900)
+    available = _dec(client.post(f"/api/assets/{asset_id}/check-ins/preview", json=base_body).json()["total_allocation"])
+    expense_amount = available + Decimal("150.00")
+
+    preview = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(
+            PERIOD_END,
+            STARTING_ODOMETER + 900,
+            [{"kind": "other", "amount": str(expense_amount), "comment": "Large repair"}],
+        ),
+    ).json()
+
+    line = preview["expense_lines"][0]
+    assert _dec(line["amount"]) == expense_amount
+    assert _dec(line["bucket_amount"]) == available
+    assert _dec(line["paid_out_of_pocket"]) == Decimal("150.00")
+    assert _dec(preview["total_bucket_expense"]) == available
+    assert _dec(preview["paid_out_of_pocket"]) == Decimal("150.00")
+    assert _dec(preview["net_bucket_change"]) == Decimal("0.00")
+    assert _dec(preview["balance_after"]) == Decimal("0.00")
+
+
+def test_multiple_expenses_consume_available_money_in_request_order(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    created = _create_vehicle(client, backdate_asset_creation)
+    asset_id = created["asset"]["id"]
+    base_body = _preview_body(PERIOD_END, STARTING_ODOMETER + 900)
+    available = _dec(client.post(f"/api/assets/{asset_id}/check-ins/preview", json=base_body).json()["total_allocation"])
+
+    preview = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(
+            PERIOD_END,
+            STARTING_ODOMETER + 900,
+            [
+                {"kind": "other", "amount": str(available - Decimal("10.00")), "comment": "First"},
+                {"kind": "other", "amount": "20.00", "comment": "Second"},
+            ],
+        ),
+    ).json()
+
+    first, second = preview["expense_lines"]
+    assert _dec(first["bucket_amount"]) == available - Decimal("10.00")
+    assert _dec(first["paid_out_of_pocket"]) == Decimal("0.00")
+    assert _dec(second["bucket_amount"]) == Decimal("10.00")
+    assert _dec(second["paid_out_of_pocket"]) == Decimal("10.00")
+    assert _dec(preview["balance_after"]) == Decimal("0.00")
 
 
 def test_post_creates_check_in_and_events(client: TestClient, backdate_asset_creation: Callable[[str], None]) -> None:
@@ -168,6 +250,32 @@ def test_post_amounts_match_preceding_preview(
     preview_alloc = sorted((line["source_id"], _dec(line["amount"])) for line in preview["allocation_lines"])
     posted_alloc = sorted((event["source_id"], _dec(event["amount"])) for event in posted["allocation_events"])
     assert preview_alloc == posted_alloc
+
+
+def test_posted_expense_funding_matches_preceding_preview(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    created = _create_vehicle(client, backdate_asset_creation)
+    asset_id = created["asset"]["id"]
+    base_body = _preview_body(PERIOD_END, STARTING_ODOMETER + 900)
+    available = _dec(client.post(f"/api/assets/{asset_id}/check-ins/preview", json=base_body).json()["total_allocation"])
+    body = _preview_body(
+        PERIOD_END,
+        STARTING_ODOMETER + 900,
+        [{"kind": "other", "amount": str(available + Decimal("25.00")), "comment": "Repair"}],
+    )
+
+    preview = client.post(f"/api/assets/{asset_id}/check-ins/preview", json=body).json()
+    posted = client.post(f"/api/assets/{asset_id}/check-ins", json=body).json()
+
+    assert _dec(posted["expense_events"][0]["bucket_amount"]) == _dec(preview["expense_lines"][0]["bucket_amount"])
+    assert _dec(posted["expense_events"][0]["paid_out_of_pocket"]) == Decimal("25.00")
+
+    next_preview = client.post(
+        f"/api/assets/{asset_id}/check-ins/preview",
+        json=_preview_body(LATER_END, STARTING_ODOMETER + 900),
+    ).json()
+    assert _dec(next_preview["balance_before"]) == Decimal("0.00")
 
 
 def test_subsequent_check_in_starts_where_previous_ended(
@@ -249,6 +357,9 @@ def test_first_check_in_allows_zero_length_baseline(client: TestClient) -> None:
     assert response.status_code == 201
     asset_id = response.json()["asset"]["id"]
     today = str(date.today())
+    assert client.put(
+        f"/api/assets/{asset_id}/manual-extra", json={"amount": "1000.00"}
+    ).status_code == 200
 
     preview = client.post(
         f"/api/assets/{asset_id}/check-ins/preview",
@@ -259,6 +370,7 @@ def test_first_check_in_allows_zero_length_baseline(client: TestClient) -> None:
     assert preview["elapsed_days"] == 0
     assert preview["usage_amount"] == 0
     assert _dec(preview["total_allocation"]) == Decimal("0")
+    assert all(line["source_type"] != "manual_extra" for line in preview["allocation_lines"])
 
     posted = client.post(
         f"/api/assets/{asset_id}/check-ins",

@@ -72,7 +72,12 @@ def _add_allocation(
 
 
 def _add_expense(
-    session: Session, bucket_id: uuid.UUID, check_in_id: uuid.UUID, amount: str, event_date: date
+    session: Session,
+    bucket_id: uuid.UUID,
+    check_in_id: uuid.UUID,
+    amount: str,
+    event_date: date,
+    paid_out_of_pocket: str = "0",
 ) -> None:
     """Insert one posted expense (outflow) event linked to `check_in_id`."""
     session.add(
@@ -82,6 +87,7 @@ def _add_expense(
             event_date=event_date,
             kind="other",
             amount=Decimal(amount),
+            paid_out_of_pocket=Decimal(paid_out_of_pocket),
         )
     )
     session.flush()
@@ -118,6 +124,8 @@ def test_baseline_check_in_returns_one_row(client: TestClient, db_session: Sessi
     assert row["usage_since_last"] == 1000
     assert _dec(row["allocated"]) == Decimal("0.00")
     assert _dec(row["expense"]) == Decimal("0")
+    assert _dec(row["bucket_expense"]) == Decimal("0")
+    assert _dec(row["paid_out_of_pocket"]) == Decimal("0")
     assert _dec(row["net"]) == Decimal("0.00")
     assert _dec(row["balance"]) == Decimal("0.00")
 
@@ -152,6 +160,24 @@ def test_two_check_ins_ordered_with_running_balance(client: TestClient, db_sessi
     assert _dec(row2["net"]) == Decimal("150.00")
     # Running total, not per-row: 300 (row1) + 150 (row2's own net) = 450.
     assert _dec(row2["balance"]) == Decimal("450.00")
+
+
+def test_history_separates_full_bucket_and_out_of_pocket_expense(
+    client: TestClient, db_session: Session
+) -> None:
+    asset, bucket = _make_asset(db_session, name="FundingSplit")
+    today = date.today()
+    check_in = _add_posted_check_in(db_session, asset.id, period_start=today, period_end=today)
+    _add_allocation(db_session, bucket.id, check_in.id, "100.00", today)
+    _add_expense(db_session, bucket.id, check_in.id, "150.00", today, paid_out_of_pocket="50.00")
+
+    row = _get_history(client, asset.id).json()["rows"][0]
+
+    assert _dec(row["expense"]) == Decimal("150.00")
+    assert _dec(row["bucket_expense"]) == Decimal("100.00")
+    assert _dec(row["paid_out_of_pocket"]) == Decimal("50.00")
+    assert _dec(row["net"]) == Decimal("0.00")
+    assert _dec(row["balance"]) == Decimal("0.00")
 
 
 def test_check_in_with_no_expense_reports_zero(client: TestClient, db_session: Session) -> None:

@@ -132,6 +132,16 @@ body {
 .side-nav, .side-entities {
   display: flex; flex-direction: column; gap: 2px;
 }
+.side-entities-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.side-entities {
+  min-height: 0;
+  overflow-y: auto;
+}
 
 .side-item {
   display: flex;
@@ -572,26 +582,6 @@ body {
   font-feature-settings: "tnum";
 }
 
-.bucket-band {
-  padding: 12px 24px;
-  display: flex; align-items: center; gap: 10px;
-  font-size: 13.5px;
-  font-weight: 500;
-}
-.band-good { background: var(--good-band); color: var(--good); }
-.band-warn { background: var(--warn-band); color: var(--warn); }
-.band-bad  { background: var(--bad-band);  color: var(--bad); }
-.band-icon {
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  display: grid; place-items: center;
-  flex-shrink: 0;
-  color: white;
-}
-.band-good .band-icon { background: var(--good); }
-.band-warn .band-icon { background: var(--warn); }
-.band-bad  .band-icon { background: var(--bad); }
-
 /* "Add new" placeholder card */
 .bucket-add {
   border-radius: var(--radius);
@@ -639,7 +629,7 @@ body {
   border-radius: var(--radius);
   padding: 22px 28px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   box-shadow: 0 1px 0 rgba(15,23,42,.04), 0 4px 14px rgba(15,23,42,.05);
   border: 1px solid rgba(15,23,42,.04);
@@ -1063,6 +1053,34 @@ select.input {
 .totals-row .label {
   font-size: 13px;
   color: var(--muted);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.52);
+}
+.modal-card {
+  width: min(100%, 460px);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+  padding: 26px;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+@media (max-width: 520px) {
+  .modal-card { padding: 22px; }
+  .modal-actions { flex-direction: column-reverse; }
+  .modal-actions .btn { width: 100%; justify-content: center; }
 }
 
 /* Animation */

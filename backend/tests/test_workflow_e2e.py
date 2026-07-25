@@ -83,26 +83,41 @@ def test_create_bucket_and_check_in_workflow(
     )
     assert custom_cost.status_code == 201
 
-    # 7. Check-in preview (deterministic, writes nothing) then commit — the Check-In screen flow.
+    # 7. Configure the recurring monthly buffer the Costs screen exposes.
+    manual_extra = client.put(f"/api/assets/{asset_id}/manual-extra", json={"amount": "1000.00"})
+    assert manual_extra.status_code == 200
+
+    # 8. Check-in preview (deterministic, writes nothing) then commit — the Check-In screen flow.
     check_in_body = {"period_end": PERIOD_END, "usage_end": STARTING_ODOMETER + 900, "expenses": []}
+    allocation_preview = client.post(f"/api/assets/{asset_id}/check-ins/preview", json=check_in_body)
+    assert allocation_preview.status_code == 200
+    assert any(line["source_type"] == "manual_extra" for line in allocation_preview.json()["allocation_lines"])
+    allocation = Decimal(allocation_preview.json()["total_allocation"])
+    check_in_body["expenses"] = [
+        {"kind": "other", "amount": str(allocation + Decimal("100.00")), "comment": "Large repair"}
+    ]
     preview = client.post(f"/api/assets/{asset_id}/check-ins/preview", json=check_in_body)
     assert preview.status_code == 200
     assert preview.json()["usage_amount"] == 900
+    assert Decimal(preview.json()["paid_out_of_pocket"]) == Decimal("100.00")
+    assert Decimal(preview.json()["balance_after"]) == Decimal("0.00")
     expected_balance_after = preview.json()["balance_after"]
 
     commit = client.post(f"/api/assets/{asset_id}/check-ins", json={**check_in_body, "notes": "first month"})
     assert commit.status_code == 201
+    assert any(line["source_type"] == "manual_extra" for line in commit.json()["allocation_events"])
 
-    # 8. The new bucket now shows up in the workspace overview.
+    # 9. The new bucket now shows up in the workspace overview.
     final_overview = client.get("/api/assets")
     assert final_overview.status_code == 200
     assert any(asset["id"] == asset_id for asset in final_overview.json()["assets"])
 
-    # 9. The History tab lists the posted check-in with the same balance the preview promised —
+    # 10. The History tab lists the posted check-in with the same balance the preview promised —
     #    guards the exact frontend/backend contract HistoryScreen.tsx depends on.
     history = client.get(f"/api/assets/{asset_id}/check-in-history")
     assert history.status_code == 200
     rows = history.json()["rows"]
     assert len(rows) == 1
     assert rows[0]["usage_since_last"] == 900
+    assert Decimal(rows[0]["paid_out_of_pocket"]) == Decimal("100.00")
     assert Decimal(str(rows[0]["balance"])) == Decimal(str(expected_balance_after))

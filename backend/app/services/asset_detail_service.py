@@ -1,6 +1,6 @@
 """Asset detail read use case: compose one asset's dashboard payload from reused figures and events.
 
-Read-only. Reuses `WorkspaceService` for balance/allocation/health, `CostService` for current usage
+Read-only. Reuses `WorkspaceService` for balance/allocation, `CostService` for current usage
 and maintenance status, and the check-in/expense repositories for the recent-activity feed. It never
 commits or flushes; an unknown or unowned asset raises `NotFoundError`.
 """
@@ -37,12 +37,13 @@ class UpcomingExpense:
 
 @dataclass(frozen=True)
 class ActivityItem:
-    """One recent bucket movement for the dashboard activity feed; `amount` is signed."""
+    """One recent bucket movement; `amount` is signed and only covers the bucket-funded portion."""
 
     date: date
     kind: str
     label: str
     amount: Decimal
+    paid_out_of_pocket: Decimal
 
 
 @dataclass(frozen=True)
@@ -57,7 +58,6 @@ class AssetDetail:
     balance: Decimal
     recommended_monthly_allocation: Decimal
     daily_accrual: Decimal
-    health: str
     current_usage: int | None
     usage_since_last_check_in: int | None
     last_check_in_date: date | None
@@ -94,7 +94,6 @@ class AssetDetailService:
             balance=summary.balance,
             recommended_monthly_allocation=summary.recommended_monthly_allocation,
             daily_accrual=calculator.quantize_currency(summary.recommended_monthly_allocation * 12 / 365),
-            health=summary.health,
             current_usage=self._costs.current_asset_usage(user_id, asset_id),
             usage_since_last_check_in=latest.usage_amount if latest is not None else None,
             last_check_in_date=latest.period_end if latest is not None else None,
@@ -140,6 +139,7 @@ class AssetDetailService:
                 kind="allocation",
                 label=self._allocation_label(event),
                 amount=event.amount,
+                paid_out_of_pocket=Decimal(0),
             )
             for event in events
         ]
@@ -152,7 +152,8 @@ class AssetDetailService:
                 date=expense.event_date,
                 kind="expense",
                 label=self._expense_label(expense),
-                amount=-expense.amount,
+                amount=-expense.bucket_amount,
+                paid_out_of_pocket=expense.paid_out_of_pocket,
             )
             for expense in expenses
         ]

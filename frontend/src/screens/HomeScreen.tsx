@@ -4,7 +4,6 @@ import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
 import { illoBg, illoKind } from "../utils/assetType";
 import { useCurrency } from "../utils/currency";
-import { healthBand } from "../utils/health";
 
 interface HomeScreenProps {
   overview: WorkspaceOverview;
@@ -16,7 +15,6 @@ export function HomeScreen({ overview, onOpenAsset, onNew }: HomeScreenProps) {
   const { t } = useTranslation();
   const { assets, totals } = overview;
   const fmt = useCurrency();
-  const underfunded = assets.filter((a) => a.health === "underfunded");
 
   return (
     <div className="content fade-in">
@@ -66,40 +64,6 @@ export function HomeScreen({ overview, onOpenAsset, onNew }: HomeScreenProps) {
                 {t("home.across_buckets", { count: assets.length })}
               </div>
             </div>
-            <div className="summary-cell">
-              <div className="summary-label">{t("home.alerts")}</div>
-              {totals.alert_count > 0 ? (
-                <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
-                    <span className="band-icon" style={{ background: "var(--bad)", width: 26, height: 26 }}>
-                      <Icon name="alert" size={14} stroke={2.4} />
-                    </span>
-                    <span className="num-md" style={{ color: "var(--bad)" }}>
-                      {t("home.issues", { count: totals.alert_count })}
-                    </span>
-                  </div>
-                  <div className="row-meta" style={{ marginTop: 6 }}>
-                    {underfunded.length === 1
-                      ? t("home.underfunded_one", { name: underfunded[0].name })
-                      : t("home.underfunded_many", { n: totals.alert_count })}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
-                    <span className="band-icon" style={{ background: "var(--good)", width: 26, height: 26 }}>
-                      <Icon name="check" size={14} stroke={2.4} />
-                    </span>
-                    <span className="num-md" style={{ color: "var(--good)" }}>
-                      {t("home.all_clear")}
-                    </span>
-                  </div>
-                  <div className="row-meta" style={{ marginTop: 6 }}>
-                    {t("home.all_on_track")}
-                  </div>
-                </>
-              )}
-            </div>
           </div>
         </>
       )}
@@ -111,7 +75,6 @@ function BucketCard({ asset, onOpen }: { asset: AssetSummary; onOpen: () => void
   const { t } = useTranslation();
   const fmt = useCurrency();
   const kind = illoKind(asset.type);
-  const band = healthBand(asset.health);
   const decimals = asset.balance < 1000 ? 2 : 0;
 
   return (
@@ -133,12 +96,6 @@ function BucketCard({ asset, onOpen }: { asset: AssetSummary; onOpen: () => void
             <span className="bucket-row-val">{fmt(asset.recommended_monthly_allocation, { decimals: 0 })}</span>
           </div>
         </div>
-      </div>
-      <div className={`bucket-band ${band.cls}`}>
-        <span className="band-icon">
-          <Icon name={band.icon} size={12} stroke={2.6} />
-        </span>
-        {band.label}
       </div>
     </div>
   );

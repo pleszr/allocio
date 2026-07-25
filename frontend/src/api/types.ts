@@ -19,7 +19,6 @@ export interface UserSettings {
   language: LanguageCode;
 }
 
-export type Health = "underfunded" | "healthy" | "overflowing";
 export type MaintenanceStatus = "ok" | "soon" | "due" | "overdue";
 export type IntervalUnit = "months" | "years";
 export type TireType = "summer" | "winter" | "all_season";
@@ -35,13 +34,11 @@ export interface AssetSummary {
   currency: string;
   balance: number;
   recommended_monthly_allocation: number;
-  health: Health;
 }
 
 export interface WorkspaceTotals {
   total_balance: number;
   total_recommended_monthly_allocation: number;
-  alert_count: number;
 }
 
 export interface WorkspaceOverview {
@@ -77,6 +74,7 @@ export interface ActivityItem {
   kind: "allocation" | "expense";
   label: string;
   amount: number;
+  paid_out_of_pocket: number;
 }
 
 export interface UpcomingExpense {
@@ -96,7 +94,6 @@ export interface AssetDetail {
   balance: number;
   recommended_monthly_allocation: number;
   daily_accrual: number;
-  health: Health;
   current_usage: number | null;
   usage_since_last_check_in: number | null;
   last_check_in_date: string | null;
@@ -134,6 +131,8 @@ export interface CheckInHistoryRow {
   elapsed_days: number;
   allocated: number;
   expense: number;
+  bucket_expense: number;
+  paid_out_of_pocket: number;
   net: number;
   balance: number;
 }
@@ -182,6 +181,8 @@ export interface AllocationLine {
 export interface ExpenseLine {
   kind: ExpenseKind;
   amount: number;
+  bucket_amount: number;
+  paid_out_of_pocket: number;
   event_date: string;
   comment: string | null;
   source_type: string | null;
@@ -203,6 +204,8 @@ export interface CheckInPreview {
   balance_before: number;
   total_allocation: number;
   total_expense: number;
+  total_bucket_expense: number;
+  paid_out_of_pocket: number;
   net_bucket_change: number;
   balance_after: number;
 }

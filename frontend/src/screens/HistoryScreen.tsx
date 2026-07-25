@@ -56,6 +56,8 @@ export function HistoryScreen({ assetId }: HistoryScreenProps) {
                   <th className="col-num">{t("history.th_km_per_day")}</th>
                   <th className="col-num">{t("history.th_allocated")}</th>
                   <th className="col-num">{t("history.th_expense")}</th>
+                  <th className="col-num">{t("history.th_bucket_expense")}</th>
+                  <th className="col-num">{t("history.th_paid_out_of_pocket")}</th>
                   <th className="col-num">{t("history.th_net")}</th>
                   <th className="col-num">{t("history.th_balance")}</th>
                 </tr>
@@ -132,6 +134,8 @@ function HistoryRow({ row, avgRate }: { row: CheckInHistoryRow; avgRate: number 
       </td>
       <td className="col-num row-meta">{fmt(row.allocated, { decimals: 2, sign: true })}</td>
       <td className="col-num row-meta">{fmt(-row.expense, { decimals: 2 })}</td>
+      <td className="col-num row-meta">{fmt(-row.bucket_expense, { decimals: 2 })}</td>
+      <td className="col-num row-meta">{fmt(row.paid_out_of_pocket, { decimals: 2 })}</td>
       <td className="col-num" style={{ fontWeight: 500, color: row.net >= 0 ? "var(--good)" : "var(--bad)" }}>
         {fmt(row.net, { decimals: 2, sign: true })}
       </td>

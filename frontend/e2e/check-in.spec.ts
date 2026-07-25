@@ -66,8 +66,7 @@ test("tire-type picker is seeded and expenses are sent with the preview request"
   ]);
 
   // Switch the same row to a maintenance-linked expense and re-preview.
-  await page.getByLabel("Type", { exact: true }).selectOption("modeled");
-  await page.getByLabel("Maintenance item").selectOption({ label: "All-season tires" });
+  await page.getByLabel("Type", { exact: true }).selectOption({ label: "All-season tires" });
 
   const secondPreview = page.waitForResponse((r) => r.url().includes("/check-ins/preview"));
   await page.getByRole("button", { name: /Update preview/ }).click();
@@ -82,4 +81,81 @@ test("tire-type picker is seeded and expenses are sent with the preview request"
   await page.getByRole("button", { name: /Update preview/ }).click();
   const thirdBody = (await thirdPreview).request().postDataJSON();
   expect(thirdBody.expenses).toEqual([]);
+});
+
+test("out-of-pocket amount requires bilingual confirmation and stays out of the bucket", async ({ page }) => {
+  await createVehicleBucket(page, "E2E Pocket Car");
+  await page.getByRole("tab", { name: "Check-in" }).click();
+
+  let postCount = 0;
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      request.url().includes("/check-ins") &&
+      !request.url().includes("/preview")
+    ) {
+      postCount += 1;
+    }
+  });
+
+  await page.getByRole("button", { name: /Add expense/ }).click();
+  await page.getByLabel("Amount").fill("5000");
+  await page.getByLabel("Comment").fill("Unexpected repair");
+  await expect(page.getByRole("button", { name: "Confirm and post" })).toBeDisabled();
+
+  const previewed = page.waitForResponse((r) => r.url().includes("/check-ins/preview") && r.ok());
+  await page.getByRole("button", { name: /Update preview/ }).click();
+  await previewed;
+  await expect(page.getByText("5,000.00 Ft", { exact: true }).first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Confirm and post" }).click();
+  const englishDialog = page.getByRole("dialog");
+  await expect(englishDialog.getByRole("heading", { name: "Paid out of pocket" })).toBeVisible();
+  await expect(
+    englishDialog.getByText(
+      "This expense is larger than the money available in this bucket. 5,000.00 Ft will be recorded as paid out of pocket, and the bucket balance will stay at zero.",
+    ),
+  ).toBeVisible();
+  await englishDialog.getByRole("button", { name: "Back" }).click();
+  expect(postCount).toBe(0);
+
+  await page.locator(".user-menu-trigger").click();
+  const savedHu = page.waitForResponse(
+    (r) => r.url().includes("/api/users/me/settings") && r.request().method() === "PUT" && r.ok(),
+  );
+  await page.getByLabel("Language").selectOption("hu");
+  await savedHu;
+
+  await page.getByRole("button", { name: "Megerősítés és rögzítés" }).click();
+  const hungarianDialog = page.getByRole("dialog");
+  await expect(hungarianDialog.getByRole("heading", { name: "Kifizettük zsebből" })).toBeVisible();
+  await expect(
+    hungarianDialog.getByText(
+      "Ez a kiadás nagyobb, mint a zsebben elérhető összeg. 5,000.00 Ft zsebből fizetett összegként lesz rögzítve, a zseb egyenlege pedig nulla marad.",
+    ),
+  ).toBeVisible();
+
+  const posted = page.waitForResponse(
+    (r) => r.url().includes("/check-ins") && !r.url().includes("/preview") && r.request().method() === "POST" && r.ok(),
+  );
+  await hungarianDialog.getByRole("button", { name: "Megerősítés és rögzítés" }).click();
+  await posted;
+  expect(postCount).toBe(1);
+  await expect(hungarianDialog).toHaveCount(0);
+
+  await page.locator(".user-menu-trigger").click();
+  const savedEn = page.waitForResponse(
+    (r) => r.url().includes("/api/users/me/settings") && r.request().method() === "PUT" && r.ok(),
+  );
+  await page.getByLabel("Nyelv").selectOption("en");
+  await savedEn;
+
+  await page.getByRole("tab", { name: "History" }).click();
+  await expect(page.getByRole("columnheader", { name: "Covered by bucket" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Paid out of pocket" })).toBeVisible();
+  const historyRow = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "120,000" }) });
+  await expect(historyRow.locator("td").nth(5)).toContainText("−5,000.00 Ft");
+  await expect(historyRow.locator("td").nth(6)).toContainText("0.00 Ft");
+  await expect(historyRow.locator("td").nth(7)).toContainText("5,000.00 Ft");
+  await expect(historyRow.locator("td").nth(9)).toContainText("0.00 Ft");
 });

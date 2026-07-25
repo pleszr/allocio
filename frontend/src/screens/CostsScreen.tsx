@@ -6,7 +6,7 @@ import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { useCurrency } from "../utils/currency";
 import { fmtDate, fmtNumber, intervalDays } from "../utils/format";
-import { maintenancePill } from "../utils/health";
+import { maintenancePill } from "../utils/maintenanceStatus";
 import { useAsync } from "../utils/useAsync";
 
 interface CostsScreenProps {

@@ -125,7 +125,7 @@ def test_empty_workspace_returns_zeroed_totals(client: TestClient) -> None:
     assert body["assets"] == []
     assert _dec(body["totals"]["total_balance"]) == Decimal("0")
     assert _dec(body["totals"]["total_recommended_monthly_allocation"]) == Decimal("0")
-    assert body["totals"]["alert_count"] == 0
+    assert "alert_count" not in body["totals"]
 
 
 def test_created_vehicle_recommended_matches_seeded_time_based(client: TestClient) -> None:
@@ -158,6 +158,18 @@ def test_balance_is_event_derived(client: TestClient, db_session: Session) -> No
     assert _dec(summary["balance"]) == Decimal("7000.00")
 
 
+def test_legacy_negative_event_total_is_presented_as_zero(
+    client: TestClient, db_session: Session
+) -> None:
+    asset, bucket = _make_asset(db_session, name="Legacy")
+    check_in = _add_posted_check_in(db_session, asset.id, 0, date(2026, 1, 1), date(2026, 2, 1))
+    _set_balance(db_session, bucket.id, check_in.id, allocation="100.00", expense="150.00")
+
+    summary = _asset_by_id(client.get("/api/assets").json(), asset.id)
+
+    assert _dec(summary["balance"]) == Decimal("0.00")
+
+
 def test_usage_based_monthly_uses_trailing_average(client: TestClient, db_session: Session) -> None:
     asset, _bucket = _make_asset(db_session, name="Usage")
     _add_usage_based(db_session, asset.id, amount_per_unit="10")
@@ -185,38 +197,21 @@ def test_usage_based_monthly_sums_active_rows(client: TestClient, db_session: Se
     assert _dec(summary["recommended_monthly_allocation"]) == quantize_currency(Decimal("300") * Decimal("16"))
 
 
-def test_health_bands_reflect_balance(client: TestClient, db_session: Session) -> None:
-    # Each asset has a single time-based cost of 12000 / 1 year / 12 = 1000 monthly.
-    cases = {"under": ("500.00", "underfunded"), "ok": ("1000.00", "healthy"), "over": ("2000.00", "overflowing")}
-    asset_ids: dict[str, uuid.UUID] = {}
-    for name, (allocation, _expected) in cases.items():
-        asset, bucket = _make_asset(db_session, name=name)
-        _add_time_based(db_session, asset.id, amount="12000", interval_value=12, unit="months")
-        check_in = _add_posted_check_in(db_session, asset.id, 0, date(2026, 1, 1), date(2026, 2, 1))
-        _set_balance(db_session, bucket.id, check_in.id, allocation=allocation, expense="0")
-        asset_ids[name] = asset.id
-
-    body = client.get("/api/assets").json()
-
-    for name, (_allocation, expected_health) in cases.items():
-        summary = _asset_by_id(body, asset_ids[name])
-        assert _dec(summary["recommended_monthly_allocation"]) == Decimal("1000.00")
-        assert summary["health"] == expected_health
-
-
-def test_totals_and_alert_count_sum_across_assets(client: TestClient, db_session: Session) -> None:
-    balances = {"a": "500.00", "b": "1000.00", "c": "2000.00"}  # a is underfunded (< 900).
+def test_health_and_alert_fields_are_absent(client: TestClient, db_session: Session) -> None:
+    balances = {"a": "500.00", "b": "1000.00", "c": "2000.00"}
     for name, allocation in balances.items():
         asset, bucket = _make_asset(db_session, name=name)
         _add_time_based(db_session, asset.id, amount="12000", interval_value=12, unit="months")
         check_in = _add_posted_check_in(db_session, asset.id, 0, date(2026, 1, 1), date(2026, 2, 1))
         _set_balance(db_session, bucket.id, check_in.id, allocation=allocation, expense="0")
 
-    totals = client.get("/api/assets").json()["totals"]
+    body = client.get("/api/assets").json()
+    totals = body["totals"]
 
     assert _dec(totals["total_balance"]) == Decimal("3500.00")
     assert _dec(totals["total_recommended_monthly_allocation"]) == Decimal("3000.00")
-    assert totals["alert_count"] == 1
+    assert "alert_count" not in totals
+    assert all("health" not in summary for summary in body["assets"])
 
 
 def test_inactive_time_based_cost_is_excluded(client: TestClient, db_session: Session) -> None:

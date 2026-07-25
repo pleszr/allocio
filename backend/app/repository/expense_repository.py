@@ -1,13 +1,15 @@
 """Ownership-scoped persistence for asset expense events. Owns queries and flushes, never the transaction."""
 
 import uuid
+from datetime import date
 from decimal import Decimal
+from typing import NamedTuple
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.domain.asset import Asset, Bucket
-from app.domain.check_in import ExpenseEvent
+from app.domain.check_in import CheckIn, ExpenseEvent
 from app.domain.cost import MaintenanceItem, TimeBasedCost, UsageBasedCost
 
 _SOURCE_MODELS = {
@@ -15,6 +17,14 @@ _SOURCE_MODELS = {
     "usage_based_cost": UsageBasedCost,
     "maintenance_item": MaintenanceItem,
 }
+
+
+class ExpenseFundingTotals(NamedTuple):
+    """Aggregated full, bucket-covered, and out-of-pocket expense amounts."""
+
+    amount: Decimal
+    bucket_amount: Decimal
+    paid_out_of_pocket: Decimal
 
 
 def get_owned_asset(session: Session, user_id: uuid.UUID, asset_id: uuid.UUID) -> Asset | None:
@@ -57,15 +67,42 @@ def list_expenses_for_bucket(session: Session, bucket_id: uuid.UUID) -> list[Exp
     return list(session.scalars(stmt).all())
 
 
-def sum_expense_amounts_by_check_in(session: Session, bucket_id: uuid.UUID) -> dict[uuid.UUID, Decimal]:
-    """Return each check-in's total posted expense amount, keyed by `check_in_id`, for the History ledger.
+def list_bucket_expense_movements(session: Session, bucket_id: uuid.UUID) -> list[tuple[date, Decimal]]:
+    """Return effective-date, covered-amount pairs used to reconstruct bucket balances.
 
-    Excludes expenses with no `check_in_id` (manual `Other` expenses logged outside a check-in flow);
-    every expense the check-in flow posts carries one.
+    Check-in expenses move the bucket at the parent period end alongside that period's allocations;
+    standalone expenses move it on their real event date.
     """
+    effective_date = func.coalesce(CheckIn.period_end, ExpenseEvent.event_date).label("effective_date")
+    bucket_amount = (ExpenseEvent.amount - ExpenseEvent.paid_out_of_pocket).label("bucket_amount")
     stmt = (
-        select(ExpenseEvent.check_in_id, func.sum(ExpenseEvent.amount))
+        select(effective_date, bucket_amount)
+        .outerjoin(CheckIn, ExpenseEvent.check_in_id == CheckIn.id)
+        .where(ExpenseEvent.bucket_id == bucket_id)
+        .order_by(effective_date)
+    )
+    return [(row.effective_date, row.bucket_amount) for row in session.execute(stmt).all()]
+
+
+def sum_expense_funding_by_check_in(
+    session: Session, bucket_id: uuid.UUID
+) -> dict[uuid.UUID, ExpenseFundingTotals]:
+    """Return each check-in's full, covered, and out-of-pocket expense totals."""
+    stmt = (
+        select(
+            ExpenseEvent.check_in_id,
+            func.sum(ExpenseEvent.amount),
+            func.sum(ExpenseEvent.amount - ExpenseEvent.paid_out_of_pocket),
+            func.sum(ExpenseEvent.paid_out_of_pocket),
+        )
         .where(ExpenseEvent.bucket_id == bucket_id, ExpenseEvent.check_in_id.is_not(None))
         .group_by(ExpenseEvent.check_in_id)
     )
-    return {check_in_id: total for check_in_id, total in session.execute(stmt).all()}
+    return {
+        check_in_id: ExpenseFundingTotals(
+            amount=amount,
+            bucket_amount=bucket_amount,
+            paid_out_of_pocket=paid_out_of_pocket,
+        )
+        for check_in_id, amount, bucket_amount, paid_out_of_pocket in session.execute(stmt).all()
+    }

@@ -225,7 +225,9 @@ Build the core monthly workflow:
 - enter usage
 - review time-based accrual
 - review usage-based accrual
-- review expenses paid from bucket
+- review the configured manual-extra allocation for the elapsed period
+- review each expense's bucket-covered and out-of-pocket portions
+- explicitly confirm any derived one-time out-of-pocket amount
 - confirm the period result
 
 Done when:
@@ -240,7 +242,6 @@ Type: Design + Frontend
 Build the per-item detail view with:
 
 - current bucket balance
-- status or health state
 - recent trend
 - next allocation signal
 - maintenance alerts
@@ -248,7 +249,7 @@ Build the per-item detail view with:
 
 Done when:
 
-- users can quickly understand whether the bucket is healthy and why
+- users can quickly understand the non-negative bucket balance and its recent movements
 
 #### PM-13 Activity History
 
@@ -257,7 +258,7 @@ Type: Product + Frontend
 Add a clear event history for:
 
 - allocations
-- expenses
+- expenses, including their bucket-covered and out-of-pocket funding split
 - cost changes
 - check-ins
 
@@ -454,7 +455,7 @@ Child issues:
 
 Purpose:
 
-- Help users understand current health, trust the math, and inspect what happened over time
+- Help users understand the current bucket position, trust the math, and inspect what happened over time
 
 Child issues:
 

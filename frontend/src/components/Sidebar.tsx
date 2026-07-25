@@ -48,7 +48,7 @@ export function Sidebar({ assets, route, onNavigate, user, settings, onSettingsS
         </div>
       </div>
 
-      <div>
+      <div className="side-entities-section">
         <div className="side-section-label">{t("sidebar.tracked_items")}</div>
         <div className="side-entities">
           {assets.map((a) => (

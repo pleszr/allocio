@@ -75,15 +75,23 @@ def _add_allocation(
     session.flush()
 
 
-def _add_expense(session: Session, bucket_id: uuid.UUID, amount: str, event_date: date) -> None:
-    """Insert one standalone posted expense (outflow) event; `check_in_id` is nullable for expenses."""
+def _add_expense(
+    session: Session,
+    bucket_id: uuid.UUID,
+    amount: str,
+    event_date: date,
+    check_in_id: uuid.UUID | None = None,
+    paid_out_of_pocket: str = "0",
+) -> None:
+    """Insert one posted expense with an explicit funding split."""
     session.add(
         ExpenseEvent(
             bucket_id=bucket_id,
-            check_in_id=None,
+            check_in_id=check_in_id,
             event_date=event_date,
             kind="other",
             amount=Decimal(amount),
+            paid_out_of_pocket=Decimal(paid_out_of_pocket),
         )
     )
     session.flush()
@@ -140,6 +148,19 @@ def test_running_balance_is_cumulative(client: TestClient, db_session: Session) 
     assert _dec(_point_for_month(body, date.today())["balance"]) == Decimal("7000.00")
 
 
+def test_history_never_presents_a_negative_bucket(
+    client: TestClient, db_session: Session
+) -> None:
+    asset, bucket = _make_asset(db_session, name="NonNegative")
+    check_in = _add_posted_check_in(db_session, asset.id)
+    _add_allocation(db_session, bucket.id, check_in.id, "100.00", date.today())
+    _add_expense(db_session, bucket.id, "150.00", date.today())
+
+    body = _get_history(client, asset.id).json()
+
+    assert _dec(body["points"][-1]["balance"]) == Decimal("0.00")
+
+
 def test_last_point_equals_current_balance_no_drift(client: TestClient, db_session: Session) -> None:
     asset, bucket = _make_asset(db_session, name="NoDrift")
     check_in = _add_posted_check_in(db_session, asset.id)
@@ -155,6 +176,29 @@ def test_last_point_equals_current_balance_no_drift(client: TestClient, db_sessi
 
     expected = calculator.bucket_balance(allocation_amounts, expense_amounts)
     assert _dec(body["points"][-1]["balance"]) == expected
+
+
+def test_check_in_expense_moves_bucket_at_period_end_and_only_by_covered_amount(
+    client: TestClient, db_session: Session
+) -> None:
+    asset, bucket = _make_asset(db_session, name="EffectiveDate")
+    check_in = _add_posted_check_in(db_session, asset.id)
+    earlier = _months_ago(1)
+    _add_allocation(db_session, bucket.id, check_in.id, "10.00", earlier)
+    _add_allocation(db_session, bucket.id, check_in.id, "100.00", date.today())
+    _add_expense(
+        db_session,
+        bucket.id,
+        "150.00",
+        earlier,
+        check_in_id=check_in.id,
+        paid_out_of_pocket="50.00",
+    )
+
+    body = _get_history(client, asset.id).json()
+
+    assert _dec(_point_for_month(body, earlier)["balance"]) == Decimal("10.00")
+    assert _dec(_point_for_month(body, date.today())["balance"]) == Decimal("10.00")
 
 
 def test_asset_younger_than_window_returns_short_series(client: TestClient, db_session: Session) -> None:

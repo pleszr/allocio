@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, Text, text
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -53,9 +53,13 @@ class AllocationEvent(Base):
 
 
 class ExpenseEvent(Base):
-    """Posted outflow moving value out of the bucket; may be a manual `other` expense."""
+    """Posted expense split between bucket-covered and out-of-pocket funding."""
 
     __tablename__ = "expense_events"
+    __table_args__ = (
+        CheckConstraint("paid_out_of_pocket >= 0", name="ck_expense_paid_out_of_pocket_nonnegative"),
+        CheckConstraint("paid_out_of_pocket <= amount", name="ck_expense_paid_out_of_pocket_lte_amount"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"), default=uuid.uuid4
@@ -70,7 +74,15 @@ class ExpenseEvent(Base):
     usage_counter_at_event: Mapped[int | None] = mapped_column(Integer, nullable=True)
     kind: Mapped[str] = mapped_column(String, nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    paid_out_of_pocket: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2), nullable=False, server_default=text("0"), default=Decimal(0)
+    )
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     source_type: Mapped[str | None] = mapped_column(String, nullable=True)
     source_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     metadata_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+    @property
+    def bucket_amount(self) -> Decimal:
+        """Return the portion of the full expense funded by the virtual bucket."""
+        return self.amount - self.paid_out_of_pocket

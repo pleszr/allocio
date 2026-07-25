@@ -1,4 +1,4 @@
-"""Workspace overview use case: derive every owned asset's balance, monthly allocation, and health in one read.
+"""Workspace overview use case: derive every owned asset's balance and monthly allocation in one read.
 
 Read-only. The service reuses the pure `app.domain.calculator` helpers for all money math and the
 existing single-asset repository functions per asset (N+1 by design at MVP scale — see the issue
@@ -15,7 +15,6 @@ from sqlalchemy.orm import Session
 from app.common.exceptions import NotFoundError
 from app.domain import calculator
 from app.domain.asset import Asset, Bucket
-from app.domain.calculator import HealthStatus
 from app.repository import asset_repository, check_in_repository, cost_repository, expense_repository
 
 
@@ -30,7 +29,6 @@ class AssetSummary:
     currency: str
     balance: Decimal
     recommended_monthly_allocation: Decimal
-    health: HealthStatus
 
 
 @dataclass(frozen=True)
@@ -39,7 +37,6 @@ class WorkspaceTotals:
 
     total_balance: Decimal
     total_recommended_monthly_allocation: Decimal
-    alert_count: int
 
 
 @dataclass(frozen=True)
@@ -63,7 +60,7 @@ class WorkspaceService:
         return WorkspaceOverview(assets=summaries, totals=self._totals(summaries))
 
     def summarize_asset(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> AssetSummary:
-        """Summarize one owned asset, reusing the same balance/allocation/health math as the overview.
+        """Summarize one owned asset, reusing the same balance/allocation math as the overview.
 
         Raises `NotFoundError` for an unknown or unowned asset so single-asset reads never leak.
         """
@@ -83,7 +80,7 @@ class WorkspaceService:
         return calculator.expected_monthly_usage(total_usage, months)
 
     def _summarize(self, asset: Asset) -> AssetSummary:
-        """Compose one asset's balance, recommended monthly allocation, and health status."""
+        """Compose one asset's balance and recommended monthly allocation."""
         bucket = expense_repository.get_bucket_for_asset(self._session, asset.id)
         if bucket is None:
             return self._summary_without_bucket(asset)
@@ -97,7 +94,6 @@ class WorkspaceService:
             currency=bucket.currency,
             balance=balance,
             recommended_monthly_allocation=monthly,
-            health=calculator.health_status(balance, monthly),
         )
 
     def _summary_without_bucket(self, asset: Asset) -> AssetSummary:
@@ -110,14 +106,16 @@ class WorkspaceService:
             currency="",
             balance=Decimal(0),
             recommended_monthly_allocation=Decimal(0),
-            health=calculator.health_status(Decimal(0), Decimal(0)),
         )
 
     def _balance(self, bucket: Bucket) -> Decimal:
         """Reconstruct the bucket balance from its posted allocation and expense events."""
         allocations = check_in_repository.list_posted_allocation_amounts(self._session, bucket.id)
         expenses = expense_repository.list_expenses_for_bucket(self._session, bucket.id)
-        return calculator.bucket_balance(allocations, [expense.amount for expense in expenses])
+        return max(
+            calculator.bucket_balance(allocations, [expense.bucket_amount for expense in expenses]),
+            Decimal(0),
+        )
 
     def _recommended_monthly_allocation(self, asset: Asset, bucket: Bucket) -> Decimal:
         """Sum the active time-based and usage-based monthly accruals, quantized to currency.
@@ -158,7 +156,7 @@ class WorkspaceService:
         )
 
     def _totals(self, summaries: list[AssetSummary]) -> WorkspaceTotals:
-        """Sum balances and monthly allocations and count underfunded assets across all summaries.
+        """Sum balances and monthly allocations across all summaries.
 
         MVP assumes all buckets share one currency (HUF today), so totals are a plain sum.
         """
@@ -167,5 +165,4 @@ class WorkspaceService:
             total_recommended_monthly_allocation=sum(
                 (summary.recommended_monthly_allocation for summary in summaries), Decimal(0)
             ),
-            alert_count=sum(1 for summary in summaries if summary.health == "underfunded"),
         )

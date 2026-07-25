@@ -173,21 +173,6 @@ def test_usage_based_monthly_accrual_handles_fractional_usage():
     assert calculator.usage_based_monthly_accrual(Decimal("10"), Decimal("150.5")) == Decimal("1505.0")
 
 
-@pytest.mark.parametrize(
-    ("balance", "expected_reserve", "expected"),
-    [
-        (Decimal("100"), Decimal("0"), "healthy"),  # nothing to fund
-        (Decimal("89"), Decimal("100"), "underfunded"),  # below 0.9x
-        (Decimal("90"), Decimal("100"), "healthy"),  # exact 0.9x boundary is healthy
-        (Decimal("100"), Decimal("100"), "healthy"),
-        (Decimal("110"), Decimal("100"), "healthy"),  # exact 1.1x boundary is healthy
-        (Decimal("111"), Decimal("100"), "overflowing"),  # above 1.1x
-    ],
-)
-def test_health_status_bands(balance, expected_reserve, expected):
-    assert calculator.health_status(balance, expected_reserve) == expected
-
-
 def test_balance_at_dates_is_inclusive_running_sum():
     events = [
         (date(2026, 1, 10), Decimal("100")),
