@@ -151,14 +151,23 @@ function Content({
       );
     }
     if (route.tab === "history") {
-      return <HistoryScreen assetId={route.assetId} />;
+      return (
+        <HistoryScreen
+          assetId={route.assetId}
+          onEditCheckIn={(checkInId) =>
+            setRoute({ kind: "asset", assetId: route.assetId, tab: "checkin", editCheckInId: checkInId })
+          }
+        />
+      );
     }
     return (
       <CheckInScreen
         assetId={route.assetId}
-        onPosted={() => {
+        editCheckInId={route.tab === "checkin" ? route.editCheckInId : undefined}
+        onSaved={() => {
           workspace.reload();
         }}
+        onEditSaved={() => setRoute({ kind: "asset", assetId: route.assetId, tab: "history" })}
       />
     );
   }

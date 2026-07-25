@@ -10,9 +10,10 @@ import { useAsync } from "../utils/useAsync";
 
 interface HistoryScreenProps {
   assetId: string;
+  onEditCheckIn: (checkInId: string) => void;
 }
 
-export function HistoryScreen({ assetId }: HistoryScreenProps) {
+export function HistoryScreen({ assetId, onEditCheckIn }: HistoryScreenProps) {
   const { t } = useTranslation();
   const asset = useAsync(() => api.getAsset(assetId), [assetId]);
   const history = useAsync(() => api.getCheckInHistory(assetId), [assetId]);
@@ -66,7 +67,7 @@ export function HistoryScreen({ assetId }: HistoryScreenProps) {
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <HistoryRow key={row.check_in_id} row={row} avgRate={avgRate} />
+                  <HistoryRow key={row.check_in_id} row={row} avgRate={avgRate} onEdit={onEditCheckIn} />
                 ))}
               </tbody>
             </table>
@@ -104,7 +105,15 @@ function usageHeat(rate: number | null, avg: number): string | null {
   return null;
 }
 
-function HistoryRow({ row, avgRate }: { row: CheckInHistoryRow; avgRate: number }) {
+function HistoryRow({
+  row,
+  avgRate,
+  onEdit,
+}: {
+  row: CheckInHistoryRow;
+  avgRate: number;
+  onEdit: (checkInId: string) => void;
+}) {
   const { t } = useTranslation();
   const fmt = useCurrency();
   const [expanded, setExpanded] = useState(false);
@@ -128,6 +137,15 @@ function HistoryRow({ row, avgRate }: { row: CheckInHistoryRow; avgRate: number 
               <Icon name="chevronRight" />
             </button>
           )}
+          <button
+            type="button"
+            className="history-row-toggle"
+            aria-label={t("history.edit_check_in")}
+            title={t("history.edit_check_in")}
+            onClick={() => onEdit(row.check_in_id)}
+          >
+            <Icon name="edit" size={14} />
+          </button>
           {fmtDate(row.period_end)}
           {irregularCadence && (
             <span

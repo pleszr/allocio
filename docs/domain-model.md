@@ -321,7 +321,7 @@ Rules:
 - examples of `source_type`: `time_based_cost`, `usage_based_cost`, `manual_extra`
 - a positive `manual_extra_monthly` emits one `manual_extra` allocation per positive-length
   check-in period, prorated as `manual_extra_monthly * 12 / 365 * elapsed_days`
-- events are immutable after posting, except for explicit admin repair workflows if such workflows are added later
+- `allocation_event` rows are immutable after posting, with no repair workflow — a posted check-in's `expense_event` rows are the one exception, correctable in place via the check-in expense edit workflow (`docs/vehicle-rules.md`, "Check-in expense edit (deliberate exception)")
 
 ### `expense_event`
 
@@ -421,6 +421,7 @@ Clients format and label that result but do not recalculate the window or amount
 - if a row has already contributed to posted history, it should not be hard-deleted from canonical storage
 - implementation may hard-delete an unused draft or template-cloned row only if it has never been referenced by posted data
 - posting a check-in may, as a side-effect, reset a maintenance item's `last_serviced_at_date`/`last_serviced_at_odometer` when the check-in includes an expense linked to it (see `docs/vehicle-rules.md`, "Maintenance service-baseline reset"). This mutates only the maintenance item's current editable row and changes future status/recommendation figures only — the posted `check_in`/`allocation_event`/`expense_event` rows for that period remain immutable, unchanged from the rest of this section's rules
+- the one admin-repair exception to the immutability rule above: a posted check-in's `expense_event` rows (and its `notes`) may be corrected in place from the History tab, rejected outright if it would make any later already-posted period's balance go negative, and may re-derive an affected maintenance item's baseline the same way posting does. `period_end`, `usage_start`/`usage_end`, `active_tire_type`, and `allocation_event` rows stay immutable even on this path — see `docs/vehicle-rules.md`, "Check-in expense edit (deliberate exception)", now implemented rather than merely anticipated
 
 ## Built-In Templates
 

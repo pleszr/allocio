@@ -339,6 +339,24 @@ class PostCheckInRequest(PreviewCheckInRequest):
     )
 
 
+class EditCheckInRequest(BaseModel):
+    """Body for editing a posted check-in's expenses and notes.
+
+    `period_end`, `usage_end`, `active_tire_type`, and every `allocation_event` stay immutable — this
+    is an expense-only, in-place correction.
+    """
+
+    expenses: list[LogExpenseRequest] = Field(
+        default_factory=list,
+        description="Replacement set of expenses for this check-in; omit or empty removes all of them.",
+    )
+    notes: str | None = Field(
+        default=None,
+        max_length=2000,
+        description="Replacement free-text note for the check-in; omit or null to leave the stored note unchanged.",
+    )
+
+
 class UpdateMaintenanceItemRequest(BaseModel):
     """Partial update for a maintenance item. The interval rule is enforced in the service post-merge."""
 

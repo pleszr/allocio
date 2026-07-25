@@ -537,6 +537,32 @@ Rules:
 - editing a maintenance item changes future status and recommendation logic only
 - deactivation removes the row from future calculations but not from historical audit
 
+### Check-in expense edit (deliberate exception)
+
+A user may correct a posted check-in's expenses from the History tab. This is a narrow, deliberate
+exception to the future-only rule above, not a general reopen of posted history:
+
+- editable: only that check-in's `expense_event` rows (add/remove/edit `amount`, `comment`,
+  `source_type`/`source_id`, and the `paid_out_of_pocket` split) and its `notes`
+- immutable even on this path: `period_end`, `usage_start`/`usage_end`, `active_tire_type`, and every
+  `allocation_event` row — the period's derived accrual is never recomputed and never recomputed from
+  a since-changed cost rate, since the edit reuses the check-in's own already-posted allocation total
+- persistence is in-place mutation (delete then re-insert the check-in's `expense_events`), not a
+  supersede/versioning model — there is no "edited" indicator anywhere in the History UI
+- mandatory forward-simulation guard: before applying, walk the *unclamped* running balance forward
+  from the edited check-in through every later already-posted check-in's own existing (unchanged)
+  `allocated - bucket_expense` total; if that running total would go negative at any later check-in,
+  the edit is rejected outright (422, naming the first offending `period_end`) — never silently
+  clamped to zero. Both the edit-preview and the apply endpoint independently run this guard; the
+  apply endpoint never trusts a prior preview call
+- maintenance-baseline re-derivation: after applying the edit, for every maintenance item whose link
+  changed (removed by the edit, or newly added by it), reset that item's baseline
+  (`last_serviced_at_date`, and `last_serviced_at_odometer` for a non-tire item) to whichever posted
+  check-in is now the *latest* one still linking an expense to it — not assumed to still be the
+  just-edited check-in. Documented limitation: if the edit removes the only check-in that ever linked
+  to an item, that item's current baseline fields are left exactly as they were rather than nulled —
+  there is no prior value recorded to roll back to, so this is accepted behavior, not a bug
+
 ## Workbook-Grounded Examples
 
 ### Example 1: usage-based accrual
