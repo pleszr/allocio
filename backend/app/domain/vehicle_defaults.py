@@ -119,8 +119,8 @@ DEFAULT_MAINTENANCE_ITEMS: tuple[MaintenanceItemTemplate, ...] = (
     MaintenanceItemTemplate("timing_system", "Timing system", 200000, 120, None, None),
     MaintenanceItemTemplate("battery", "Battery", 100000, 60, None, None),
     MaintenanceItemTemplate("all_season_tires", "All-season tires", 50000, 36, "all_season", None),
-    MaintenanceItemTemplate("winter_tires", "Winter tires", 40000, 72, "winter", None),
-    MaintenanceItemTemplate("summer_tires", "Summer tires", 40000, 72, "summer", None),
+    MaintenanceItemTemplate("winter_tires", "Winter tires", 40000, 60, "winter", None),
+    MaintenanceItemTemplate("summer_tires", "Summer tires", 50000, 60, "summer", None),
     MaintenanceItemTemplate("other", "Other", None, None, None, None),
 )
 
