@@ -12,10 +12,10 @@ from app.api.schemas.responses import (
     AssetSummaryResponse,
     BalanceHistoryResponse,
     BalancePointResponse,
+    CheckInExpenseLineResponse,
     CheckInHistoryResponse,
     CheckInHistoryRowResponse,
     CreateAssetResponse,
-    ExpenseLineResponse,
     ManualExtraResponse,
     NextMaintenanceResponse,
     UpcomingExpenseResponse,
@@ -322,7 +322,7 @@ def _to_check_in_history_response(history: CheckInHistory) -> CheckInHistoryResp
                 net=row.net,
                 balance=row.balance,
                 expenses=[
-                    ExpenseLineResponse(
+                    CheckInExpenseLineResponse(
                         kind=line.kind,
                         amount=line.amount,
                         bucket_amount=line.bucket_amount,
@@ -332,6 +332,7 @@ def _to_check_in_history_response(history: CheckInHistory) -> CheckInHistoryResp
                         source_type=line.source_type,
                         source_id=line.source_id,
                         usage_counter_at_event=line.usage_counter_at_event,
+                        label=line.label,
                     )
                     for line in row.expenses
                 ],

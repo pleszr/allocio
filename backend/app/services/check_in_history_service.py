@@ -30,6 +30,7 @@ class CheckInExpenseLine:
     source_type: str | None
     source_id: uuid.UUID | None
     usage_counter_at_event: int | None
+    label: str
 
 
 @dataclass(frozen=True)
@@ -72,7 +73,9 @@ class CheckInHistoryService:
         allocation_totals = check_in_repository.sum_allocation_amounts_by_check_in(self._session, bucket.id)
         expense_totals = expense_repository.sum_expense_funding_by_check_in(self._session, bucket.id)
         expense_lines_by_check_in = expense_repository.list_expenses_by_check_in(self._session, bucket.id)
-        rows = self._build_rows(check_ins, allocation_totals, expense_totals, expense_lines_by_check_in)
+        all_expenses = [expense for expenses in expense_lines_by_check_in.values() for expense in expenses]
+        source_labels = expense_repository.resolve_source_labels(self._session, all_expenses)
+        rows = self._build_rows(check_ins, allocation_totals, expense_totals, expense_lines_by_check_in, source_labels)
         return CheckInHistory(asset_id=asset_id, currency=bucket.currency, rows=rows)
 
     def _owned_bucket(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> Bucket:
@@ -90,6 +93,7 @@ class CheckInHistoryService:
         allocation_totals: dict[uuid.UUID, Decimal],
         expense_totals: dict[uuid.UUID, expense_repository.ExpenseFundingTotals],
         expense_lines_by_check_in: dict[uuid.UUID, list[ExpenseEvent]],
+        source_labels: dict[tuple[str, uuid.UUID], str],
     ) -> list[CheckInHistoryRow]:
         """Walk posted check-ins in period order, accumulating the running bucket balance."""
         rows: list[CheckInHistoryRow] = []
@@ -113,6 +117,9 @@ class CheckInHistoryService:
                     source_type=expense.source_type,
                     source_id=expense.source_id,
                     usage_counter_at_event=expense.usage_counter_at_event,
+                    label=expense.resolved_label(
+                        source_labels.get((expense.source_type, expense.source_id))
+                    ),
                 )
                 for expense in expense_lines_by_check_in.get(check_in.id, [])
             ]

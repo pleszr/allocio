@@ -146,7 +146,7 @@ export interface CheckInHistoryRow {
   paid_out_of_pocket: number;
   net: number;
   balance: number;
-  expenses: ExpenseLine[];
+  expenses: CheckInExpenseLine[];
 }
 
 export interface CheckInHistory {
@@ -203,6 +203,19 @@ export interface ExpenseLine {
   source_type: string | null;
   source_id: string | null;
   usage_counter_at_event: number | null;
+}
+
+export interface CheckInExpenseLine {
+  kind: ExpenseKind;
+  amount: number;
+  bucket_amount: number;
+  paid_out_of_pocket: number;
+  event_date: string;
+  comment: string | null;
+  source_type: string | null;
+  source_id: string | null;
+  usage_counter_at_event: number | null;
+  label: string;
 }
 
 export interface CheckInPreview {
