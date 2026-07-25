@@ -65,8 +65,8 @@ See the referenced module `CLAUDE.md` files for exact commands. The normal local
 - Commit through the hooks. Let the pre-commit hooks run on every commit (never `--no-verify`); a blocked commit is a real finding to fix, not to bypass.
 - Watch CI after opening the PR. Once `gh pr create` confirms the PR exists, watch its checks with `gh pr checks <pr> --watch`. If any check fails, read the failing job logs, fix the cause, commit, push, and re-watch — repeat until all checks are green.
   - Fix autonomously for straightforward failures (lint, type, test, build, structural-map drift). Stop and surface to Roland after ~3 unsuccessful fix cycles, or immediately if a fix is ambiguous, widens scope, or is a gitleaks/secret or infra failure the agent cannot resolve.
-  - Ignore advisory-only automation (`claude-pr-prep`, `claude-review`) when deciding green — those are non-blocking and never a reason to keep iterating.
-- Opening a PR triggers CI automation: `claude-pr-prep` re-runs the drift audit and may push a `docs: sync instructions` commit to the branch, and `claude-review` posts an automated Claude code review as a PR comment. Both are advisory and non-blocking.
+  - Ignore the advisory-only `claude-review` automation when deciding green — it is non-blocking and never a reason to keep iterating.
+- Run the `pr-prep` skill locally before opening a PR; it is not re-run automatically in CI. Opening a PR triggers `claude-review`, which posts an automated Claude code review as a PR comment. It is advisory and non-blocking.
 
 ## PR Requirements Artifacts
 
