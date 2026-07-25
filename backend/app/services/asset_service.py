@@ -20,6 +20,7 @@ class VehicleDetails:
     """Optional vehicle-profile inputs supplied when the vehicle template is selected."""
 
     starting_odometer: int = 0
+    manufacture_year: int | None = None
 
 
 @dataclass(frozen=True)
@@ -202,4 +203,5 @@ class AssetService:
         return VehicleProfile(
             asset_id=asset_id,
             starting_odometer=details.starting_odometer,
+            manufacture_year=details.manufacture_year,
         )

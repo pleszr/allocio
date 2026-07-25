@@ -244,7 +244,9 @@ Build the per-item detail view with:
 - current bucket balance
 - recent trend
 - average posted allocation signal
-- distance remaining until the configured annual service
+- vehicle age and time tracked in the app
+- trailing 12-month average monthly cost from allocations and paid-out-of-pocket amounts
+- nearest active kilometer-based maintenance item and its remaining distance
 - maintenance alerts
 - recent activity
 

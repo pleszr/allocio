@@ -56,6 +56,14 @@ class AverageAllocation:
 
 
 @dataclass(frozen=True)
+class NextMaintenance:
+    """Nearest active kilometer-based maintenance item with a comparable usage baseline."""
+
+    label: str
+    remaining_km: int
+
+
+@dataclass(frozen=True)
 class AssetDetail:
     """The composed detail payload for one asset's dashboard screen."""
 
@@ -67,6 +75,10 @@ class AssetDetail:
     balance: Decimal
     recommended_monthly_allocation: Decimal
     daily_accrual: Decimal
+    vehicle_age_years: int | None
+    tracked_in_app_months: int
+    average_monthly_cost: Decimal
+    next_maintenance: NextMaintenance | None
     tracks_usage: bool
     current_usage: int | None
     usage_since_last_check_in: int | None
@@ -96,6 +108,7 @@ class AssetDetailService:
         if asset is None:
             raise NotFoundError("Asset not found.")
         latest = check_in_repository.get_latest_posted_check_in(self._session, asset_id)
+        vehicle_profile = check_in_repository.get_vehicle_profile(self._session, asset_id)
         maintenance_items = self._costs.list_maintenance_item_views(user_id, asset_id)
         return AssetDetail(
             asset_id=asset.id,
@@ -106,7 +119,15 @@ class AssetDetailService:
             balance=summary.balance,
             recommended_monthly_allocation=summary.recommended_monthly_allocation,
             daily_accrual=calculator.quantize_currency(summary.recommended_monthly_allocation * 12 / 365),
-            tracks_usage=check_in_repository.get_vehicle_profile(self._session, asset_id) is not None,
+            vehicle_age_years=(
+                today.year - vehicle_profile.manufacture_year
+                if vehicle_profile is not None and vehicle_profile.manufacture_year is not None
+                else None
+            ),
+            tracked_in_app_months=calculator.whole_months(asset.created_at.date(), today),
+            average_monthly_cost=self._average_monthly_cost(asset_id, today),
+            next_maintenance=self._next_maintenance(maintenance_items),
+            tracks_usage=vehicle_profile is not None,
             current_usage=self._costs.current_asset_usage(user_id, asset_id),
             usage_since_last_check_in=latest.usage_amount if latest is not None else None,
             last_check_in_date=latest.period_end if latest is not None else None,
@@ -118,6 +139,49 @@ class AssetDetailService:
             average_monthly_usage=self._workspace.monthly_usage_rate(asset_id),
             average_allocation=self._average_allocation(asset_id, today),
         )
+
+    def _average_monthly_cost(self, asset_id: uuid.UUID, as_of: date) -> Decimal:
+        """Average trailing annual allocations plus out-of-pocket expense funding over 12 months."""
+        bucket = expense_repository.get_bucket_for_asset(self._session, asset_id)
+        if bucket is None:
+            return Decimal("0.00")
+        window_start = _subtract_months_clamped(as_of, 12)
+        allocations = check_in_repository.list_posted_allocation_events(self._session, bucket.id)
+        expenses = expense_repository.list_expenses_for_bucket(self._session, bucket.id)
+        allocated = sum(
+            (amount for event_date, amount in allocations if window_start <= event_date <= as_of),
+            Decimal(0),
+        )
+        out_of_pocket = sum(
+            (
+                expense.paid_out_of_pocket
+                for expense in expenses
+                if window_start <= expense.event_date <= as_of
+            ),
+            Decimal(0),
+        )
+        return calculator.quantize_currency((allocated + out_of_pocket) / Decimal(12))
+
+    def _next_maintenance(
+        self, maintenance_items: list[MaintenanceItemView]
+    ) -> NextMaintenance | None:
+        """Return the nearest active kilometer-comparable item with deterministic tie-breaking."""
+        candidates = [
+            view
+            for view in maintenance_items
+            if view.row.is_active and view.remaining_km is not None
+        ]
+        if not candidates:
+            return None
+        nearest = min(
+            candidates,
+            key=lambda view: (
+                view.remaining_km,
+                view.row.label.casefold(),
+                str(view.row.id),
+            ),
+        )
+        return NextMaintenance(label=nearest.row.label, remaining_km=nearest.remaining_km)
 
     def _average_allocation(self, asset_id: uuid.UUID, as_of: date) -> AverageAllocation:
         """Average posted check-in allocation totals over the longest eligible 3/6/12-month window."""

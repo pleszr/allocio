@@ -24,11 +24,12 @@ test("create a vehicle bucket through the wizard and land on its dashboard", asy
   // Selecting the type card auto-advances straight to Step 2 — no separate Continue click.
   await expect(page.getByText("Tell us about it")).toBeVisible();
 
-  // Step 2 — name is required; odometer is the only remaining vehicle metadata.
+  // Step 2 — name is required; manufacture year is optional and the odometer seeds usage.
+  await expect(page.getByLabel("Manufacture year (optional)")).toBeVisible();
   await expect(page.getByLabel("Current odometer")).toBeVisible();
   await expect(page.getByText("Make & model", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Year", { exact: true })).toHaveCount(0);
   await page.getByTestId("bucket-name-input").fill("E2E Test Car");
+  await page.getByLabel("Manufacture year (optional)").fill("2020");
   await page.getByLabel("Current odometer").fill("120000");
   await page.getByRole("button", { name: /Continue/ }).click();
 
@@ -43,7 +44,7 @@ test("create a vehicle bucket through the wizard and land on its dashboard", asy
   const createResponse = await created;
   expect(createResponse.status()).toBe(201);
   const requestBody = createResponse.request().postDataJSON();
-  expect(requestBody.vehicle).toEqual({ starting_odometer: 120000 });
+  expect(requestBody.vehicle).toEqual({ manufacture_year: 2020, starting_odometer: 120000 });
   expect(requestBody).not.toHaveProperty("subtitle");
   expect(requestBody).not.toHaveProperty("attributes");
 
@@ -52,6 +53,27 @@ test("create a vehicle bucket through the wizard and land on its dashboard", asy
   await expect(page.getByRole("heading", { name: "E2E Test Car" })).toBeVisible();
   await expect(page.locator(".error-banner")).toHaveCount(0);
   await expect(page.getByText(/not found/i)).toHaveCount(0);
+});
+
+test("vehicle manufacture year validation blocks an out-of-range value", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "New bucket", exact: true }).click();
+  const catalogFetched = page.waitForResponse(
+    (response) => response.url().includes("/api/asset-templates/vehicle/catalog") && response.ok(),
+  );
+  await page.getByRole("button", { name: /Vehicle/ }).click();
+  await catalogFetched;
+
+  await page.getByTestId("bucket-name-input").fill("Year Validation Car");
+  await page.getByLabel("Manufacture year (optional)").fill("1885");
+
+  await expect(
+    page.getByText(`Enter a year between 1886 and ${new Date().getFullYear()}.`, { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /Continue/ })).toBeDisabled();
+
+  await page.getByLabel("Manufacture year (optional)").fill("2020");
+  await expect(page.getByRole("button", { name: /Continue/ })).toBeEnabled();
 });
 
 test("create a property bucket with name only", async ({ page }) => {

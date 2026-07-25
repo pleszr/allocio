@@ -1,7 +1,7 @@
 """GET /api/assets/{asset_id} composes one asset's dashboard payload (issue #23)."""
 import uuid
 from collections.abc import Callable
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 import pytest
@@ -17,7 +17,7 @@ from app.services.asset_detail_service import AssetDetailService
 VALID_VEHICLE = {
     "name": "My Car",
     "template": "vehicle",
-    "vehicle": {"starting_odometer": 120000},
+    "vehicle": {"starting_odometer": 120000, "manufacture_year": 2020},
     "selected_cost_keys": sorted(vehicle_catalog_keys()),
 }
 STARTING_ODOMETER = 120000
@@ -136,6 +136,9 @@ def test_detail_non_vehicle_has_null_usage(client: TestClient) -> None:
     assert detail["recent_activity"] == []
     assert detail["upcoming_expenses"] == []
     assert detail["average_allocation"] == {"months": 3, "amount": None}
+    assert detail["vehicle_age_years"] is None
+    assert Decimal(detail["average_monthly_cost"]) == Decimal("0.00")
+    assert detail["next_maintenance"] is None
 
 
 def test_detail_unknown_asset_is_404(client: TestClient) -> None:
@@ -297,13 +300,20 @@ def _add_posted_check_in(session: Session, asset_id: uuid.UUID, period_start: da
     return check_in
 
 
-def _add_allocation(session: Session, bucket_id: uuid.UUID, check_in_id: uuid.UUID, amount: str, event_date: date) -> None:
+def _add_allocation(
+    session: Session,
+    bucket_id: uuid.UUID,
+    check_in_id: uuid.UUID,
+    amount: str,
+    event_date: date,
+    source_type: str = "time_based_cost",
+) -> None:
     session.add(
         AllocationEvent(
             bucket_id=bucket_id,
             check_in_id=check_in_id,
             event_date=event_date,
-            source_type="time_based_cost",
+            source_type=source_type,
             source_id=None,
             amount=Decimal(amount),
         )
@@ -311,15 +321,242 @@ def _add_allocation(session: Session, bucket_id: uuid.UUID, check_in_id: uuid.UU
     session.flush()
 
 
-def _add_expense(session: Session, bucket_id: uuid.UUID, amount: str, event_date: date) -> None:
+def _add_expense(
+    session: Session,
+    bucket_id: uuid.UUID,
+    amount: str,
+    event_date: date,
+    paid_out_of_pocket: str = "0.00",
+) -> None:
     session.add(
-        ExpenseEvent(bucket_id=bucket_id, check_in_id=None, event_date=event_date, kind="other", amount=Decimal(amount))
+        ExpenseEvent(
+            bucket_id=bucket_id,
+            check_in_id=None,
+            event_date=event_date,
+            kind="other",
+            amount=Decimal(amount),
+            paid_out_of_pocket=Decimal(paid_out_of_pocket),
+        )
     )
     session.flush()
 
 
 def _bucket_id(session: Session, asset_id: str) -> uuid.UUID:
     return session.query(Bucket).filter_by(asset_id=uuid.UUID(asset_id)).one().id
+
+
+def _service_detail(db_session: Session, asset_id: str, as_of: date):
+    asset_uuid = uuid.UUID(asset_id)
+    asset = db_session.get(Asset, asset_uuid)
+    assert asset is not None
+    return AssetDetailService(db_session).get_detail(asset.user_id, asset_uuid, as_of=as_of)
+
+
+def test_vehicle_lifecycle_signals_use_manufacture_year_and_complete_calendar_months(
+    client: TestClient, db_session: Session
+) -> None:
+    asset_id = client.post("/api/assets", json=VALID_VEHICLE).json()["asset"]["id"]
+    asset_uuid = uuid.UUID(asset_id)
+    asset = db_session.get(Asset, asset_uuid)
+    assert asset is not None
+    asset.created_at = datetime(2024, 1, 31, 12, tzinfo=UTC)
+    db_session.flush()
+
+    detail = _service_detail(db_session, asset_id, date(2026, 2, 28))
+
+    assert detail.vehicle_age_years == 6
+    assert detail.tracked_in_app_months == 24
+
+
+def test_vehicle_age_is_null_without_manufacture_year(
+    client: TestClient, db_session: Session
+) -> None:
+    asset_id = client.post("/api/assets", json=BARE_VEHICLE).json()["asset"]["id"]
+
+    detail = _service_detail(db_session, asset_id, date(2026, 2, 28))
+
+    assert detail.vehicle_age_years is None
+
+
+def test_average_monthly_cost_includes_all_allocations_and_only_out_of_pocket_expense(
+    client: TestClient, db_session: Session
+) -> None:
+    asset_id = client.post("/api/assets", json={"name": "Cost signal", "type": "house"}).json()["asset"]["id"]
+    asset_uuid = uuid.UUID(asset_id)
+    as_of = date(2026, 7, 25)
+    check_in = _add_posted_check_in(db_session, asset_uuid, date(2026, 5, 1), as_of)
+    bucket_id = _bucket_id(db_session, asset_id)
+    _add_allocation(db_session, bucket_id, check_in.id, "120.00", date(2026, 6, 1))
+    _add_allocation(
+        db_session,
+        bucket_id,
+        check_in.id,
+        "240.00",
+        date(2026, 7, 1),
+        source_type="manual_extra",
+    )
+    _add_expense(
+        db_session,
+        bucket_id,
+        "1000.00",
+        date(2026, 7, 2),
+        paid_out_of_pocket="120.00",
+    )
+
+    detail = _service_detail(db_session, asset_id, as_of)
+
+    assert detail.average_monthly_cost == Decimal("40.00")
+
+
+def test_average_monthly_cost_uses_inclusive_clamped_window_and_excludes_outside_events(
+    client: TestClient, db_session: Session
+) -> None:
+    asset_id = client.post("/api/assets", json={"name": "Window signal", "type": "house"}).json()["asset"]["id"]
+    asset_uuid = uuid.UUID(asset_id)
+    as_of = date(2026, 2, 28)
+    cutoff = date(2025, 2, 28)
+    check_in = _add_posted_check_in(db_session, asset_uuid, date(2025, 1, 1), as_of)
+    bucket_id = _bucket_id(db_session, asset_id)
+    _add_allocation(db_session, bucket_id, check_in.id, "120.01", cutoff)
+    _add_allocation(db_session, bucket_id, check_in.id, "119.99", as_of)
+    _add_allocation(db_session, bucket_id, check_in.id, "9999.00", cutoff - timedelta(days=1))
+    _add_allocation(db_session, bucket_id, check_in.id, "9999.00", as_of + timedelta(days=1))
+    _add_expense(db_session, bucket_id, "500.00", as_of, paid_out_of_pocket="120.00")
+
+    detail = _service_detail(db_session, asset_id, as_of)
+
+    assert detail.average_monthly_cost == Decimal("30.00")
+
+
+def test_average_monthly_cost_is_quantized_zero_without_history(
+    client: TestClient, db_session: Session
+) -> None:
+    asset_id = client.post("/api/assets", json={"name": "Empty signal", "type": "house"}).json()["asset"]["id"]
+
+    detail = _service_detail(db_session, asset_id, date(2026, 7, 25))
+
+    assert detail.average_monthly_cost == Decimal("0.00")
+
+
+def test_next_maintenance_selects_nearest_active_comparable_item(
+    client: TestClient, db_session: Session
+) -> None:
+    asset_id = client.post("/api/assets", json=BARE_VEHICLE).json()["asset"]["id"]
+    _add_maintenance(
+        client,
+        asset_id,
+        label="Far service",
+        interval_km=10000,
+        last_serviced_at_odometer=115000,
+    )
+    _add_maintenance(
+        client,
+        asset_id,
+        label="Near service",
+        interval_km=4000,
+        last_serviced_at_odometer=117000,
+    )
+    inactive = _add_maintenance(
+        client,
+        asset_id,
+        label="Inactive",
+        interval_km=1000,
+        last_serviced_at_odometer=120000,
+    )
+    client.patch(
+        f"/api/assets/{asset_id}/maintenance-items/{inactive['id']}",
+        json={"is_active": False},
+    )
+    _add_maintenance(client, asset_id, label="Month only", interval_months=12)
+    _add_maintenance(client, asset_id, label="Missing baseline", interval_km=500)
+
+    detail = _service_detail(db_session, asset_id, date.today())
+
+    assert detail.next_maintenance is not None
+    assert detail.next_maintenance.label == "Near service"
+    assert detail.next_maintenance.remaining_km == 1000
+
+
+def test_next_maintenance_breaks_equal_distance_ties_by_label(
+    client: TestClient, db_session: Session
+) -> None:
+    asset_id = client.post("/api/assets", json=BARE_VEHICLE).json()["asset"]["id"]
+    _add_maintenance(
+        client,
+        asset_id,
+        label="Zulu",
+        interval_km=10000,
+        last_serviced_at_odometer=115000,
+    )
+    _add_maintenance(
+        client,
+        asset_id,
+        label="alpha",
+        interval_km=10000,
+        last_serviced_at_odometer=115000,
+    )
+
+    detail = _service_detail(db_session, asset_id, date.today())
+
+    assert detail.next_maintenance is not None
+    assert detail.next_maintenance.label == "alpha"
+    assert detail.next_maintenance.remaining_km == 5000
+
+
+def test_next_maintenance_breaks_case_insensitive_label_ties_by_uuid(
+    client: TestClient, db_session: Session
+) -> None:
+    asset_id = client.post("/api/assets", json=BARE_VEHICLE).json()["asset"]["id"]
+    upper = _add_maintenance(
+        client,
+        asset_id,
+        label="ALPHA",
+        interval_km=10000,
+        last_serviced_at_odometer=115000,
+    )
+    lower = _add_maintenance(
+        client,
+        asset_id,
+        label="alpha",
+        interval_km=10000,
+        last_serviced_at_odometer=115000,
+    )
+    expected_label = "ALPHA" if str(upper["id"]) < str(lower["id"]) else "alpha"
+
+    detail = _service_detail(db_session, asset_id, date.today())
+
+    assert detail.next_maintenance is not None
+    assert detail.next_maintenance.label == expected_label
+
+
+def test_next_maintenance_returns_overdue_item_at_zero_km(
+    client: TestClient, db_session: Session
+) -> None:
+    asset_id = client.post("/api/assets", json=BARE_VEHICLE).json()["asset"]["id"]
+    _add_maintenance(
+        client,
+        asset_id,
+        label="Overdue",
+        interval_km=1000,
+        last_serviced_at_odometer=118000,
+    )
+
+    detail = _service_detail(db_session, asset_id, date.today())
+
+    assert detail.next_maintenance is not None
+    assert detail.next_maintenance.remaining_km == 0
+
+
+def test_next_maintenance_is_null_without_eligible_candidate(
+    client: TestClient, db_session: Session
+) -> None:
+    asset_id = client.post("/api/assets", json=BARE_VEHICLE).json()["asset"]["id"]
+    _add_maintenance(client, asset_id, label="Month only", interval_months=12)
+    _add_maintenance(client, asset_id, label="Missing baseline", interval_km=1000)
+
+    detail = _service_detail(db_session, asset_id, date.today())
+
+    assert detail.next_maintenance is None
 
 
 def _average_for_rows(

@@ -17,6 +17,7 @@ from app.api.schemas.responses import (
     CreateAssetResponse,
     ExpenseLineResponse,
     ManualExtraResponse,
+    NextMaintenanceResponse,
     UpcomingExpenseResponse,
     WorkspaceOverviewResponse,
     WorkspaceTotalsResponse,
@@ -210,10 +211,11 @@ def update_manual_extra(
     "/assets/{asset_id}",
     summary="Read one asset's detail payload",
     description="""Returns the composed dashboard payload for one owned asset: derived balance,
-    recommended monthly and daily accrual, current usage and last check-in, every maintenance item
-    with its computed status, and a merged recent-activity feed including out-of-pocket expense
-    funding. Type-agnostic — usage fields are null for assets without a usage counter. Unknown or
-    unowned assets return 404.""",
+    recommended monthly and daily accrual, current usage and last check-in, vehicle lifecycle,
+    trailing monthly-cost, nearest kilometer-based maintenance, every maintenance item with its
+    computed status, and a merged recent-activity feed including out-of-pocket expense funding.
+    Type-agnostic — vehicle signals are null for assets without a vehicle profile. Unknown or unowned
+    assets return 404.""",
     response_model=AssetDetailResponse,
     status_code=status.HTTP_200_OK,
     responses={
@@ -243,6 +245,17 @@ def _to_asset_detail_response(detail: AssetDetail) -> AssetDetailResponse:
         balance=detail.balance,
         recommended_monthly_allocation=detail.recommended_monthly_allocation,
         daily_accrual=detail.daily_accrual,
+        vehicle_age_years=detail.vehicle_age_years,
+        tracked_in_app_months=detail.tracked_in_app_months,
+        average_monthly_cost=detail.average_monthly_cost,
+        next_maintenance=(
+            NextMaintenanceResponse(
+                label=detail.next_maintenance.label,
+                remaining_km=detail.next_maintenance.remaining_km,
+            )
+            if detail.next_maintenance is not None
+            else None
+        ),
         tracks_usage=detail.tracks_usage,
         current_usage=detail.current_usage,
         usage_since_last_check_in=detail.usage_since_last_check_in,

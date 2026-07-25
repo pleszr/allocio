@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 
 import pytest
@@ -12,7 +13,7 @@ from tests.conftest import TEST_USER_ID
 VEHICLE_BODY = {
     "name": "My Car",
     "template": "vehicle",
-    "vehicle": {"starting_odometer": 120000},
+    "vehicle": {"starting_odometer": 120000, "manufacture_year": 2020},
 }
 SELECTED_KEYS = ["mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"]
 VEHICLE_BODY_WITH_SELECTION = {**VEHICLE_BODY, "selected_cost_keys": SELECTED_KEYS}
@@ -29,8 +30,9 @@ def test_create_vehicle_no_selection_creates_profile_and_bucket_but_no_rows(clie
     assert payload["asset"]["id"] in response.headers["Location"]
     assert payload["asset"]["type"] == "vehicle"
     assert payload["profile"] is not None
-    assert set(payload["profile"]) == {"asset_id", "starting_odometer"}
+    assert set(payload["profile"]) == {"asset_id", "starting_odometer", "manufacture_year"}
     assert payload["profile"]["starting_odometer"] == 120000
+    assert payload["profile"]["manufacture_year"] == 2020
     assert payload["time_based_costs"] == []
     assert payload["usage_based_costs"] == []
     assert payload["maintenance_items"] == []
@@ -48,6 +50,7 @@ def test_create_vehicle_no_selection_persists_profile_bucket_and_zero_rows(
 
     profiles = db_session.scalars(select(VehicleProfile).where(VehicleProfile.asset_id == asset.id)).all()
     assert len(profiles) == 1
+    assert profiles[0].manufacture_year == 2020
 
     buckets = db_session.scalars(select(Bucket).where(Bucket.asset_id == asset.id)).all()
     assert len(buckets) == 1
@@ -209,13 +212,57 @@ def test_negative_odometer_is_422(client: TestClient, db_session: Session) -> No
     assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
 
 
+def test_create_vehicle_without_manufacture_year_persists_and_returns_null(
+    client: TestClient, db_session: Session
+) -> None:
+    body = {
+        "name": "Existing Car",
+        "template": "vehicle",
+        "vehicle": {"starting_odometer": 120000},
+    }
+
+    response = client.post("/api/assets", json=body)
+
+    assert response.status_code == 201
+    assert response.json()["profile"]["manufacture_year"] is None
+    asset_id = response.json()["asset"]["id"]
+    profile = db_session.get(VehicleProfile, asset_id)
+    assert profile is not None
+    assert profile.manufacture_year is None
+
+
+@pytest.mark.parametrize("manufacture_year", [1885, 2020.5, date.today().year + 1])
+def test_manufacture_year_outside_supported_range_is_422(
+    client: TestClient, db_session: Session, manufacture_year: int
+) -> None:
+    body = {
+        "name": "Impossible Car",
+        "template": "vehicle",
+        "vehicle": {"manufacture_year": manufacture_year},
+    }
+
+    response = client.post("/api/assets", json=body)
+
+    assert response.status_code == 422
+    assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
+
+
 def test_removed_asset_metadata_is_absent_from_openapi(client: TestClient) -> None:
     schemas = client.get("/openapi.json").json()["components"]["schemas"]
 
-    assert set(schemas["VehicleDetailsInput"]["properties"]) == {"starting_odometer"}
+    assert set(schemas["VehicleDetailsInput"]["properties"]) == {
+        "starting_odometer",
+        "manufacture_year",
+    }
+    assert "year" not in schemas["VehicleDetailsInput"]["properties"]
     assert {"subtitle", "attributes"}.isdisjoint(schemas["CreateAssetRequest"]["properties"])
     assert {"subtitle", "attributes"}.isdisjoint(schemas["AssetResponse"]["properties"])
-    assert set(schemas["VehicleProfileResponse"]["properties"]) == {"asset_id", "starting_odometer"}
+    assert set(schemas["VehicleProfileResponse"]["properties"]) == {
+        "asset_id",
+        "starting_odometer",
+        "manufacture_year",
+    }
+    assert "year" not in schemas["VehicleProfileResponse"]["properties"]
     assert "subtitle" not in schemas["AssetSummaryResponse"]["properties"]
     assert {"subtitle", "attributes"}.isdisjoint(schemas["AssetDetailResponse"]["properties"])
 

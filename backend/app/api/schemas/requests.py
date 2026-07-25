@@ -42,6 +42,13 @@ class VehicleDetailsInput(BaseModel):
     starting_odometer: int = Field(
         default=0, ge=0, description="Odometer reading in kilometers at creation time.", examples=[120000]
     )
+    manufacture_year: int | None = Field(
+        default=None,
+        ge=1886,
+        le=date.today().year,
+        description="Optional calendar year when the vehicle was manufactured.",
+        examples=[2020],
+    )
 
 
 class TemplateCostOverride(BaseModel):
