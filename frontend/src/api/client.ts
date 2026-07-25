@@ -9,6 +9,7 @@ import type {
   AssetTemplateCatalog,
   BalanceHistory,
   CheckInBody,
+  CheckInHistory,
   CheckInPreview,
   CreateAssetRequest,
   CreateAssetResponse,
@@ -52,6 +53,9 @@ const DECIMAL_KEYS = new Set([
   "total_allocation",
   "total_expense",
   "net_bucket_change",
+  "allocated",
+  "expense",
+  "net",
   // Template catalog rows carry a per-currency amount map (`amounts`/`amounts_per_unit`/
   // `estimated_costs`, e.g. `{"HUF": "11650.00", ...}`); the reviver runs bottom-up per key, so it
   // sees "HUF"/"EUR"/"USD" as the string value's own key before it sees the parent map's key.
@@ -118,6 +122,7 @@ export const api = {
   getAsset: (id: string) => request<AssetDetail>(`/assets/${id}`),
   getBalanceHistory: (id: string, months = 12) =>
     request<BalanceHistory>(`/assets/${id}/balance-history?months=${months}`),
+  getCheckInHistory: (id: string) => request<CheckInHistory>(`/assets/${id}/check-in-history`),
 
   // Cost rows
   listTimeBasedCosts: (id: string) => request<TimeBasedCost[]>(`/assets/${id}/time-based-costs`),

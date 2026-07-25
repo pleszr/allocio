@@ -19,7 +19,8 @@
   "tabs": {
     "dashboard": "Dashboard",
     "costs": "Costs",
-    "checkin": "Check-in"
+    "checkin": "Check-in",
+    "history": "History"
   },
   "sidebar": {
     "workspace": "Workspace",
@@ -225,6 +226,22 @@
     "flag_km": "~{{km}} km until next service",
     "flag_months": "~{{months}} months until next service",
     "flag_approaching": "Approaching its service interval"
+  },
+  "history": {
+    "title": "History",
+    "subtitle": "Every check-in for {{name}}, in order. Usage highlighted against your {{avgRate}} km/day average.",
+    "empty": "No history yet for this bucket.",
+    "loading": "Loading history…",
+    "not_found": "Could not load history.",
+    "th_date": "Date",
+    "th_odometer": "Odometer",
+    "th_since_last": "Since last",
+    "th_km_per_day": "km/day",
+    "th_allocated": "Allocated",
+    "th_expense": "Expense",
+    "th_net": "Net",
+    "th_balance": "Balance",
+    "irregular_cadence": "{{days}} days since previous check-in — outside the usual ~30-day cadence"
   },
   "newBucket": {
     "title": "New bucket",

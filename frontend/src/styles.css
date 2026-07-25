@@ -877,6 +877,11 @@ body {
 .col-num { text-align: right; font-feature-settings: "tnum"; }
 .col-name { font-weight: 500; }
 
+.history-table td { padding: 10px var(--pad); }
+.history-table th { position: sticky; top: 0; }
+.table-scroll { overflow-x: auto; }
+.table-scroll .table { min-width: 760px; }
+
 /* ── Pills ─────────────────────────────────────────── */
 .pill {
   display: inline-flex;

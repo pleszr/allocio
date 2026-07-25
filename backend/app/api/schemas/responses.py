@@ -315,6 +315,28 @@ class BalanceHistoryResponse(BaseModel):
     points: list[BalancePointResponse] = Field(description="Monthly balance points ordered oldest → newest.")
 
 
+class CheckInHistoryRowResponse(BaseModel):
+    """One posted check-in's ledger row for the History tab, in period order."""
+
+    check_in_id: uuid.UUID = Field(description="The posted check-in this row reports.")
+    period_end: date = Field(description="The check-in's period end date.")
+    usage_end: int | None = Field(description="Usage counter at period end (e.g. odometer), or null.")
+    usage_since_last: int | None = Field(description="Usage counted during this period, or null.")
+    elapsed_days: int = Field(description="Whole calendar days covered by this period.")
+    allocated: Decimal = Field(description="Total posted allocation amount for this check-in.")
+    expense: Decimal = Field(description="Total posted expense amount for this check-in.")
+    net: Decimal = Field(description="allocated - expense for this check-in.")
+    balance: Decimal = Field(description="Running bucket balance after this check-in.")
+
+
+class CheckInHistoryResponse(BaseModel):
+    """An asset's posted check-in ledger ordered oldest → newest for the History tab."""
+
+    asset_id: uuid.UUID = Field(description="Asset whose check-in ledger this is.")
+    currency: str = Field(description="ISO currency code of the asset's bucket.", examples=["HUF"])
+    rows: list[CheckInHistoryRowResponse] = Field(description="Ledger rows ordered oldest → newest.")
+
+
 class ActivityItemResponse(BaseModel):
     """One recent bucket movement for the dashboard activity feed."""
 

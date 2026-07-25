@@ -13,6 +13,7 @@ in `conftest.py`, so it stays fast and leaves no residue. The browser Playwright
 
 from collections.abc import Callable
 from datetime import date, timedelta
+from decimal import Decimal
 
 from fastapi.testclient import TestClient
 
@@ -87,6 +88,7 @@ def test_create_bucket_and_check_in_workflow(
     preview = client.post(f"/api/assets/{asset_id}/check-ins/preview", json=check_in_body)
     assert preview.status_code == 200
     assert preview.json()["usage_amount"] == 900
+    expected_balance_after = preview.json()["balance_after"]
 
     commit = client.post(f"/api/assets/{asset_id}/check-ins", json={**check_in_body, "notes": "first month"})
     assert commit.status_code == 201
@@ -95,3 +97,12 @@ def test_create_bucket_and_check_in_workflow(
     final_overview = client.get("/api/assets")
     assert final_overview.status_code == 200
     assert any(asset["id"] == asset_id for asset in final_overview.json()["assets"])
+
+    # 9. The History tab lists the posted check-in with the same balance the preview promised —
+    #    guards the exact frontend/backend contract HistoryScreen.tsx depends on.
+    history = client.get(f"/api/assets/{asset_id}/check-in-history")
+    assert history.status_code == 200
+    rows = history.json()["rows"]
+    assert len(rows) == 1
+    assert rows[0]["usage_since_last"] == 900
+    assert Decimal(str(rows[0]["balance"])) == Decimal(str(expected_balance_after))
