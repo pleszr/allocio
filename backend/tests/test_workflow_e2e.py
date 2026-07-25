@@ -105,19 +105,30 @@ def test_create_bucket_and_check_in_workflow(
 
     commit = client.post(f"/api/assets/{asset_id}/check-ins", json={**check_in_body, "notes": "first month"})
     assert commit.status_code == 201
-    assert any(line["source_type"] == "manual_extra" for line in commit.json()["allocation_events"])
+    allocation_events = commit.json()["allocation_events"]
+    assert any(line["source_type"] == "manual_extra" for line in allocation_events)
+    expected_allocated = sum((Decimal(line["amount"]) for line in allocation_events), start=Decimal("0"))
 
     # 9. The new bucket now shows up in the workspace overview.
     final_overview = client.get("/api/assets")
     assert final_overview.status_code == 200
     assert any(asset["id"] == asset_id for asset in final_overview.json()["assets"])
 
-    # 10. The History tab lists the posted check-in with the same balance the preview promised —
+    # 10. The Dashboard reads the backend-owned adaptive allocation signal from asset detail.
+    dashboard_detail = client.get(f"/api/assets/{asset_id}")
+    assert dashboard_detail.status_code == 200
+    average_allocation = dashboard_detail.json()["average_allocation"]
+    assert average_allocation["months"] == 3
+    assert Decimal(average_allocation["amount"]) == expected_allocated
+
+    # 11. The History tab lists the posted check-in with the same balance the preview promised —
     #    guards the exact frontend/backend contract HistoryScreen.tsx depends on.
     history = client.get(f"/api/assets/{asset_id}/check-in-history")
     assert history.status_code == 200
     rows = history.json()["rows"]
     assert len(rows) == 1
+    assert rows[0]["period_end"] == PERIOD_END
+    assert Decimal(rows[0]["allocated"]) == expected_allocated
     assert rows[0]["usage_since_last"] == 900
     assert Decimal(rows[0]["paid_out_of_pocket"]) == Decimal("100.00")
     assert Decimal(str(rows[0]["balance"])) == Decimal(str(expected_balance_after))

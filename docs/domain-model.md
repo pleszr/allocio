@@ -388,6 +388,25 @@ Derived:
 - maintenance health and urgency status
 - dashboard summaries and trends
 
+### Dashboard allocation average
+
+The dashboard's allocation average is backend-derived guidance over posted check-in history:
+
+- use each posted check-in's grouped allocation-event total; a posted check-in with no allocation
+  events contributes zero
+- choose a 12-month trailing window when the oldest posted `period_end` reaches at least 12 calendar
+  months before today, otherwise choose 6 months when it reaches that cutoff, otherwise choose 3
+  months
+- define a calendar-month cutoff as the same day in the target month, clamped to that month's final
+  day, and include a check-in exactly on the cutoff
+- average only posted check-ins inside the selected window; do not insert zero-valued rows for
+  calendar months without a check-in
+- exclude a `period_end` after today
+- return no amount when the selected window contains no posted check-ins
+
+The backend returns both the selected `3 | 6 | 12` month window and the nullable arithmetic mean.
+Clients format and label that result but do not recalculate the window or amount.
+
 ## Edit And History Rules
 
 - editing a current cost row changes future calculations only

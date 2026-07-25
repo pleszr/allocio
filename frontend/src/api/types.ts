@@ -85,6 +85,11 @@ export interface UpcomingExpense {
   overdue: boolean;
 }
 
+export interface AverageAllocation {
+  months: 3 | 6 | 12;
+  amount: number | null;
+}
+
 export interface AssetDetail {
   id: string;
   type: string;
@@ -103,6 +108,7 @@ export interface AssetDetail {
   manual_extra_monthly: number;
   manual_extra_recommended: number;
   average_monthly_usage: number;
+  average_allocation: AverageAllocation;
 }
 
 export interface ManualExtraUpdate {

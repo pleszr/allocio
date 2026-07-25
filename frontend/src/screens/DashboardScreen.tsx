@@ -9,7 +9,7 @@ import { Sparkline } from "../components/Sparkline";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { illoBg, illoKind } from "../utils/assetType";
 import { useCurrency } from "../utils/currency";
-import { fmtDateShort, fmtMonthYear, fmtNumber, mockNextAllocation } from "../utils/format";
+import { fmtDateShort, fmtMonthYear, fmtNumber } from "../utils/format";
 import { maintenancePill } from "../utils/maintenanceStatus";
 import { useAsync } from "../utils/useAsync";
 
@@ -43,10 +43,9 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const delta = balances.length >= 2 ? balances[balances.length - 1] - balances[balances.length - 2] : 0;
   const dueSoon = e.maintenance_items.filter((m) => m.status && m.status !== "ok");
   const activeMaintenance = e.maintenance_items.filter((m) => m.is_active);
+  const annualService = activeMaintenance.find((m) => m.technical_key === "annual_service");
+  const averageAllocation = e.average_allocation;
   const upcomingTotal = e.upcoming_expenses.reduce((sum, item) => sum + item.amount, 0);
-  const next = mockNextAllocation();
-  const nextLabel = new Date(next.dateIso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  const pending = e.daily_accrual * next.daysUntil;
   const costCount = e.maintenance_items.length;
 
   return (
@@ -83,11 +82,17 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
             </div>
           </div>
           <div>
-            <div className="hero-stat-label">{t("dashboard.next_allocation")}</div>
-            <div className="hero-stat-val">{fmt(e.recommended_monthly_allocation, { decimals: 0 })}</div>
-            <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
-              {t("dashboard.next_allocation_meta", { date: nextLabel, days: next.daysUntil })}
-            </div>
+            <div className="hero-stat-label">{t("dashboard.average_allocation")}</div>
+            {averageAllocation.amount === null ? (
+              <div className="hero-stat-val">{t("dashboard.no_allocation_history")}</div>
+            ) : (
+              <>
+                <div className="hero-stat-val">{fmt(averageAllocation.amount, { decimals: 0 })}</div>
+                <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                  {t("dashboard.average_allocation_meta", { months: averageAllocation.months })}
+                </div>
+              </>
+            )}
           </div>
           <button className="btn btn-primary btn-sm" onClick={() => onTab("checkin")} style={{ alignSelf: "flex-start" }}>
             {t("dashboard.run_checkin")} <Icon name="arrowRight" size={12} />
@@ -165,11 +170,18 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           </div>
         )}
         <div className="kpi">
-          <div className="kpi-label">{t("dashboard.next_allocation")}</div>
-          <div className="num-lg">{nextLabel}</div>
-          <div className="kpi-sub">
-            {t("dashboard.next_allocation_pending", { days: next.daysUntil, amount: fmt(pending, { decimals: 0 }) })}
-          </div>
+          <div className="kpi-label">{t("dashboard.until_annual_service")}</div>
+          {annualService?.remaining_km !== null && annualService?.remaining_km !== undefined ? (
+            <div className="num-lg">
+              {fmtNumber(annualService.remaining_km)} <span className="muted" style={{ fontSize: 14 }}>km</span>
+            </div>
+          ) : (
+            <div className="kpi-sub">
+              {annualService
+                ? t("dashboard.annual_service_baseline_missing")
+                : t("dashboard.annual_service_not_configured")}
+            </div>
+          )}
         </div>
       </div>
 

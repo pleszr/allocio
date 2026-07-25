@@ -7,6 +7,7 @@ from app.api.costs import _serialize_maintenance
 from app.api.schemas.requests import CreateAssetRequest, UpdateManualExtraRequest
 from app.api.schemas.responses import (
     ActivityItemResponse,
+    AverageAllocationResponse,
     AssetDetailResponse,
     AssetSummaryResponse,
     BalanceHistoryResponse,
@@ -253,6 +254,10 @@ def _to_asset_detail_response(detail: AssetDetail) -> AssetDetailResponse:
         manual_extra_monthly=detail.manual_extra_monthly,
         manual_extra_recommended=detail.manual_extra_recommended,
         average_monthly_usage=detail.average_monthly_usage,
+        average_allocation=AverageAllocationResponse(
+            months=detail.average_allocation.months,
+            amount=detail.average_allocation.amount,
+        ),
     )
 
 

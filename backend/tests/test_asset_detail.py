@@ -4,12 +4,14 @@ from collections.abc import Callable
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.domain.asset import Bucket
+from app.domain.asset import Asset, Bucket
 from app.domain.check_in import AllocationEvent, CheckIn, ExpenseEvent
 from app.domain.vehicle_defaults import vehicle_catalog_keys
+from app.services.asset_detail_service import AssetDetailService
 
 # The detail payload asserts over the full seeded maintenance/cost set, so select every key.
 VALID_VEHICLE = {
@@ -63,6 +65,8 @@ def test_detail_composes_derived_figures_and_usage(
     # balance = sum(posted allocations) - the 100 expense.
     allocated = sum(Decimal(a["amount"]) for a in posted["allocation_events"])
     assert Decimal(body["balance"]) == allocated - Decimal("100")
+    assert body["average_allocation"]["months"] == 3
+    assert Decimal(body["average_allocation"]["amount"]) == allocated
 
 
 def test_detail_maintenance_items_carry_status(
@@ -131,6 +135,7 @@ def test_detail_non_vehicle_has_null_usage(client: TestClient) -> None:
     assert detail["maintenance_items"] == []
     assert detail["recent_activity"] == []
     assert detail["upcoming_expenses"] == []
+    assert detail["average_allocation"] == {"months": 3, "amount": None}
 
 
 def test_detail_unknown_asset_is_404(client: TestClient) -> None:
@@ -315,6 +320,127 @@ def _add_expense(session: Session, bucket_id: uuid.UUID, amount: str, event_date
 
 def _bucket_id(session: Session, asset_id: str) -> uuid.UUID:
     return session.query(Bucket).filter_by(asset_id=uuid.UUID(asset_id)).one().id
+
+
+def _average_for_rows(
+    client: TestClient,
+    db_session: Session,
+    as_of: date,
+    rows: list[tuple[date, str | None]],
+) -> tuple[int, Decimal | None]:
+    asset_id = client.post("/api/assets", json={"name": "Average test", "type": "house"}).json()["asset"]["id"]
+    asset_uuid = uuid.UUID(asset_id)
+    bucket_id = _bucket_id(db_session, asset_id)
+    for period_end, amount in rows:
+        check_in = _add_posted_check_in(
+            db_session,
+            asset_uuid,
+            period_end - timedelta(days=30),
+            period_end,
+        )
+        if amount is not None:
+            _add_allocation(db_session, bucket_id, check_in.id, amount, period_end)
+
+    asset = db_session.get(Asset, asset_uuid)
+    assert asset is not None
+    average = AssetDetailService(db_session).get_detail(asset.user_id, asset_uuid, as_of=as_of).average_allocation
+    return average.months, average.amount
+
+
+@pytest.mark.parametrize(
+    ("rows", "expected_months", "expected_amount"),
+    [
+        (
+            [
+                (date(2026, 2, 28), "900.00"),
+                (date(2026, 5, 31), "100.00"),
+                (date(2026, 7, 31), "300.00"),
+            ],
+            3,
+            Decimal("200.00"),
+        ),
+        (
+            [
+                (date(2026, 1, 31), "600.00"),
+                (date(2026, 5, 31), "1200.00"),
+                (date(2026, 7, 31), "1800.00"),
+            ],
+            6,
+            Decimal("1200.00"),
+        ),
+        (
+            [
+                (date(2025, 7, 31), "1200.00"),
+                (date(2026, 2, 28), "2400.00"),
+                (date(2026, 7, 31), "3600.00"),
+            ],
+            12,
+            Decimal("2400.00"),
+        ),
+    ],
+)
+def test_average_allocation_selects_longest_eligible_window(
+    client: TestClient,
+    db_session: Session,
+    rows: list[tuple[date, str | None]],
+    expected_months: int,
+    expected_amount: Decimal,
+) -> None:
+    months, amount = _average_for_rows(client, db_session, date(2026, 7, 31), rows)
+
+    assert months == expected_months
+    assert amount == expected_amount
+
+
+def test_average_allocation_clamps_month_end_and_includes_cutoff(
+    client: TestClient, db_session: Session
+) -> None:
+    months, amount = _average_for_rows(
+        client,
+        db_session,
+        date(2026, 3, 31),
+        [(date(2025, 9, 30), "100.00"), (date(2026, 3, 31), "300.00")],
+    )
+
+    assert months == 6
+    assert amount == Decimal("200.00")
+
+
+def test_average_allocation_is_empty_without_posted_history(
+    client: TestClient, db_session: Session
+) -> None:
+    months, amount = _average_for_rows(client, db_session, date(2026, 7, 31), [])
+
+    assert months == 3
+    assert amount is None
+
+
+def test_average_allocation_counts_posted_check_in_without_allocations_as_zero(
+    client: TestClient, db_session: Session
+) -> None:
+    months, amount = _average_for_rows(
+        client,
+        db_session,
+        date(2026, 7, 31),
+        [(date(2026, 5, 31), "300.00"), (date(2026, 7, 31), None)],
+    )
+
+    assert months == 3
+    assert amount == Decimal("150.00")
+
+
+def test_average_allocation_is_empty_when_all_history_predates_selected_window(
+    client: TestClient, db_session: Session
+) -> None:
+    months, amount = _average_for_rows(
+        client,
+        db_session,
+        date(2026, 7, 31),
+        [(date(2024, 1, 31), "300.00")],
+    )
+
+    assert months == 12
+    assert amount is None
 
 
 def test_manual_extra_monthly_defaults_to_zero(client: TestClient, backdate_asset_creation: Callable[[str], None]) -> None:
