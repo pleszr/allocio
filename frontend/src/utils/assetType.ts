@@ -15,9 +15,3 @@ export function illoKind(type: string): IlloKind {
 export function illoBg(kind: IlloKind): string {
   return kind === "car" ? "#EAF1FB" : kind === "pet" ? "#FBF1E5" : "#FBEEEC";
 }
-
-// Whether this asset tracks a usage counter (odometer-like). Drives whether the
-// dashboard/check-in show usage fields.
-export function tracksUsage(type: string, currentUsage: number | null): boolean {
-  return currentUsage !== null || illoKind(type) === "car";
-}

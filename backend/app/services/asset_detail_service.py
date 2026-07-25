@@ -67,6 +67,7 @@ class AssetDetail:
     balance: Decimal
     recommended_monthly_allocation: Decimal
     daily_accrual: Decimal
+    tracks_usage: bool
     current_usage: int | None
     usage_since_last_check_in: int | None
     last_check_in_date: date | None
@@ -105,6 +106,7 @@ class AssetDetailService:
             balance=summary.balance,
             recommended_monthly_allocation=summary.recommended_monthly_allocation,
             daily_accrual=calculator.quantize_currency(summary.recommended_monthly_allocation * 12 / 365),
+            tracks_usage=check_in_repository.get_vehicle_profile(self._session, asset_id) is not None,
             current_usage=self._costs.current_asset_usage(user_id, asset_id),
             usage_since_last_check_in=latest.usage_amount if latest is not None else None,
             last_check_in_date=latest.period_end if latest is not None else None,

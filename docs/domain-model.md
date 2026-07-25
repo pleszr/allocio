@@ -145,6 +145,8 @@ Fields:
 Rules:
 
 - `vehicle_profile` exists only for `asset.type = vehicle`
+- the presence of `vehicle_profile`, not the free-form `asset.type` text, is the domain capability
+  that enables usage-counter workflows
 - `starting_odometer` is the only vehicle-specific metadata collected at creation
 - `current_odometer` is derived from the latest posted check-in
 - no `trim`
@@ -202,6 +204,9 @@ Rules:
 - when `first_due_date` is null the next-due date is omitted (null)
 - template rows are seeded with a null anchor
 - the anchor and its derived next-due date are informational only and do not affect accrual
+- recurring-cost API reads derive the current rollover-aware `reference_amount`, canonical
+  `annualized_amount`, and canonical `daily_rate` in the backend; clients may format or sum these
+  values but must not reinterpret the recurrence interval
 
 ### `usage_based_cost`
 
@@ -440,6 +445,13 @@ Creation rule:
 - a template row's `label` is the stable translation source: the New Bucket wizard looks up a UI-language translation keyed by `technical_key`, falling back to this `label` when no translation exists for the active language
 
 The defaults are code-backed seed definitions today (`app/domain/vehicle_defaults.py`), selected through the template registry (`app/domain/asset_templates.py`). That implementation choice is separate from the domain model.
+
+The creation review uses a non-persisting backend allocation estimate. It resolves selected
+template rows and overrides from these same definitions, combines them with unsaved custom
+time-based rows, and returns canonical per-row and aggregate daily/monthly/yearly values. Usage
+and maintenance selections do not contribute to that steady estimate without usage input. Calling
+the estimate creates no asset, cost, check-in, allocation, or expense records. House and pet remain
+bare asset choices; they have no curated frontend-only default rows.
 
 ## Default Time-Based Cost Templates For Vehicles
 

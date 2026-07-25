@@ -70,6 +70,29 @@ class TemplateCostOverride(BaseModel):
         return self
 
 
+class AllocationEstimateCustomCost(BaseModel):
+    """One unsaved custom recurring row included in the creation estimate."""
+
+    client_key: str = Field(max_length=60, description="Client-stable key used to match the response row.")
+    label: str = Field(max_length=120, description="Human-readable cost label.")
+    amount: Decimal = Field(ge=0, description="Cost amount per recurrence interval.")
+    interval_value: int = Field(gt=0, description="Positive recurrence interval value.")
+    interval_unit: IntervalUnit = Field(description="Supported recurrence interval unit.")
+
+
+class AllocationEstimateRequest(BaseModel):
+    """Non-persisting estimate input for selected template rows and custom recurring rows."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    template: str | None = Field(default=None, max_length=60)
+    selected_cost_keys: list[str] | None = Field(default=None, max_length=100)
+    cost_overrides: list[TemplateCostOverride] | None = Field(default=None, max_length=100)
+    custom_time_based_costs: list[AllocationEstimateCustomCost] | None = Field(
+        default=None, max_length=100
+    )
+
+
 class CreateAssetRequest(BaseModel):
     """Body for creating an asset. `user_id` and bucket currency are server-set, not accepted here.
 
@@ -294,8 +317,10 @@ class PreviewCheckInRequest(BaseModel):
         description="End of the period being reviewed; must be later than the derived period start.",
         examples=["2026-05-01"],
     )
-    usage_end: int = Field(
-        ge=0, description="Usage counter (e.g. odometer km) at period end; must be >= the derived usage start.",
+    usage_end: int | None = Field(
+        default=None,
+        ge=0,
+        description="Usage counter at period end. Required for usage-tracking assets; omit for other assets.",
         examples=[345814],
     )
     active_tire_type: TireType | None = Field(

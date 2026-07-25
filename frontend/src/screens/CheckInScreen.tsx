@@ -4,7 +4,6 @@ import { api, ApiError } from "../api/client";
 import type { CheckInPreview, ExpenseDraft, MaintenanceItem, TireType } from "../api/types";
 import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
-import { tracksUsage } from "../utils/assetType";
 import { useCurrency } from "../utils/currency";
 import { daysBetween, fmtDate, fmtNumber, todayIso } from "../utils/format";
 import { maintenancePill } from "../utils/maintenanceStatus";
@@ -67,11 +66,11 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
   const [posted, setPosted] = useState(false);
   const [showOutOfPocketDialog, setShowOutOfPocketDialog] = useState(false);
 
-  const usageTracked = detail.data ? tracksUsage(detail.data.type, detail.data.current_usage) : false;
+  const usageTracked = detail.data?.tracks_usage ?? false;
 
   const runPreview = useCallback(
     async (
-      usageValue: number,
+      usageValue: number | null,
       endDate: string,
       tireType: TireType | null,
       expenses: ExpenseDraft[],
@@ -108,8 +107,8 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
   // check-in's value), which seeds the picker below.
   useEffect(() => {
     if (!detail.data) return;
-    const seed = detail.data.current_usage ?? 0;
-    setUsageEnd(String(seed));
+    const seed = detail.data.tracks_usage ? (detail.data.current_usage ?? 0) : null;
+    setUsageEnd(seed === null ? "" : String(seed));
     void runPreview(seed, todayIso(), null, [], true);
   }, [detail.data, runPreview]);
 
@@ -160,7 +159,7 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
     try {
       await api.postCheckIn(assetId, {
         period_end: periodEnd,
-        usage_end: Number(usageEnd),
+        usage_end: usageTracked ? Number(usageEnd) : null,
         active_tire_type: activeTireType,
         expenses: toExpenseDrafts(draftExpenses),
       });
@@ -305,7 +304,13 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
                   className="btn btn-outline btn-sm"
                   disabled={loadingPreview || hasInvalidExpense}
                   onClick={() =>
-                    runPreview(Number(usageEnd || 0), periodEnd, activeTireType, toExpenseDrafts(draftExpenses), false)
+                    runPreview(
+                      usageTracked ? Number(usageEnd || 0) : null,
+                      periodEnd,
+                      activeTireType,
+                      toExpenseDrafts(draftExpenses),
+                      false,
+                    )
                   }
                 >
                   {loadingPreview ? t("checkin.calculating") : t("checkin.update_preview")}

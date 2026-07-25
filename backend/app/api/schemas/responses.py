@@ -77,6 +77,11 @@ class TimeBasedCostResponse(BaseModel):
     label: str = Field(description="Human-readable cost label.", examples=["Vehicle inspection"])
     technical_key: str | None = Field(description="Stable template key for this cost.", examples=["vehicle_inspection"])
     amount: Decimal = Field(description="Cost amount per interval.")
+    reference_amount: Decimal = Field(
+        description="Current amount after applying the latest linked modeled-expense rollover."
+    )
+    annualized_amount: Decimal = Field(description="Backend-derived yearly equivalent of the reference amount.")
+    daily_rate: Decimal = Field(description="Backend-derived per-day rate of the reference amount.")
     interval_value: int = Field(description="Number of interval units between occurrences.", examples=[12])
     interval_unit: str = Field(description="Unit of the recurrence interval.", examples=["months"])
     first_due_date: date | None = Field(description="Stored anchor date of a known occurrence, if set.")
@@ -211,10 +216,10 @@ class CheckInPreviewResponse(BaseModel):
     asset_id: uuid.UUID = Field(description="Asset the check-in is for.")
     period_start: date = Field(description="Derived start of the period (previous period end, or first-check-in start).")
     period_end: date = Field(description="Requested end of the period.")
-    usage_start: int = Field(description="Derived usage counter at period start.")
-    usage_end: int = Field(description="Requested usage counter at period end.")
+    usage_start: int | None = Field(description="Derived usage counter at period start, or null for non-usage assets.")
+    usage_end: int | None = Field(description="Requested usage counter at period end, or null for non-usage assets.")
     elapsed_days: int = Field(description="Whole calendar days in the period.")
-    usage_amount: int = Field(description="Usage counted this period (usage_end - usage_start).")
+    usage_amount: int | None = Field(description="Usage counted this period, or null for non-usage assets.")
     active_tire_type: str | None = Field(description="Tire type active during the period, if supplied.")
     allocation_lines: list[AllocationLineResponse] = Field(description="Per-cost allocation lines for the period.")
     expense_lines: list[ExpenseLineResponse] = Field(description="Expense lines recognized for the period.")
@@ -414,6 +419,9 @@ class AssetDetailResponse(BaseModel):
     daily_accrual: Decimal = Field(
         description="Per-day accrual derived as recommended_monthly_allocation * 12 / 365, quantized to currency."
     )
+    tracks_usage: bool = Field(
+        description="Whether this asset has a usage-tracking profile and should collect a usage counter."
+    )
     current_usage: int | None = Field(
         description="Current usage counter (latest posted check-in usage_end, else vehicle starting odometer); "
         "null for a non-vehicle asset with no usage counter."
@@ -482,6 +490,27 @@ class AssetTemplateCatalogResponse(BaseModel):
         description="Pickable per-usage-unit reserve rows (a list for a uniform client shape; vehicle has one)."
     )
     maintenance_items: list[TemplateMaintenanceItem] = Field(description="Pickable maintenance/replacement item rows.")
+
+
+class AllocationEstimateLineResponse(BaseModel):
+    """Canonical monetary rates for one selected or custom recurring row."""
+
+    key: str
+    label: str
+    reference_amount: Decimal
+    annualized_amount: Decimal
+    monthly_amount: Decimal
+    daily_rate: Decimal
+
+
+class AllocationEstimateResponse(BaseModel):
+    """Non-persisted allocation estimate for the asset-creation review."""
+
+    currency: str
+    lines: list[AllocationEstimateLineResponse]
+    daily_total: Decimal
+    monthly_total: Decimal
+    yearly_total: Decimal
 
 
 class CreateAssetResponse(BaseModel):

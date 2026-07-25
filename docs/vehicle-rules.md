@@ -169,6 +169,15 @@ Rules:
 - no within-period proration is applied in MVP when a new modeled expense is logged
 - a newly logged modeled expense for a time-based cost becomes the reference amount starting with the first period whose `period_start` is on or after that expense date
 
+### Creation estimate
+
+Before an asset exists, the New Bucket review asks the backend to annualize the selected template
+time-based rows, their overrides, and custom draft time-based rows with the same formulas above.
+For each row it returns quantized annualized, monthly (`annualized_amount / 12`), and daily
+(`annualized_amount / 365`) values, plus totals. In particular, a one-month amount annualizes to
+exactly twelve times that amount; the estimate never approximates a month as 30 days. The estimate
+is read-only and excludes usage-based rows because no usage history or forecast is supplied.
+
 ### Next-due date
 
 The next-due date is an informational signal derived from a time-based cost's optional `first_due_date` anchor and its interval.

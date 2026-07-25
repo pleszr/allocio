@@ -162,4 +162,60 @@ test("editing a template row's amount and interval on Step 3 persists the edited
   const liabilityRow = page.getByRole("row", { name: /Mandatory liability insurance/ });
   await expect(liabilityRow).toContainText("60,000");
   await expect(liabilityRow).toContainText("6");
+  await expect(liabilityRow).toContainText("328.77");
+});
+
+test("allocation estimate retries through the backend and preserves wizard input", async ({ page }) => {
+  let estimateCalls = 0;
+  await page.route("**/api/allocation-estimates", async (route) => {
+    estimateCalls += 1;
+    if (estimateCalls === 1) {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Temporary estimate failure" }),
+      });
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "New bucket", exact: true }).click();
+  await page.getByRole("button", { name: /^Property/ }).click();
+  await page.getByTestId("bucket-name-input").fill("Estimate Retry Property");
+  await page.getByRole("button", { name: /Continue/ }).click();
+
+  await page.getByText("Add a custom cost…").click();
+  const row = page.locator(".cost-row");
+  await row.getByPlaceholder("Cost name").fill("Annual repair");
+  await row.locator('input[type="number"]').fill("1200");
+  await page.getByRole("button", { name: /Continue/ }).click();
+
+  await expect(page.getByText("Temporary estimate failure")).toBeVisible();
+  await page.getByRole("button", { name: "Retry" }).click();
+  await expect(page.getByText("100 Ft", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: /Back/ }).click();
+  await expect(page.getByPlaceholder("Cost name")).toHaveValue("Annual repair");
+  await expect(row.locator('input[type="number"]')).toHaveValue("1200");
+});
+
+test("misleading free-form car type does not enable usage input", async ({ page }) => {
+  const name = "Display-only Car Type";
+  const created = await page.request.post("/api/assets", {
+    data: { name, type: "car" },
+  });
+  expect(created.status()).toBe(201);
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Your buckets" })).toBeVisible();
+  await page.locator(".side-entity").filter({ hasText: name }).click();
+  const previewRequest = page.waitForRequest(
+    (request) => request.url().includes("/check-ins/preview") && request.method() === "POST",
+  );
+  await page.getByRole("tab", { name: "Check-in" }).click();
+
+  await expect(page.getByLabel("Current usage")).toHaveCount(0);
+  expect((await previewRequest).postDataJSON().usage_end).toBeNull();
 });

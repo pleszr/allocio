@@ -99,6 +99,7 @@ export interface AssetDetail {
   balance: number;
   recommended_monthly_allocation: number;
   daily_accrual: number;
+  tracks_usage: boolean;
   current_usage: number | null;
   usage_since_last_check_in: number | null;
   last_check_in_date: string | null;
@@ -157,6 +158,9 @@ export interface TimeBasedCost {
   label: string;
   technical_key: string | null;
   amount: number;
+  reference_amount: number;
+  annualized_amount: number;
+  daily_rate: number;
   interval_value: number;
   interval_unit: IntervalUnit;
   first_due_date: string | null;
@@ -201,10 +205,10 @@ export interface CheckInPreview {
   asset_id: string;
   period_start: string;
   period_end: string;
-  usage_start: number;
-  usage_end: number;
+  usage_start: number | null;
+  usage_end: number | null;
   elapsed_days: number;
-  usage_amount: number;
+  usage_amount: number | null;
   active_tire_type: string | null;
   allocation_lines: AllocationLine[];
   expense_lines: ExpenseLine[];
@@ -277,6 +281,38 @@ export interface CreateAssetResponse {
   asset: { id: string; type: string; name: string };
 }
 
+export interface AllocationEstimateCustomCost {
+  client_key: string;
+  label: string;
+  amount: number;
+  interval_value: number;
+  interval_unit: IntervalUnit;
+}
+
+export interface AllocationEstimateRequest {
+  template?: string | null;
+  selected_cost_keys?: string[] | null;
+  cost_overrides?: TemplateCostOverride[] | null;
+  custom_time_based_costs?: AllocationEstimateCustomCost[] | null;
+}
+
+export interface AllocationEstimateLine {
+  key: string;
+  label: string;
+  reference_amount: number;
+  annualized_amount: number;
+  monthly_amount: number;
+  daily_rate: number;
+}
+
+export interface AllocationEstimate {
+  currency: string;
+  lines: AllocationEstimateLine[];
+  daily_total: number;
+  monthly_total: number;
+  yearly_total: number;
+}
+
 export interface CreateTimeBasedCostRequest {
   label: string;
   amount: number;
@@ -317,7 +353,7 @@ export interface ExpenseDraft {
 
 export interface CheckInBody {
   period_end: string;
-  usage_end: number;
+  usage_end?: number | null;
   active_tire_type?: TireType | null;
   expenses?: ExpenseDraft[];
   notes?: string | null;

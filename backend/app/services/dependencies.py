@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.common.exceptions import AuthenticationError
 from app.config import settings
 from app.db import get_session
+from app.services.allocation_estimate_service import AllocationEstimateService
 from app.services.asset_detail_service import AssetDetailService
 from app.services.asset_service import AssetService
 from app.services.asset_template_service import AssetTemplateService
@@ -85,6 +86,13 @@ def get_asset_detail_service(session: Session = Depends(get_session)) -> AssetDe
 def get_asset_template_service() -> AssetTemplateService:
     """Provide an `AssetTemplateService` for the template-catalog read route; the catalog is static, no session."""
     return AssetTemplateService()
+
+
+def get_allocation_estimate_service(
+    session: Session = Depends(get_session),
+) -> AllocationEstimateService:
+    """Bind the non-persisting wizard estimate service to the request-scoped session."""
+    return AllocationEstimateService(session)
 
 
 def get_user_settings_service(session: Session = Depends(get_session)) -> UserSettingsService:

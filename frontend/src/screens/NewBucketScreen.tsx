@@ -1,13 +1,20 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { api, ApiError } from "../api/client";
-import type { AssetTemplateCatalog, CreateAssetRequest, IntervalUnit, TemplateCostOverride } from "../api/types";
+import type {
+  AllocationEstimate,
+  AllocationEstimateRequest,
+  AssetTemplateCatalog,
+  CreateAssetRequest,
+  IntervalUnit,
+  TemplateCostOverride,
+} from "../api/types";
 import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
 import type { IlloKind } from "../utils/assetType";
 import { useCurrency, useCurrencyCode } from "../utils/currency";
-import { fmtNumber, intervalDays } from "../utils/format";
+import { fmtNumber } from "../utils/format";
 
 interface NewBucketScreenProps {
   onCancel: () => void;
@@ -46,26 +53,8 @@ const TYPES: TypeOption[] = [
   { kind: "pet", nameKey: "newBucket.type_pet_name", descKey: "newBucket.type_pet_desc", bg: "#F8EBD8", assetType: "pet" },
 ];
 
-// Suggestions for non-vehicle types stay hardcoded (no backend catalog exists for them).
-// The vehicle path no longer uses this map — it reads the real template catalog instead.
-const SUGGESTED: Record<Exclude<IlloKind, "car">, DraftCost[]> = {
-  house: [
-    draft("Property tax", "year", 4200),
-    draft("Home insurance", "year", 1140),
-    draft("HVAC service", "year", 280),
-    draft("Roof reserve", "year", 1800),
-  ],
-  pet: [draft("Vet checkup", "year", 280), draft("Vaccinations", "year", 180), draft("Food", "month", 65), draft("Grooming", "month", 70)],
-};
-
-const PERIOD_DAYS: Record<Exclude<Period, "usage">, number> = { month: 30, year: 365, "2 years": 730 };
-
 function draft(name: string, period: Period, amount: number, unit?: string): DraftCost {
   return { id: Math.random().toString(36).slice(2, 8), name, period, amount, unit };
-}
-
-function periodDays(period: Period): number {
-  return period === "usage" ? 365 : PERIOD_DAYS[period];
 }
 
 function allCatalogKeys(catalog: AssetTemplateCatalog): Set<string> {
@@ -127,6 +116,11 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   // template default in the owner's currency once, then owned by the user. Maintenance items don't
   // participate here — they have no curated amount to edit.
   const [catalogOverrides, setCatalogOverrides] = useState<Record<string, CatalogOverride>>({});
+  const [estimate, setEstimate] = useState<AllocationEstimate | null>(null);
+  const [estimateLoading, setEstimateLoading] = useState(false);
+  const [estimateError, setEstimateError] = useState<string | null>(null);
+  const [estimateRetry, setEstimateRetry] = useState(0);
+  const estimateRequestId = useRef(0);
 
   const loadCatalog = () => {
     setCatalogLoading(true);
@@ -182,57 +176,62 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
       return next;
     });
 
-  const catalogTimePerDay = useMemo(() => {
-    if (!isVehicle || !catalog) return 0;
-    return catalog.time_based_costs
-      .filter((c) => selectedKeys.has(c.technical_key))
-      .reduce((s, c) => {
-        const o = catalogOverrides[c.technical_key];
-        const amount = o?.amount ?? c.amounts[currencyCode];
-        const intervalValue = o?.interval_value ?? c.interval_value;
-        const intervalUnit = o?.interval_unit ?? c.interval_unit;
-        return s + amount / intervalDays(intervalValue, intervalUnit);
-      }, 0);
-  }, [isVehicle, catalog, selectedKeys, catalogOverrides, currencyCode]);
-
-  const draftPerDay = useMemo(
-    () => costs.reduce((s, c) => (c.period === "usage" ? s : s + c.amount / PERIOD_DAYS[c.period]), 0),
-    [costs],
+  const estimateRequest = useMemo<AllocationEstimateRequest>(
+    () => buildEstimateRequest(isVehicle, selectedKeys, catalogOverrides, costs),
+    [isVehicle, selectedKeys, catalogOverrides, costs],
   );
 
-  const perDay = draftPerDay + catalogTimePerDay;
-  const monthlyEst = perDay * 30;
-  const yearlyEst = perDay * 365;
-
-  // Combined review lines: selected catalog rows (vehicle) plus custom drafts.
-  const reviewTimeLines = useMemo<ReviewLine[]>(() => {
-    const lines: ReviewLine[] = [];
-    if (isVehicle && catalog) {
-      for (const c of catalog.time_based_costs) {
-        if (!selectedKeys.has(c.technical_key)) continue;
-        const o = catalogOverrides[c.technical_key];
-        const amount = o?.amount ?? c.amounts[currencyCode];
-        const intervalValue = o?.interval_value ?? c.interval_value;
-        const intervalUnit = o?.interval_unit ?? c.interval_unit;
-        const perDayLine = amount / intervalDays(intervalValue, intervalUnit);
-        lines.push({
-          id: c.technical_key,
-          name: templateLabel(t, c.technical_key, c.label),
-          monthly: perDayLine * 30,
-          sub: `${fmtNumber(amount)}${intervalLabel(intervalValue, intervalUnit)}`,
+  // The wizard keeps the last successful estimate while a settled edit is refreshed.
+  useEffect(() => {
+    if (step < 3 || (isVehicle && !catalog)) return;
+    const requestId = ++estimateRequestId.current;
+    const timer = window.setTimeout(() => {
+      setEstimateLoading(true);
+      setEstimateError(null);
+      api
+        .estimateAllocation(estimateRequest)
+        .then((result) => {
+          if (requestId === estimateRequestId.current) setEstimate(result);
+        })
+        .catch((err: unknown) => {
+          if (requestId === estimateRequestId.current) {
+            setEstimateError(err instanceof ApiError ? err.message : t("newBucket.estimate_error"));
+          }
+        })
+        .finally(() => {
+          if (requestId === estimateRequestId.current) setEstimateLoading(false);
         });
-      }
-    }
-    for (const c of costs.filter((c) => c.period !== "usage")) {
-      lines.push({
-        id: c.id,
-        name: c.name || t("newBucket.unnamed"),
-        monthly: (c.amount / periodDays(c.period)) * 30,
-        sub: t("newBucket.review_per_period", { amount: fmt(c.amount, { decimals: 2 }), period: periodLabel(c.period) }),
-      });
-    }
-    return lines;
-  }, [isVehicle, catalog, selectedKeys, catalogOverrides, currencyCode, costs, fmt, t]);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [step, isVehicle, catalog, estimateRequest, estimateRetry, t]);
+
+  // Combine backend-derived time rows with presentation-only labels and recurrence descriptions.
+  const reviewTimeLines = useMemo<ReviewLine[]>(() => {
+    if (!estimate) return [];
+    return estimate.lines.map((line) => {
+      const catalogRow = catalog?.time_based_costs.find((row) => row.technical_key === line.key);
+      const customRow = costs.find((row) => row.id === line.key);
+      const override = catalogRow ? catalogOverrides[catalogRow.technical_key] : undefined;
+      const intervalValue = override?.interval_value ?? catalogRow?.interval_value;
+      const intervalUnit = override?.interval_unit ?? catalogRow?.interval_unit;
+      return {
+        id: line.key,
+        name: catalogRow
+          ? templateLabel(t, catalogRow.technical_key, catalogRow.label)
+          : customRow?.name || line.label || t("newBucket.unnamed"),
+        monthly: line.monthly_amount,
+        sub:
+          catalogRow && intervalValue != null && intervalUnit != null
+            ? `${fmtNumber(line.reference_amount)}${intervalLabel(intervalValue, intervalUnit)}`
+            : customRow
+              ? t("newBucket.review_per_period", {
+                  amount: fmt(line.reference_amount, { decimals: 2 }),
+                  period: periodLabel(customRow.period),
+                })
+              : "",
+      };
+    });
+  }, [estimate, catalog, catalogOverrides, costs, fmt, t]);
 
   const reviewUsageLines = useMemo<ReviewLine[]>(() => {
     const lines: ReviewLine[] = [];
@@ -357,9 +356,10 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
             name={name}
             timeLines={reviewTimeLines}
             usageLines={reviewUsageLines}
-            monthlyEst={monthlyEst}
-            yearlyEst={yearlyEst}
-            perDay={perDay}
+            estimate={estimate}
+            estimateLoading={estimateLoading}
+            estimateError={estimateError}
+            onRetryEstimate={() => setEstimateRetry((value) => value + 1)}
           />
         )}
 
@@ -380,11 +380,16 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
                   {t("newBucket.estimated_allocation")}
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 600, fontFeatureSettings: '"tnum"' }}>
-                  {fmt(monthlyEst, { decimals: 0 })}
+                  {estimate ? fmt(estimate.monthly_total, { decimals: 0 }) : "—"}
                   <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>
                     {t("newBucket.per_mo")}
                   </span>
                 </div>
+                {estimateLoading && estimate && (
+                  <div className="muted" style={{ fontSize: 11 }}>
+                    {t("newBucket.estimate_updating")}
+                  </div>
+                )}
               </div>
             )}
             {step === 1 ? null : step < 4 ? (
@@ -401,6 +406,43 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
       </div>
     </div>
   );
+}
+
+function buildEstimateRequest(
+  isVehicle: boolean,
+  selectedKeys: Set<string>,
+  catalogOverrides: Record<string, CatalogOverride>,
+  costs: DraftCost[],
+): AllocationEstimateRequest {
+  const costOverrides: TemplateCostOverride[] = isVehicle
+    ? Array.from(selectedKeys)
+        .filter((key) => key in catalogOverrides)
+        .map((key) => {
+          const override = catalogOverrides[key];
+          return override.interval_value != null && override.interval_unit != null
+            ? {
+                technical_key: key,
+                amount: override.amount,
+                interval_value: override.interval_value,
+                interval_unit: override.interval_unit,
+              }
+            : { technical_key: key, amount: override.amount };
+        })
+    : [];
+  return {
+    template: isVehicle ? "vehicle" : null,
+    selected_cost_keys: isVehicle ? Array.from(selectedKeys) : [],
+    cost_overrides: costOverrides,
+    custom_time_based_costs: costs
+      .filter((cost) => cost.period !== "usage")
+      .map((cost) => ({
+        client_key: cost.id,
+        label: cost.name || "Cost",
+        amount: cost.amount,
+        interval_value: cost.period === "2 years" ? 2 : 1,
+        interval_unit: cost.period === "month" ? "months" : "years",
+      })),
+  };
 }
 
 function buildCreateRequest(
@@ -564,11 +606,8 @@ interface Step3Props {
 
 function Step3(props: Step3Props) {
   const { t } = useTranslation();
-  const fmt = useCurrency();
-  const periodLabel = (p: Period) => t(`newBucket.period_noun_${p === "2 years" ? "2years" : p}`);
   const { type, costs, onAdd, onRemove, onUpdate } = props;
   const isVehicle = type.kind === "car";
-  const suggestions = isVehicle ? [] : SUGGESTED[type.kind as Exclude<IlloKind, "car">].filter((s) => !costs.some((c) => c.name === s.name));
 
   return (
     <>
@@ -596,24 +635,6 @@ function Step3(props: Step3Props) {
           <Icon name="plus" size={14} /> {t("newBucket.add_custom_cost")}
         </div>
       </div>
-
-      {suggestions.length > 0 && (
-        <div className="card card-pad">
-          <div className="card-title" style={{ fontSize: 13, marginBottom: 10 }}>
-            {t("newBucket.suggested_for", { type: t(type.nameKey).toLowerCase() })}
-          </div>
-          <div className="suggested-list">
-            {suggestions.map((s) => (
-              <button key={s.id} className="suggested-chip" onClick={() => onAdd(s)}>
-                <Icon name="plus" size={11} stroke={2.4} /> {s.name} ·{" "}
-                {s.period === "usage"
-                  ? `${fmt(s.amount, { decimals: 0 })}/${s.unit}`
-                  : `${fmt(s.amount, { decimals: 0 })}/${periodLabel(s.period)}`}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   );
 }
@@ -846,7 +867,6 @@ function EditableCatalogRow({
 
 function CostRow({ cost, onUpdate, onRemove }: { cost: DraftCost; onUpdate: (p: Partial<DraftCost>) => void; onRemove: () => void }) {
   const { t } = useTranslation();
-  const fmt = useCurrency();
   return (
     <div className="cost-row">
       <input className="input" placeholder={t("newBucket.cost_name_ph")} value={cost.name} onChange={(e) => onUpdate({ name: e.target.value })} />
@@ -872,9 +892,7 @@ function CostRow({ cost, onUpdate, onRemove }: { cost: DraftCost; onUpdate: (p: 
           <option value="use">{t("newBucket.unit_use")}</option>
         </select>
       ) : (
-        <div className="row-meta" style={{ textAlign: "right" }}>
-          {t("newBucket.per_day_approx", { amount: fmt(cost.amount / PERIOD_DAYS[cost.period], { decimals: 2 }) })}
-        </div>
+        <div />
       )}
       <button className="cost-row-x" aria-label={t("newBucket.remove")} onClick={onRemove}>
         ×
@@ -888,17 +906,19 @@ function Step4({
   name,
   timeLines,
   usageLines,
-  monthlyEst,
-  yearlyEst,
-  perDay,
+  estimate,
+  estimateLoading,
+  estimateError,
+  onRetryEstimate,
 }: {
   type: TypeOption;
   name: string;
   timeLines: ReviewLine[];
   usageLines: ReviewLine[];
-  monthlyEst: number;
-  yearlyEst: number;
-  perDay: number;
+  estimate: AllocationEstimate | null;
+  estimateLoading: boolean;
+  estimateError: string | null;
+  onRetryEstimate: () => void;
 }) {
   const { t } = useTranslation();
   const fmt = useCurrency();
@@ -907,10 +927,20 @@ function Step4({
       <div className="allocation-callout">
         <div>
           <div className="label">{t("newBucket.estimated_monthly")}</div>
-          <div className="num">{fmt(monthlyEst, { decimals: 0 })}</div>
-          <div className="sub">
-            {t("newBucket.est_sub", { perDay: fmt(perDay, { decimals: 2 }), yearly: fmt(yearlyEst, { decimals: 0 }) })}
-          </div>
+          <div className="num">{estimate ? fmt(estimate.monthly_total, { decimals: 0 }) : "—"}</div>
+          {estimate && (
+            <div className="sub">
+              {t("newBucket.est_sub", {
+                perDay: fmt(estimate.daily_total, { decimals: 2 }),
+                yearly: fmt(estimate.yearly_total, { decimals: 0 }),
+              })}
+            </div>
+          )}
+          {estimateLoading && (
+            <div className="sub">
+              {estimate ? t("newBucket.estimate_updating") : t("newBucket.estimate_loading")}
+            </div>
+          )}
         </div>
         <div style={{ width: 140, height: 100, background: "rgba(255,255,255,.12)", borderRadius: 12, padding: 8 }}>
           <div style={{ background: type.bg, borderRadius: 10, width: "100%", height: "100%", display: "grid", placeItems: "center" }}>
@@ -918,6 +948,15 @@ function Step4({
           </div>
         </div>
       </div>
+
+      {estimateError && (
+        <div className="error-banner">
+          <div>{estimateError}</div>
+          <button className="btn btn-outline btn-sm" onClick={onRetryEstimate}>
+            {t("newBucket.retry")}
+          </button>
+        </div>
+      )}
 
       <div className="card">
         <div style={{ padding: "20px var(--pad) 14px" }}>
@@ -991,7 +1030,10 @@ function Step4({
             <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>{t("newBucket.what_happens_next")}</div>
             <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.55 }}>
               {t("newBucket.accruing_prefix")}{" "}
-              <strong style={{ color: "var(--ink)" }}>{fmt(perDay, { decimals: 2 })}/day</strong> {t("newBucket.accruing_suffix")}
+              <strong style={{ color: "var(--ink)" }}>
+                {estimate ? `${fmt(estimate.daily_total, { decimals: 2 })}/day` : "—"}
+              </strong>{" "}
+              {t("newBucket.accruing_suffix")}
             </div>
           </div>
         </div>
