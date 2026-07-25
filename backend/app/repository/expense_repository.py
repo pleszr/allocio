@@ -5,7 +5,7 @@ from datetime import date
 from decimal import Decimal
 from typing import NamedTuple
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.domain.asset import Asset, Bucket
@@ -106,6 +106,38 @@ def sum_expense_funding_by_check_in(
         )
         for check_in_id, amount, bucket_amount, paid_out_of_pocket in session.execute(stmt).all()
     }
+
+
+def list_expense_events_for_check_in(session: Session, check_in_id: uuid.UUID) -> list[ExpenseEvent]:
+    """Return every expense event row linked to one check-in, ordered by `event_date`, for its detail view."""
+    stmt = select(ExpenseEvent).where(ExpenseEvent.check_in_id == check_in_id).order_by(ExpenseEvent.event_date)
+    return list(session.scalars(stmt).all())
+
+
+def delete_expense_events_for_check_in(session: Session, check_in_id: uuid.UUID) -> None:
+    """Delete every expense event row linked to this check-in.
+
+    No flush/commit — the service owns the transaction boundary, so the delete and its replacement
+    inserts commit together or not at all.
+    """
+    session.execute(delete(ExpenseEvent).where(ExpenseEvent.check_in_id == check_in_id))
+
+
+def list_bucket_covered_amounts_before(session: Session, bucket_id: uuid.UUID, period_end: date) -> list[Decimal]:
+    """Return bucket-covered expense amounts effective strictly before `period_end`, for an edit's opening balance.
+
+    Uses the same effective-date coalescing as `list_bucket_expense_movements`: a check-in-linked
+    expense's covered movement is dated at its parent check-in's `period_end`, a standalone expense's
+    at its own `event_date`.
+    """
+    effective_date = func.coalesce(CheckIn.period_end, ExpenseEvent.event_date)
+    bucket_amount = ExpenseEvent.amount - ExpenseEvent.paid_out_of_pocket
+    stmt = (
+        select(bucket_amount)
+        .outerjoin(CheckIn, ExpenseEvent.check_in_id == CheckIn.id)
+        .where(ExpenseEvent.bucket_id == bucket_id, effective_date < period_end)
+    )
+    return list(session.scalars(stmt).all())
 
 
 def list_expenses_by_check_in(session: Session, bucket_id: uuid.UUID) -> dict[uuid.UUID, list[ExpenseEvent]]:

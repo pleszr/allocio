@@ -186,6 +186,10 @@
   "checkin": {
     "loading": "Loading check-in…",
     "not_found": "Asset not found.",
+    "loading_edit_target": "Loading check-in to edit…",
+    "edit_not_found": "Could not load this check-in.",
+    "editing_past_period": "Editing the check-in for {{date}} — the period, usage, and tire type are locked; only expenses can change.",
+    "edit_would_break_balance": "This edit would leave the check-in posted on {{date}} with a negative balance. Adjust the expenses and try again.",
     "eyebrow_last": "Check-in · last on {{date}}",
     "eyebrow_first": "Check-in · first check-in",
     "heading_days": "What's owed over the last {{days}} days?",
@@ -273,7 +277,8 @@
     "irregular_cadence": "{{days}} days since previous check-in — outside the usual ~30-day cadence",
     "expand_expenses": "Show expense breakdown",
     "collapse_expenses": "Hide expense breakdown",
-    "expense_line_fallback": "Expense"
+    "expense_line_fallback": "Expense",
+    "edit_check_in": "Edit this check-in"
   },
   "newBucket": {
     "title": "New bucket",

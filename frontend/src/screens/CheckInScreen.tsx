@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError } from "../api/client";
-import type { CheckInPreview, ExpenseDraft, MaintenanceItem, TireType } from "../api/types";
+import type { CheckInPreview, EditCheckInPreview, ExpenseDraft, ExpenseLine, MaintenanceItem, TireType } from "../api/types";
 import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { useCurrency } from "../utils/currency";
 import { daysBetween, fmtDate, fmtNumber, todayIso } from "../utils/format";
 import { maintenancePill } from "../utils/maintenanceStatus";
 import { useAsync } from "../utils/useAsync";
+
+// Either preview shape renders through the same Step 2 card and confirm panel below; only the
+// extra edit-only validity fields (is_valid/first_invalid_*) are edit-mode-specific.
+type AnyPreview = CheckInPreview | EditCheckInPreview;
 
 const TIRE_TYPES: TireType[] = ["summer", "winter", "all_season"];
 
@@ -43,15 +47,36 @@ function toExpenseDrafts(drafts: DraftExpense[]): ExpenseDraft[] {
     }));
 }
 
-interface CheckInScreenProps {
-  assetId: string;
-  onPosted: () => void;
+// Seeds edit mode's draft rows from a stored check-in's posted expense lines. The stored split is
+// treated as the caller's override: re-saving the draft unchanged reproduces the same numbers, since
+// `paid_out_of_pocket` is passed through as-is instead of being re-derived from scratch.
+function draftsFromExpenseLines(lines: ExpenseLine[]): DraftExpense[] {
+  return lines.map((line, index) => ({
+    key: index,
+    kind: line.kind,
+    amount: String(line.amount),
+    pocketOverride: String(line.paid_out_of_pocket),
+    comment: line.comment ?? "",
+    maintenanceItemId: line.source_type === "maintenance_item" && line.source_id ? line.source_id : "",
+  }));
 }
 
-export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
+interface CheckInScreenProps {
+  assetId: string;
+  editCheckInId?: string;
+  onSaved: () => void;
+  onEditSaved: () => void;
+}
+
+export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: CheckInScreenProps) {
   const { t } = useTranslation();
   const fmt = useCurrency();
+  const isEdit = editCheckInId !== undefined;
   const detail = useAsync(() => api.getAsset(assetId), [assetId]);
+  const editTarget = useAsync(
+    () => (editCheckInId ? api.getCheckIn(assetId, editCheckInId) : Promise.resolve(null)),
+    [assetId, editCheckInId],
+  );
 
   const [usageEnd, setUsageEnd] = useState<string>("");
   const [periodEnd, setPeriodEnd] = useState<string>(todayIso());
@@ -59,7 +84,7 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
   const [draftExpenses, setDraftExpenses] = useState<DraftExpense[]>([]);
   const nextExpenseKey = useRef(0);
   const previewRequestId = useRef(0);
-  const [preview, setPreview] = useState<CheckInPreview | null>(null);
+  const [preview, setPreview] = useState<AnyPreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [posting, setPosting] = useState(false);
@@ -102,16 +127,61 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
     [assetId],
   );
 
-  // Seed the usage field from the asset's current usage, then run the first preview. The first
-  // preview's `active_tire_type` reflects the server-resolved default (the previous posted
-  // check-in's value), which seeds the picker below.
+  const runEditPreview = useCallback(
+    async (expenses: ExpenseDraft[]) => {
+      if (!editCheckInId) return;
+      const requestId = ++previewRequestId.current;
+      setLoadingPreview(true);
+      setPreviewError(null);
+      try {
+        const result = await api.previewEditCheckIn(assetId, editCheckInId, { expenses });
+        if (requestId !== previewRequestId.current) return;
+        setPreview(result);
+      } catch (err) {
+        if (requestId !== previewRequestId.current) return;
+        setPreview(null);
+        setPreviewError(err instanceof ApiError ? err.message : t("checkin.preview_failed"));
+      } finally {
+        if (requestId === previewRequestId.current) setLoadingPreview(false);
+      }
+    },
+    [assetId, editCheckInId],
+  );
+
+  // New-check-in mode: seed the usage field from the asset's current usage, then run the first
+  // preview. The first preview's `active_tire_type` reflects the server-resolved default (the
+  // previous posted check-in's value), which seeds the picker below.
   useEffect(() => {
+    if (isEdit) return;
     if (!detail.data) return;
     const seed = detail.data.tracks_usage ? (detail.data.current_usage ?? 0) : null;
     setUsageEnd(seed === null ? "" : String(seed));
     void runPreview(seed, todayIso(), null, [], true);
-  }, [detail.data, runPreview]);
+  }, [isEdit, detail.data, runPreview]);
 
+  // Edit mode: seed the immutable period/usage/tire fields and the draft expenses from the stored
+  // check-in, then run the edit preview against that seeded state.
+  useEffect(() => {
+    if (!isEdit) return;
+    if (!editTarget.data) return;
+    const target = editTarget.data;
+    setPeriodEnd(target.period_end);
+    setUsageEnd(target.usage_end != null ? String(target.usage_end) : "");
+    setActiveTireType((target.active_tire_type as TireType | null) ?? null);
+    const seeded = draftsFromExpenseLines(target.expense_lines).map((d) => ({
+      ...d,
+      key: nextExpenseKey.current++,
+    }));
+    setDraftExpenses(seeded);
+    void runEditPreview(toExpenseDrafts(seeded));
+  }, [isEdit, editTarget.data, runEditPreview]);
+
+  if (isEdit) {
+    if (editTarget.loading) return <LoadingState label={t("checkin.loading_edit_target")} />;
+    if (editTarget.error || !editTarget.data) {
+      return <ErrorState message={editTarget.error ?? t("checkin.edit_not_found")} onRetry={editTarget.reload} />;
+    }
+  }
   if (detail.loading) return <LoadingState label={t("checkin.loading")} />;
   if (detail.error || !detail.data) {
     return <ErrorState message={detail.error ?? t("checkin.not_found")} onRetry={detail.reload} />;
@@ -157,21 +227,31 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
     setPosting(true);
     setPreviewError(null);
     try {
-      await api.postCheckIn(assetId, {
-        period_end: periodEnd,
-        usage_end: usageTracked ? Number(usageEnd) : null,
-        active_tire_type: activeTireType,
-        expenses: toExpenseDrafts(draftExpenses),
-      });
+      if (isEdit && editCheckInId) {
+        await api.editCheckIn(assetId, editCheckInId, {
+          expenses: toExpenseDrafts(draftExpenses),
+        });
+      } else {
+        await api.postCheckIn(assetId, {
+          period_end: periodEnd,
+          usage_end: usageTracked ? Number(usageEnd) : null,
+          active_tire_type: activeTireType,
+          expenses: toExpenseDrafts(draftExpenses),
+        });
+      }
       setPosted(true);
       setShowOutOfPocketDialog(false);
-      onPosted();
+      onSaved();
+      if (isEdit) onEditSaved();
     } catch (err) {
       setPreviewError(err instanceof ApiError ? err.message : t("checkin.posting_failed"));
     } finally {
       setPosting(false);
     }
   };
+
+  const editValidity: EditCheckInPreview | null = preview && "is_valid" in preview ? preview : null;
+  const editIsInvalid = editValidity !== null && editValidity.is_valid === false;
 
   return (
     <div className="content fade-in">
@@ -208,6 +288,11 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
               <span className="pill pill-accent">{t("checkin.required")}</span>
             </div>
             <div style={{ padding: "16px var(--pad) 20px" }}>
+              {isEdit && (
+                <div className="error-banner" style={{ marginBottom: 14, background: "var(--warn-bg, #fff7e6)" }}>
+                  {t("checkin.editing_past_period", { date: fmtDate(periodEnd) })}
+                </div>
+              )}
               <div
                 style={{
                   display: "grid",
@@ -219,36 +304,48 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
                   <label className="field-label" htmlFor="checkin-period-end">
                     {t("checkin.period_end")}
                   </label>
-                  <input
-                    id="checkin-period-end"
-                    className="input"
-                    type="date"
-                    max={todayIso()}
-                    value={periodEnd}
-                    onChange={(ev) => {
-                      invalidatePreview();
-                      setPeriodEnd(ev.target.value);
-                    }}
-                  />
+                  {isEdit ? (
+                    <div className="input" id="checkin-period-end">
+                      {fmtDate(periodEnd)}
+                    </div>
+                  ) : (
+                    <input
+                      id="checkin-period-end"
+                      className="input"
+                      type="date"
+                      max={todayIso()}
+                      value={periodEnd}
+                      onChange={(ev) => {
+                        invalidatePreview();
+                        setPeriodEnd(ev.target.value);
+                      }}
+                    />
+                  )}
                 </div>
                 {usageTracked && (
                   <div className="field">
                     <label className="field-label" htmlFor="checkin-usage-end">
                       {t("checkin.current_usage")}
                     </label>
-                    <div className="input-prefix-wrap">
-                      <input
-                        id="checkin-usage-end"
-                        className="input mono"
-                        type="number"
-                        value={usageEnd}
-                        onChange={(ev) => {
-                          invalidatePreview();
-                          setUsageEnd(ev.target.value);
-                        }}
-                      />
-                      <span className="input-suffix">km</span>
-                    </div>
+                    {isEdit ? (
+                      <div className="input mono" id="checkin-usage-end">
+                        {fmtNumber(Number(usageEnd || 0))} km
+                      </div>
+                    ) : (
+                      <div className="input-prefix-wrap">
+                        <input
+                          id="checkin-usage-end"
+                          className="input mono"
+                          type="number"
+                          value={usageEnd}
+                          onChange={(ev) => {
+                            invalidatePreview();
+                            setUsageEnd(ev.target.value);
+                          }}
+                        />
+                        <span className="input-suffix">km</span>
+                      </div>
+                    )}
                   </div>
                 )}
                 {hasTireItems && (
@@ -256,28 +353,36 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
                     <label className="field-label" htmlFor="checkin-tire-type">
                       {t("checkin.tire_type_label")}
                     </label>
-                    <select
-                      id="checkin-tire-type"
-                      className="input"
-                      value={activeTireType ?? ""}
-                      onChange={(ev) => {
-                        invalidatePreview();
-                        setActiveTireType((ev.target.value || null) as TireType | null);
-                      }}
-                    >
-                      <option value="">{t("checkin.tire_type_placeholder")}</option>
-                      {TIRE_TYPES.map((tire) => (
-                        <option key={tire} value={tire}>
-                          {t(`checkin.tire_${tire}`)}
-                        </option>
-                      ))}
-                    </select>
+                    {isEdit ? (
+                      <div className="input" id="checkin-tire-type">
+                        {activeTireType ? t(`checkin.tire_${activeTireType}`) : t("checkin.tire_type_placeholder")}
+                      </div>
+                    ) : (
+                      <select
+                        id="checkin-tire-type"
+                        className="input"
+                        value={activeTireType ?? ""}
+                        onChange={(ev) => {
+                          invalidatePreview();
+                          setActiveTireType((ev.target.value || null) as TireType | null);
+                        }}
+                      >
+                        <option value="">{t("checkin.tire_type_placeholder")}</option>
+                        {TIRE_TYPES.map((tire) => (
+                          <option key={tire} value={tire}>
+                            {t(`checkin.tire_${tire}`)}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 )}
               </div>
-              <div className="row-meta" style={{ marginTop: 8 }}>
-                {t("checkin.period_end_hint")}
-              </div>
+              {!isEdit && (
+                <div className="row-meta" style={{ marginTop: 8 }}>
+                  {t("checkin.period_end_hint")}
+                </div>
+              )}
 
               <hr className="hr" style={{ margin: "16px 0" }} />
               <div style={{ fontSize: 13.5, fontWeight: 500, marginBottom: 10 }}>{t("checkin.expenses_step_title")}</div>
@@ -304,13 +409,15 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
                   className="btn btn-outline btn-sm"
                   disabled={loadingPreview || hasInvalidExpense}
                   onClick={() =>
-                    runPreview(
-                      usageTracked ? Number(usageEnd || 0) : null,
-                      periodEnd,
-                      activeTireType,
-                      toExpenseDrafts(draftExpenses),
-                      false,
-                    )
+                    isEdit
+                      ? runEditPreview(toExpenseDrafts(draftExpenses))
+                      : runPreview(
+                          usageTracked ? Number(usageEnd || 0) : null,
+                          periodEnd,
+                          activeTireType,
+                          toExpenseDrafts(draftExpenses),
+                          false,
+                        )
                   }
                 >
                   {loadingPreview ? t("checkin.calculating") : t("checkin.update_preview")}
@@ -455,10 +562,15 @@ export function CheckInScreen({ assetId, onPosted }: CheckInScreenProps) {
             <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
               {t("checkin.confirm_desc", { name: e.name })}
             </div>
+            {editIsInvalid && editValidity?.first_invalid_period_end && (
+              <div className="error-banner" style={{ marginTop: 12 }}>
+                {t("checkin.edit_would_break_balance", { date: fmtDate(editValidity.first_invalid_period_end) })}
+              </div>
+            )}
             <button
               className="btn btn-primary"
               style={{ width: "100%", marginTop: 14, height: 38, justifyContent: "center" }}
-              disabled={!preview || posting || posted || hasInvalidExpense}
+              disabled={!preview || posting || posted || hasInvalidExpense || editIsInvalid}
               onClick={() => {
                 if (preview && preview.paid_out_of_pocket > 0) {
                   setShowOutOfPocketDialog(true);
@@ -528,7 +640,7 @@ function ExpenseRow({
 }: {
   row: DraftExpense;
   index: number;
-  preview: CheckInPreview | null;
+  preview: AnyPreview | null;
   maintenanceItems: MaintenanceItem[];
   onChange: (changes: Partial<DraftExpense>) => void;
   onRemove: () => void;

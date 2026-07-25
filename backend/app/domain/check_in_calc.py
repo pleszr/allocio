@@ -178,6 +178,92 @@ def compute_check_in(
     )
 
 
+@dataclass(frozen=True)
+class CheckInEditComputation:
+    """The financial result of editing a posted check-in's expenses; the period itself is unchanged."""
+
+    expense_lines: Sequence[ExpenseLine]
+    total_expense: Decimal
+    total_bucket_expense: Decimal
+    paid_out_of_pocket: Decimal
+    net_bucket_change: Decimal
+    balance_after: Decimal
+
+
+def compute_check_in_edit(
+    *,
+    total_allocation: Decimal,
+    expense_drafts: Sequence[ExpenseDraftInput],
+    prior_allocation_amounts: Sequence[Decimal],
+    prior_expense_amounts: Sequence[Decimal],
+) -> CheckInEditComputation:
+    """Recompute a posted check-in's expense split, reusing the period's own already-posted allocation total.
+
+    Mirrors `compute_check_in`'s expense half exactly (same `_expense_lines` split, same formulas), but
+    with two deliberate differences: ``total_allocation`` is never recomputed from current cost rows —
+    the caller passes the check-in's own already-posted allocation total, so an edit never picks up a
+    since-changed cost rate for a past period — and ``prior_allocation_amounts``/``prior_expense_amounts``
+    mean "everything posted strictly before this check-in's period", not "everything posted so far"
+    (see the service layer, which scopes both queries to `period_end < check_in.period_end`).
+
+    Args:
+        total_allocation: The check-in's own posted allocation total (sum of its `AllocationEvent` rows).
+        expense_drafts: The submitted replacement expenses for this check-in.
+        prior_allocation_amounts: Posted allocation amounts strictly before this check-in's period.
+        prior_expense_amounts: Bucket-covered posted expense amounts strictly before this check-in's period.
+
+    Returns:
+        The assembled `CheckInEditComputation`.
+    """
+    balance_before = max(bucket_balance(prior_allocation_amounts, prior_expense_amounts), Decimal(0))
+    available = max(balance_before + total_allocation, Decimal(0))
+    expense_lines = _expense_lines(expense_drafts, available)
+    total_expense = sum((line.amount for line in expense_lines), Decimal(0))
+    total_bucket_expense = sum((line.bucket_amount for line in expense_lines), Decimal(0))
+    paid_out_of_pocket = sum((line.paid_out_of_pocket for line in expense_lines), Decimal(0))
+    net_bucket_change = total_allocation - total_bucket_expense
+    balance_after = max(balance_before + net_bucket_change, Decimal(0))
+
+    return CheckInEditComputation(
+        expense_lines=expense_lines,
+        total_expense=total_expense,
+        total_bucket_expense=total_bucket_expense,
+        paid_out_of_pocket=paid_out_of_pocket,
+        net_bucket_change=net_bucket_change,
+        balance_after=balance_after,
+    )
+
+
+def first_balance_break(
+    balance_before_edited: Decimal,
+    edited_net_bucket_change: Decimal,
+    subsequent_nets: Sequence[tuple[uuid.UUID, date, Decimal]],
+) -> tuple[uuid.UUID, date] | None:
+    """Walk the unclamped running balance forward from the edited check-in.
+
+    Each item of ``subsequent_nets`` is ``(check_in_id, period_end, net)`` for one later posted
+    check-in, in period order, where ``net = allocated - bucket_expense`` from that check-in's own
+    existing (unchanged) totals. The walk never clamps at zero between steps (unlike the History
+    ledger's display balance in `CheckInHistoryService._build_rows`): a dip below zero here means a
+    later already-posted expense's fixed ``bucket_amount`` would exceed what was actually available
+    afterward, which is exactly the invariant this feature must protect.
+
+    Args:
+        balance_before_edited: The bucket balance immediately before the edited check-in's period.
+        edited_net_bucket_change: The edited check-in's own (always non-negative-resulting) net change.
+        subsequent_nets: Later posted check-ins' own nets, in period order.
+
+    Returns:
+        The first ``(check_in_id, period_end)`` where the running total would go negative, or `None`.
+    """
+    running = balance_before_edited + edited_net_bucket_change
+    for check_in_id, period_end, net in subsequent_nets:
+        running += net
+        if running < 0:
+            return check_in_id, period_end
+    return None
+
+
 def _time_based_lines(
     costs: Sequence[TimeBasedCostInput], period_start: date, elapsed_days: int
 ) -> list[AllocationLine]:
