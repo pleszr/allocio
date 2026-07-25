@@ -6,6 +6,7 @@ type AverageAllocation = {
 };
 
 test("dashboard renders backend-derived allocation and annual-service signals", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
   const bucketName = "E2E Dashboard Signals Car";
   let averageAllocation: AverageAllocation = { amount: 200, months: 3 };
 
@@ -35,6 +36,19 @@ test("dashboard renders backend-derived allocation and annual-service signals", 
   await assertAverage(averageBlock, "200 Ft", 3);
   await expect(dashboard.getByText("Next allocation", { exact: true })).toHaveCount(0);
   await expect(annualServiceKpi).toContainText("Set the last service odometer");
+  await assertDashboardWidgetLayout(page, dashboard);
+
+  const threeMonthHistory = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return url.pathname === `/api/assets/${assetId}/balance-history` && url.searchParams.get("months") === "3";
+  });
+  await dashboard.getByRole("button", { name: "3M", exact: true }).click();
+  await threeMonthHistory;
+  await expect(dashboard.getByRole("button", { name: "3M", exact: true })).toHaveAttribute("aria-pressed", "true");
+
+  await page.setViewportSize({ width: 800, height: 1000 });
+  await assertDashboardWidgetLayout(page, dashboard, true);
+  await page.setViewportSize({ width: 1440, height: 1000 });
 
   averageAllocation = { amount: 1200, months: 6 };
   await reloadDashboard(page, bucketName);
@@ -111,4 +125,50 @@ async function reloadDashboard(page: Page, bucketName: string): Promise<void> {
 async function assertAverage(block: ReturnType<Page["locator"]>, amount: string, months: 3 | 6 | 12): Promise<void> {
   await expect(block.getByText(amount, { exact: true })).toBeVisible();
   await expect(block.getByText(`Average over the last ${months} months`, { exact: true })).toBeVisible();
+}
+
+async function assertDashboardWidgetLayout(
+  page: Page,
+  dashboard: ReturnType<Page["locator"]>,
+  stacked = false,
+): Promise<void> {
+  const widgetGrid = dashboard.locator(".col-2");
+  const maintenanceCard = widgetGrid.locator(":scope > .card");
+  const rightStack = widgetGrid.locator(":scope > .stack");
+  const recentActivityCard = rightStack.locator(".card").filter({ hasText: "Recent activity" });
+  const balanceHistoryCard = rightStack.locator(".card").filter({ hasText: "Balance history" });
+  const dashboardCards = dashboard.locator(".card");
+
+  await expect(recentActivityCard).toBeVisible();
+  await expect(balanceHistoryCard).toBeVisible();
+  await expect(dashboardCards.last()).toContainText("Balance history");
+
+  const titles = await dashboard.locator(".card-title").allTextContents();
+  expect(titles.indexOf("Recent activity")).toBeLessThan(titles.indexOf("Balance history"));
+  expect(titles.at(-1)).toBe("Balance history");
+
+  const [dashboardBox, maintenanceBox, rightStackBox, balanceBox] = await Promise.all([
+    dashboard.boundingBox(),
+    maintenanceCard.boundingBox(),
+    rightStack.boundingBox(),
+    balanceHistoryCard.boundingBox(),
+  ]);
+  expect(dashboardBox).not.toBeNull();
+  expect(maintenanceBox).not.toBeNull();
+  expect(rightStackBox).not.toBeNull();
+  expect(balanceBox).not.toBeNull();
+
+  if (stacked) {
+    expect(rightStackBox!.x).toBeCloseTo(maintenanceBox!.x, 0);
+    expect(rightStackBox!.y).toBeGreaterThanOrEqual(maintenanceBox!.y + maintenanceBox!.height - 1);
+    expect(balanceBox!.width / dashboardBox!.width).toBeGreaterThan(0.9);
+    const hasHorizontalOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    );
+    expect(hasHorizontalOverflow).toBe(false);
+  } else {
+    expect(rightStackBox!.x).toBeGreaterThan(maintenanceBox!.x + maintenanceBox!.width - 1);
+    expect(balanceBox!.width / dashboardBox!.width).toBeGreaterThan(0.42);
+    expect(balanceBox!.width / dashboardBox!.width).toBeLessThan(0.52);
+  }
 }
