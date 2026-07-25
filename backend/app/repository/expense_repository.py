@@ -1,8 +1,9 @@
 """Ownership-scoped persistence for asset expense events. Owns queries and flushes, never the transaction."""
 
 import uuid
+from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.domain.asset import Asset, Bucket
@@ -54,3 +55,17 @@ def list_expenses_for_bucket(session: Session, bucket_id: uuid.UUID) -> list[Exp
     """Return all expense events for the bucket ordered by `event_date` for stable output."""
     stmt = select(ExpenseEvent).where(ExpenseEvent.bucket_id == bucket_id).order_by(ExpenseEvent.event_date)
     return list(session.scalars(stmt).all())
+
+
+def sum_expense_amounts_by_check_in(session: Session, bucket_id: uuid.UUID) -> dict[uuid.UUID, Decimal]:
+    """Return each check-in's total posted expense amount, keyed by `check_in_id`, for the History ledger.
+
+    Excludes expenses with no `check_in_id` (manual `Other` expenses logged outside a check-in flow);
+    every expense the check-in flow posts carries one.
+    """
+    stmt = (
+        select(ExpenseEvent.check_in_id, func.sum(ExpenseEvent.amount))
+        .where(ExpenseEvent.bucket_id == bucket_id, ExpenseEvent.check_in_id.is_not(None))
+        .group_by(ExpenseEvent.check_in_id)
+    )
+    return {check_in_id: total for check_in_id, total in session.execute(stmt).all()}

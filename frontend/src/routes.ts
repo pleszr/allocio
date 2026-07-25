@@ -1,4 +1,4 @@
-export type AssetTab = "dashboard" | "costs" | "checkin";
+export type AssetTab = "dashboard" | "costs" | "checkin" | "history";
 export type CostsTab = "time" | "usage" | "maint";
 
 export type Route =

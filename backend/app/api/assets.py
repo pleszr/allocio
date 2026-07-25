@@ -11,6 +11,8 @@ from app.api.schemas.responses import (
     AssetSummaryResponse,
     BalanceHistoryResponse,
     BalancePointResponse,
+    CheckInHistoryResponse,
+    CheckInHistoryRowResponse,
     CreateAssetResponse,
     UpcomingExpenseResponse,
     WorkspaceOverviewResponse,
@@ -20,10 +22,12 @@ from app.common.message_bundle import INTERNAL_ERROR
 from app.services.asset_detail_service import AssetDetail, AssetDetailService
 from app.services.asset_service import AssetService, CostOverride, VehicleDetails
 from app.services.balance_history_service import BalanceHistory, BalanceHistoryService
+from app.services.check_in_history_service import CheckInHistory, CheckInHistoryService
 from app.services.dependencies import (
     get_asset_detail_service,
     get_asset_service,
     get_balance_history_service,
+    get_check_in_history_service,
     get_current_user_id,
     get_workspace_service,
 )
@@ -135,6 +139,30 @@ def get_balance_history(
 
 
 @router.get(
+    "/assets/{asset_id}/check-in-history",
+    summary="List an asset's posted check-ins as a running ledger",
+    description="""Returns every posted check-in for one owned asset, ordered oldest → newest, each
+    row carrying its usage, posted allocation and expense totals, net change, and the running bucket
+    balance after that check-in. An asset with no posted check-ins returns a 200 with an empty list.""",
+    response_model=CheckInHistoryResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "Ordered check-in ledger rows for the asset."},
+        404: {"description": "Asset or bucket not found for this user."},
+        500: {"description": INTERNAL_ERROR},
+    },
+)
+def get_check_in_history(
+    asset_id: uuid.UUID,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    service: CheckInHistoryService = Depends(get_check_in_history_service),
+) -> CheckInHistoryResponse:
+    """Delegate to the check-in-history service and map its DTO to the response model."""
+    history = service.check_in_history(user_id, asset_id)
+    return _to_check_in_history_response(history)
+
+
+@router.get(
     "/assets/{asset_id}",
     summary="Read one asset's detail payload",
     description="""Returns the composed dashboard payload for one owned asset: derived balance,
@@ -200,6 +228,28 @@ def _to_balance_history_response(history: BalanceHistory) -> BalanceHistoryRespo
         points=[
             BalancePointResponse(month=point.month, as_of=point.as_of, balance=point.balance)
             for point in history.points
+        ],
+    )
+
+
+def _to_check_in_history_response(history: CheckInHistory) -> CheckInHistoryResponse:
+    """Map the service `CheckInHistory` DTO to its Pydantic response, keeping the api layer off service DTOs."""
+    return CheckInHistoryResponse(
+        asset_id=history.asset_id,
+        currency=history.currency,
+        rows=[
+            CheckInHistoryRowResponse(
+                check_in_id=row.check_in_id,
+                period_end=row.period_end,
+                usage_end=row.usage_end,
+                usage_since_last=row.usage_since_last,
+                elapsed_days=row.elapsed_days,
+                allocated=row.allocated,
+                expense=row.expense,
+                net=row.net,
+                balance=row.balance,
+            )
+            for row in history.rows
         ],
     )
 

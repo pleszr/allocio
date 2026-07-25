@@ -14,6 +14,7 @@ import type { AssetTab, CostsTab, Route } from "./routes";
 import { CheckInScreen } from "./screens/CheckInScreen";
 import { CostsScreen } from "./screens/CostsScreen";
 import { DashboardScreen } from "./screens/DashboardScreen";
+import { HistoryScreen } from "./screens/HistoryScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { NewBucketScreen } from "./screens/NewBucketScreen";
 import { SignInScreen } from "./screens/SignInScreen";
@@ -100,6 +101,7 @@ function Workspace({ user }: { user: CurrentUser }) {
                 { value: "dashboard", label: t("tabs.dashboard") },
                 { value: "costs", label: t("tabs.costs") },
                 { value: "checkin", label: t("tabs.checkin") },
+                { value: "history", label: t("tabs.history") },
               ]}
             />
           )}
@@ -147,6 +149,9 @@ function Content({
           onChanged={() => workspace.reload()}
         />
       );
+    }
+    if (route.tab === "history") {
+      return <HistoryScreen assetId={route.assetId} />;
     }
     return (
       <CheckInScreen

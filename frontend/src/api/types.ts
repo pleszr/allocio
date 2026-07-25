@@ -118,6 +118,25 @@ export interface BalanceHistory {
   points: BalancePoint[];
 }
 
+// ── Check-in history (GET /api/assets/{id}/check-in-history) ───────────
+export interface CheckInHistoryRow {
+  check_in_id: string;
+  period_end: string;
+  usage_end: number | null;
+  usage_since_last: number | null;
+  elapsed_days: number;
+  allocated: number;
+  expense: number;
+  net: number;
+  balance: number;
+}
+
+export interface CheckInHistory {
+  asset_id: string;
+  currency: string;
+  rows: CheckInHistoryRow[];
+}
+
 // ── Cost rows ─────────────────────────────────────────────────────────
 export interface TimeBasedCost {
   id: string;

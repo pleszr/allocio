@@ -41,6 +41,26 @@ def get_latest_posted_check_in(session: Session, asset_id: uuid.UUID) -> CheckIn
     return session.scalars(stmt).one_or_none()
 
 
+def list_posted_check_ins(session: Session, asset_id: uuid.UUID) -> list[CheckIn]:
+    """Return every posted check-in for the asset, oldest first, for the History ledger."""
+    stmt = (
+        select(CheckIn)
+        .where(CheckIn.asset_id == asset_id, CheckIn.status == "posted")
+        .order_by(CheckIn.period_end)
+    )
+    return list(session.scalars(stmt).all())
+
+
+def sum_allocation_amounts_by_check_in(session: Session, bucket_id: uuid.UUID) -> dict[uuid.UUID, Decimal]:
+    """Return each check-in's total posted allocation amount, keyed by `check_in_id`, for the History ledger."""
+    stmt = (
+        select(AllocationEvent.check_in_id, func.sum(AllocationEvent.amount))
+        .where(AllocationEvent.bucket_id == bucket_id)
+        .group_by(AllocationEvent.check_in_id)
+    )
+    return {check_in_id: total for check_in_id, total in session.execute(stmt).all()}
+
+
 def list_posted_allocation_amounts(session: Session, bucket_id: uuid.UUID) -> list[Decimal]:
     """Return the amounts of every posted allocation event for the bucket, for balance reconstruction."""
     stmt = select(AllocationEvent.amount).where(AllocationEvent.bucket_id == bucket_id)
