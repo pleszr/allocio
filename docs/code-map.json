@@ -2676,8 +2676,8 @@
           "functions": [
             {
               "name": "_subtract_months_clamped",
-              "line_start": 372,
-              "line_end": 377,
+              "line_start": 414,
+              "line_end": 419,
               "hash": "93b9023d1d0998c8"
             }
           ],
@@ -2699,7 +2699,7 @@
             {
               "name": "AssetDetailService",
               "line_start": 96,
-              "line_end": 369,
+              "line_end": 411,
               "hash": "c65708019479c220",
               "methods": [
                 {
@@ -2739,22 +2739,22 @@
                   "hash": "201633da7dc8c4b9"
                 },
                 {
-                  "name": "_daily_usage_rate",
-                  "line_start": 345,
-                  "line_end": 357,
-                  "hash": "bbfd9b7751854755"
-                },
-                {
-                  "name": "_estimated_days_until",
-                  "line_start": 359,
-                  "line_end": 369,
-                  "hash": "c52a322eef87a01d"
-                },
-                {
                   "name": "_expense_items",
                   "line_start": 271,
                   "line_end": 284,
                   "hash": "8db35bc628980551"
+                },
+                {
+                  "name": "_forecast_average_monthly_usage",
+                  "line_start": 384,
+                  "line_end": 411,
+                  "hash": "ceb6b724e833e3d2"
+                },
+                {
+                  "name": "_maintenance_trigger_days",
+                  "line_start": 368,
+                  "line_end": 382,
+                  "hash": "a2bf91de3bc5b257"
                 },
                 {
                   "name": "_manual_extra_recommendation",
@@ -2777,19 +2777,25 @@
                 {
                   "name": "_upcoming_expenses",
                   "line_start": 296,
-                  "line_end": 303,
-                  "hash": "ec81c5137577fbac"
+                  "line_end": 306,
+                  "hash": "4338a3ce1ce3afbb"
                 },
                 {
                   "name": "_upcoming_maintenance",
-                  "line_start": 323,
-                  "line_end": 343,
-                  "hash": "bf1f75ec81fc574a"
+                  "line_start": 326,
+                  "line_end": 338,
+                  "hash": "d800b84bbaacb31a"
+                },
+                {
+                  "name": "_upcoming_maintenance_candidate",
+                  "line_start": 340,
+                  "line_end": 366,
+                  "hash": "94e8d6092e84d6b3"
                 },
                 {
                   "name": "_upcoming_time_based",
-                  "line_start": 305,
-                  "line_end": 321,
+                  "line_start": 308,
+                  "line_end": 324,
                   "hash": "b2ee95eeffc10d20"
                 },
                 {

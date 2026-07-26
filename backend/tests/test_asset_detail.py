@@ -1,5 +1,6 @@
 """GET /api/assets/{asset_id} composes one asset's dashboard payload (issue #23)."""
 import uuid
+from calendar import monthrange
 from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
@@ -175,6 +176,39 @@ def _upcoming(client: TestClient, asset_id: str) -> list[dict[str, object]]:
     return client.get(f"/api/assets/{asset_id}").json()["upcoming_expenses"]
 
 
+def _add_usage_check_in(
+    session: Session,
+    asset_id: str,
+    period_start: date,
+    period_end: date,
+    usage_start: int,
+    usage_end: int,
+) -> None:
+    session.add(
+        CheckIn(
+            asset_id=uuid.UUID(asset_id),
+            period_start=period_start,
+            period_end=period_end,
+            usage_start=usage_start,
+            usage_end=usage_end,
+            usage_amount=usage_end - usage_start,
+            status="posted",
+        )
+    )
+    session.flush()
+
+
+def _months_before(value: date, months: int) -> date:
+    target_month_index = value.year * 12 + value.month - 1 - months
+    target_year, zero_based_month = divmod(target_month_index, 12)
+    target_month = zero_based_month + 1
+    return date(
+        target_year,
+        target_month,
+        min(value.day, monthrange(target_year, target_month)[1]),
+    )
+
+
 def test_time_based_cost_due_within_horizon_appears(
     client: TestClient, backdate_asset_creation: Callable[[str], None]
 ) -> None:
@@ -250,6 +284,174 @@ def test_soon_maintenance_item_projects_days_from_usage_rate(
     assert upcoming[0]["overdue"] is False
 
 
+def test_ok_kilometer_item_inside_three_month_usage_forecast_appears(
+    client: TestClient,
+    db_session: Session,
+    backdate_asset_creation: Callable[[str], None],
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
+    today = date.today()
+    _add_usage_check_in(
+        db_session,
+        asset_id,
+        today - timedelta(days=30),
+        today,
+        usage_start=120000,
+        usage_end=121000,
+    )
+    row = _add_maintenance(
+        client,
+        asset_id,
+        label="Forecast service",
+        interval_km=10000,
+        last_serviced_at_odometer=113500,
+    )
+
+    upcoming = _upcoming(client, asset_id)
+
+    assert row["status"] == "ok"
+    assert [(item["name"], item["days_until"]) for item in upcoming] == [
+        ("Forecast service", 75)
+    ]
+
+
+def test_kilometer_forecast_includes_exact_three_month_boundary(
+    client: TestClient,
+    db_session: Session,
+    backdate_asset_creation: Callable[[str], None],
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
+    today = date.today()
+    _add_usage_check_in(
+        db_session,
+        asset_id,
+        today - timedelta(days=30),
+        today,
+        usage_start=120000,
+        usage_end=121059,
+    )
+    _add_maintenance(
+        client,
+        asset_id,
+        label="Annual service",
+        interval_km=10000,
+        last_serviced_at_odometer=114236,
+    )
+
+    upcoming = _upcoming(client, asset_id)
+
+    assert [(item["name"], item["days_until"]) for item in upcoming] == [
+        ("Annual service", 90)
+    ]
+
+
+def test_kilometer_forecast_excludes_one_kilometer_beyond_boundary(
+    client: TestClient,
+    db_session: Session,
+    backdate_asset_creation: Callable[[str], None],
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
+    today = date.today()
+    _add_usage_check_in(
+        db_session,
+        asset_id,
+        today - timedelta(days=30),
+        today,
+        usage_start=120000,
+        usage_end=121059,
+    )
+    _add_maintenance(
+        client,
+        asset_id,
+        label="Annual service",
+        interval_km=10000,
+        last_serviced_at_odometer=114237,
+    )
+
+    assert _upcoming(client, asset_id) == []
+
+
+def test_kilometer_forecast_uses_all_available_shorter_history(
+    client: TestClient,
+    db_session: Session,
+    backdate_asset_creation: Callable[[str], None],
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
+    today = date.today()
+    _add_usage_check_in(
+        db_session,
+        asset_id,
+        today - timedelta(days=60),
+        today,
+        usage_start=120000,
+        usage_end=121200,
+    )
+    _add_maintenance(
+        client,
+        asset_id,
+        label="Short-history service",
+        interval_km=10000,
+        last_serviced_at_odometer=113000,
+    )
+
+    upcoming = _upcoming(client, asset_id)
+
+    assert [(item["name"], item["days_until"]) for item in upcoming] == [
+        ("Short-history service", 90)
+    ]
+
+
+def test_kilometer_forecast_excludes_old_usage_and_prorates_cutoff_overlap(
+    client: TestClient,
+    db_session: Session,
+    backdate_asset_creation: Callable[[str], None],
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation, days=500)
+    today = date.today()
+    window_start = _months_before(today, 12)
+    straddling_start = window_start - timedelta(days=30)
+    straddling_end = window_start + timedelta(days=30)
+    later_days = (today - straddling_end).days
+    _add_usage_check_in(
+        db_session,
+        asset_id,
+        straddling_start - timedelta(days=60),
+        straddling_start,
+        usage_start=10000,
+        usage_end=110000,
+    )
+    _add_usage_check_in(
+        db_session,
+        asset_id,
+        straddling_start,
+        straddling_end,
+        usage_start=120000,
+        usage_end=120600,
+    )
+    current_usage = 120600 + later_days * 10
+    _add_usage_check_in(
+        db_session,
+        asset_id,
+        straddling_end,
+        today,
+        usage_start=120600,
+        usage_end=current_usage,
+    )
+    _add_maintenance(
+        client,
+        asset_id,
+        label="Cutoff service",
+        interval_km=100000,
+        last_serviced_at_odometer=current_usage - 99100,
+    )
+
+    upcoming = _upcoming(client, asset_id)
+
+    assert [(item["name"], item["days_until"]) for item in upcoming] == [
+        ("Cutoff service", 90)
+    ]
+
+
 def test_soon_maintenance_item_excluded_without_posted_usage(
     client: TestClient, backdate_asset_creation: Callable[[str], None]
 ) -> None:
@@ -261,6 +463,113 @@ def test_soon_maintenance_item_excluded_without_posted_usage(
     )  # 0.85 progress -> soon
 
     assert _upcoming(client, asset_id) == []
+
+
+def test_missing_usage_omits_kilometer_projection_but_keeps_overdue_and_time_candidates(
+    client: TestClient,
+    db_session: Session,
+    backdate_asset_creation: Callable[[str], None],
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
+    today = date.today()
+    db_session.add(
+        CheckIn(
+            asset_id=uuid.UUID(asset_id),
+            period_start=today - timedelta(days=30),
+            period_end=today,
+            status="posted",
+        )
+    )
+    db_session.flush()
+    _add_maintenance(
+        client,
+        asset_id,
+        label="Needs usage rate",
+        interval_km=10000,
+        last_serviced_at_odometer=111000,
+    )
+    _add_maintenance(
+        client,
+        asset_id,
+        label="Overdue now",
+        interval_km=10000,
+        last_serviced_at_odometer=109000,
+    )
+    _add_maintenance(
+        client,
+        asset_id,
+        label="Time forecast",
+        interval_months=12,
+        last_serviced_at_date=str(_months_before(today, 9)),
+    )
+
+    upcoming = _upcoming(client, asset_id)
+
+    assert [(item["name"], item["days_until"], item["overdue"]) for item in upcoming] == [
+        ("Overdue now", 0, True),
+        ("Time forecast", 90, False),
+    ]
+
+
+def test_ok_month_only_item_inside_three_month_window_appears(
+    client: TestClient, backdate_asset_creation: Callable[[str], None]
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
+    row = _add_maintenance(
+        client,
+        asset_id,
+        label="Annual service",
+        interval_months=12,
+        last_serviced_at_date=str(_months_before(date.today(), 9)),
+    )
+
+    upcoming = _upcoming(client, asset_id)
+
+    assert row["status"] == "ok"
+    assert [(item["name"], item["days_until"]) for item in upcoming] == [
+        ("Annual service", 90)
+    ]
+
+
+def test_dual_trigger_item_appears_once_at_earlier_trigger(
+    client: TestClient,
+    db_session: Session,
+    backdate_asset_creation: Callable[[str], None],
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
+    today = date.today()
+    _add_usage_check_in(
+        db_session,
+        asset_id,
+        today - timedelta(days=30),
+        today,
+        usage_start=120000,
+        usage_end=120300,
+    )
+    _add_maintenance(
+        client,
+        asset_id,
+        label="Kilometer first",
+        interval_km=10000,
+        last_serviced_at_odometer=110750,
+    )
+    _add_maintenance(
+        client,
+        asset_id,
+        label="Dual trigger",
+        interval_km=10000,
+        interval_months=12,
+        last_serviced_at_odometer=110900,
+        last_serviced_at_date=str(_months_before(today, 11)),
+    )
+
+    upcoming = _upcoming(client, asset_id)
+
+    assert [(item["name"], item["days_until"]) for item in upcoming] == [
+        ("Dual trigger", 30),
+        ("Kilometer first", 45),
+    ]
+    assert sum(item["name"] == "Dual trigger" for item in upcoming) == 1
 
 
 def test_inactive_maintenance_item_excluded(
@@ -287,6 +596,54 @@ def test_upcoming_expenses_ordered_by_days_until(
     days = [item["days_until"] for item in _upcoming(client, asset_id)]
     assert days == sorted(days)
     assert days[0] == 0  # the overdue maintenance item sorts first
+
+
+def test_upcoming_equal_day_rows_sort_by_name_then_category_and_exclude_inactive(
+    client: TestClient,
+    db_session: Session,
+    backdate_asset_creation: Callable[[str], None],
+) -> None:
+    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
+    today = date.today()
+    _add_usage_check_in(
+        db_session,
+        asset_id,
+        today - timedelta(days=30),
+        today,
+        usage_start=120000,
+        usage_end=120300,
+    )
+    _add_time_based(
+        client,
+        asset_id,
+        label="Same",
+        first_due_date=str(today + timedelta(days=30)),
+    )
+    _add_maintenance(
+        client,
+        asset_id,
+        label="same",
+        interval_km=10000,
+        last_serviced_at_odometer=110600,
+    )
+    inactive = _add_maintenance(
+        client,
+        asset_id,
+        label="Aardvark",
+        interval_km=10000,
+        last_serviced_at_odometer=110600,
+    )
+    client.patch(
+        f"/api/assets/{asset_id}/maintenance-items/{inactive['id']}",
+        json={"is_active": False},
+    )
+
+    upcoming = _upcoming(client, asset_id)
+
+    assert [(item["name"], item["category"], item["days_until"]) for item in upcoming] == [
+        ("same", "maintenance", 30),
+        ("Same", "time_based", 30),
+    ]
 
 
 # ── Manual extra + average usage (issue #88) ────────────────────────────
