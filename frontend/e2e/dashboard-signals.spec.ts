@@ -129,8 +129,10 @@ async function createVehicleBucket(page: Page, name: string): Promise<string> {
   await page.getByTestId("bucket-name-input").fill(name);
   await page.getByLabel("Manufacture year (optional)").fill("2020");
   await page.getByLabel("Current odometer").fill("120000");
-  await page.getByRole("button", { name: /Continue/ }).click();
-  await page.getByRole("button", { name: /Continue/ }).click();
+  await page.getByRole("button", { name: /Continue/ }).click(); // details -> costs
+  await page.getByRole("button", { name: /Continue/ }).click(); // costs -> safety
+  await page.getByRole("button", { name: /Continue/ }).click(); // safety -> ask-checkin
+  await page.getByRole("button", { name: "No", exact: true }).click(); // ask-checkin -> review
 
   const created = page.waitForResponse(
     (response) => response.url().endsWith("/api/assets") && response.request().method() === "POST",

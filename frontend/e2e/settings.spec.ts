@@ -21,8 +21,10 @@ test("change currency relabels money and language persists across reload", async
   await page.getByRole("button", { name: /Vehicle/ }).click();
   await catalogFetched;
   await page.getByTestId("bucket-name-input").fill("Currency Test Car");
-  await page.getByRole("button", { name: /Continue/ }).click();
-  await page.getByRole("button", { name: /Continue/ }).click();
+  await page.getByRole("button", { name: /Continue/ }).click(); // details -> costs
+  await page.getByRole("button", { name: /Continue/ }).click(); // costs -> safety
+  await page.getByRole("button", { name: /Continue/ }).click(); // safety -> ask-checkin
+  await page.getByRole("button", { name: "No", exact: true }).click(); // ask-checkin -> review
   await page.getByRole("button", { name: /Create bucket/ }).click();
   await expect(page.getByRole("heading", { name: "Currency Test Car" })).toBeVisible();
 
