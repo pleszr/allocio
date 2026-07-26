@@ -38,17 +38,29 @@ test("check-in date field cannot be set to a future date", async ({ page }) => {
 
   const today = new Date().toISOString().slice(0, 10);
   await expect(page.getByLabel("Period end")).toHaveAttribute("max", today);
+  await expect(page.getByRole("button", { name: /Update preview/ })).toHaveCount(0);
 });
 
 test("tire-type picker is seeded and expenses are sent with the preview request", async ({ page }) => {
   await createVehicleBucket(page, "E2E Tire Car");
+  const initialPreviewed = page.waitForResponse(
+    (r) => r.url().endsWith("/check-ins/preview") && r.request().method() === "POST",
+  );
   await page.getByRole("tab", { name: "Check-in" }).click();
+  await initialPreviewed;
+  await expect(page.getByRole("button", { name: /Update preview/ })).toHaveCount(0);
 
   // The vehicle template seeds tire-specific maintenance items, so the picker renders.
   const tirePicker = page.getByLabel("Active tire type");
   await expect(tirePicker).toBeVisible();
   // No prior check-in exists yet, so the server-resolved default is null (blank selection).
   await expect(tirePicker).toHaveValue("");
+
+  const previewed = page.waitForResponse((response) => {
+    if (!response.url().endsWith("/check-ins/preview")) return false;
+    const body = response.request().postDataJSON();
+    return body.active_tire_type === "winter" && body.expenses?.[0]?.comment === "Car wash";
+  });
   await tirePicker.selectOption("winter");
 
   // Add a manual "Other" expense.
@@ -56,8 +68,6 @@ test("tire-type picker is seeded and expenses are sent with the preview request"
   await page.getByLabel("Amount").fill("5000");
   await page.getByLabel("Comment").fill("Car wash");
 
-  const previewed = page.waitForResponse((r) => r.url().includes("/check-ins/preview"));
-  await page.getByRole("button", { name: /Update preview/ }).click();
   const previewResponse = await previewed;
   const previewBody = previewResponse.request().postDataJSON();
   expect(previewBody.active_tire_type).toBe("winter");
@@ -72,27 +82,34 @@ test("tire-type picker is seeded and expenses are sent with the preview request"
     },
   ]);
 
-  // Switch the same row to a maintenance-linked expense and re-preview.
+  // Switching the same row to a maintenance-linked expense automatically refreshes the preview.
+  const secondPreview = page.waitForResponse((response) => {
+    if (!response.url().endsWith("/check-ins/preview")) return false;
+    return response.request().postDataJSON().expenses?.[0]?.source_type === "maintenance_item";
+  });
   await page.getByLabel("Type", { exact: true }).selectOption({ label: "All-season tires" });
-
-  const secondPreview = page.waitForResponse((r) => r.url().includes("/check-ins/preview"));
-  await page.getByRole("button", { name: /Update preview/ }).click();
   const secondBody = (await secondPreview).request().postDataJSON();
   expect(secondBody.expenses).toHaveLength(1);
   expect(secondBody.expenses[0].source_type).toBe("maintenance_item");
   expect(secondBody.expenses[0].source_id).toBeTruthy();
 
-  // Removing the row drops it from the next preview request.
+  // Removing the row automatically drops it from the next preview request.
+  const thirdPreview = page.waitForResponse((response) => {
+    if (!response.url().endsWith("/check-ins/preview")) return false;
+    return response.request().postDataJSON().expenses?.length === 0;
+  });
   await page.getByRole("button", { name: "Remove" }).click();
-  const thirdPreview = page.waitForResponse((r) => r.url().includes("/check-ins/preview"));
-  await page.getByRole("button", { name: /Update preview/ }).click();
   const thirdBody = (await thirdPreview).request().postDataJSON();
   expect(thirdBody.expenses).toEqual([]);
 });
 
 test("out-of-pocket amount requires bilingual confirmation and stays out of the bucket", async ({ page }) => {
   await createVehicleBucket(page, "E2E Pocket Car");
+  const initialPreviewed = page.waitForResponse(
+    (r) => r.url().endsWith("/check-ins/preview") && r.request().method() === "POST",
+  );
   await page.getByRole("tab", { name: "Check-in" }).click();
+  await initialPreviewed;
 
   let postCount = 0;
   page.on("request", (request) => {
@@ -106,13 +123,16 @@ test("out-of-pocket amount requires bilingual confirmation and stays out of the 
   });
 
   await page.getByRole("button", { name: /Add expense/ }).click();
+  const previewed = page.waitForResponse((response) => {
+    if (!response.url().endsWith("/check-ins/preview") || !response.ok()) return false;
+    return response.request().postDataJSON().expenses?.[0]?.comment === "Unexpected repair";
+  });
   await page.getByLabel("Amount").fill("5000");
   await page.getByLabel("Comment").fill("Unexpected repair");
   await expect(page.getByRole("button", { name: "Confirm and post" })).toBeDisabled();
 
-  const previewed = page.waitForResponse((r) => r.url().includes("/check-ins/preview") && r.ok());
-  await page.getByRole("button", { name: /Update preview/ }).click();
   await previewed;
+  await expect(page.getByRole("button", { name: "Confirm and post" })).toBeEnabled();
   await expect(page.getByText("5,000.00 Ft", { exact: true }).first()).toBeVisible();
 
   await page.getByRole("button", { name: "Confirm and post" }).click();
@@ -169,21 +189,34 @@ test("out-of-pocket amount requires bilingual confirmation and stays out of the 
 
 test("paid-out-of-pocket override forces the full expense out of the bucket in the preview", async ({ page }) => {
   await createVehicleBucket(page, "E2E Override Car");
+  const initialPreviewed = page.waitForResponse(
+    (r) => r.url().endsWith("/check-ins/preview") && r.request().method() === "POST",
+  );
   await page.getByRole("tab", { name: "Check-in" }).click();
+  await initialPreviewed;
 
   // Advance the odometer (without advancing the calendar day) so the usage-based cost accrues a
   // positive allocation on this same-day baseline check-in, giving the bucket money available to
   // cover the upcoming expense naturally -- letting the override prove it forces the full amount
   // out of pocket anyway, rather than merely reflecting an already-zero bucket.
+  const usagePreviewed = page.waitForResponse((response) => {
+    if (!response.url().endsWith("/check-ins/preview") || !response.ok()) return false;
+    return response.request().postDataJSON().usage_end === 120600;
+  });
   await page.getByLabel("Current usage").fill("120600");
+  await expect(page.getByRole("button", { name: "Confirm and post" })).toBeDisabled();
+  await usagePreviewed;
+  await expect(page.getByRole("button", { name: "Confirm and post" })).toBeEnabled();
 
   await page.getByRole("button", { name: /Add expense/ }).click();
+  const previewed = page.waitForResponse((response) => {
+    if (!response.url().endsWith("/check-ins/preview") || !response.ok()) return false;
+    return response.request().postDataJSON().expenses?.[0]?.paid_out_of_pocket_override === 3000;
+  });
   await page.getByLabel("Amount").fill("3000");
   await page.getByLabel("Comment").fill("Car wash");
   await page.getByLabel("Paid out of pocket").fill("3000");
 
-  const previewed = page.waitForResponse((r) => r.url().includes("/check-ins/preview") && r.ok());
-  await page.getByRole("button", { name: /Update preview/ }).click();
   const previewResponse = await previewed;
   const previewBody = previewResponse.request().postDataJSON();
   expect(previewBody.expenses[0].paid_out_of_pocket_override).toBe(3000);
@@ -197,4 +230,42 @@ test("paid-out-of-pocket override forces the full expense out of the bucket in t
   await expect(pocketLine.locator(".checkin-line-amt")).toHaveText("3,000.00 Ft");
   const bucketLine = page.locator(".checkin-line").filter({ hasText: "Covered by bucket" });
   await expect(bucketLine.locator(".checkin-line-amt")).toHaveText("0.00 Ft");
+});
+
+test("a failed automatic preview can be retried without changing the form", async ({ page }) => {
+  await createVehicleBucket(page, "E2E Preview Error Car");
+
+  let shouldFail = true;
+  await page.route(/\/api\/assets\/[^/]+\/check-ins\/preview$/, async (route) => {
+    if (shouldFail) {
+      shouldFail = false;
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Temporary preview failure" }),
+      });
+      return;
+    }
+    await route.continue();
+  });
+
+  const failedPreview = page.waitForResponse(
+    (r) => r.url().endsWith("/check-ins/preview") && r.status() === 503,
+  );
+  await page.getByRole("tab", { name: "Check-in" }).click();
+  await failedPreview;
+
+  await expect(page.getByText("Temporary preview failure")).toBeVisible();
+  const confirm = page.getByRole("button", { name: "Confirm and post" });
+  await expect(confirm).toBeDisabled();
+
+  const retriedPreview = page.waitForResponse(
+    (r) => r.url().endsWith("/check-ins/preview") && r.ok(),
+  );
+  await page.getByRole("button", { name: "Retry calculation" }).click();
+  await retriedPreview;
+
+  await expect(page.getByText("Temporary preview failure")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Retry calculation" })).toHaveCount(0);
+  await expect(confirm).toBeEnabled();
 });

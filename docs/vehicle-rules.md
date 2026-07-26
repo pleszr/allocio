@@ -657,6 +657,9 @@ If the user-configured rate is:
   window. The cutoff is `as_of` shifted back 12 calendar months with day clamping. All allocation
   source types are included, including `manual_extra`; older and future-dated events are excluded.
   The result is currency-quantized and is zero when the window has no qualifying history.
+- **Avg. monthly paid out of pocket** is the same trailing 12-calendar-month window and cutoff as
+  average monthly cost, but sums only expense events' `paid_out_of_pocket` portions (no allocation
+  amounts) before dividing by 12. Currency-quantized; zero when the window has no qualifying history.
 - **Next maintenance** is the active maintenance view with the smallest non-null `remaining_km`.
   This excludes month-only rows and kilometer rows without a comparable current-usage/service
   baseline. Overdue distance remains clamped to zero. Equal distances sort by case-insensitive

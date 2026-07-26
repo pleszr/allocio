@@ -14,6 +14,7 @@ import type {
   CheckInDetail,
   CheckInHistory,
   CheckInPreview,
+  CostDistribution,
   CreateAssetRequest,
   CreateAssetResponse,
   CreateMaintenanceItemRequest,
@@ -77,6 +78,8 @@ const DECIMAL_KEYS = new Set([
   "manual_extra_recommended",
   "average_monthly_usage",
   "average_monthly_cost",
+  "avg_monthly_paid_out_of_pocket",
+  "total",
   // Template catalog rows carry a per-currency amount map (`amounts`/`amounts_per_unit`/
   // `estimated_costs`, e.g. `{"HUF": "11650.00", ...}`); the reviver runs bottom-up per key, so it
   // sees "HUF"/"EUR"/"USD" as the string value's own key before it sees the parent map's key.
@@ -146,6 +149,8 @@ export const api = {
   getBalanceHistory: (id: string, months = 12) =>
     request<BalanceHistory>(`/assets/${id}/balance-history?months=${months}`),
   getCheckInHistory: (id: string) => request<CheckInHistory>(`/assets/${id}/check-in-history`),
+  getCostDistribution: (id: string, months = 12) =>
+    request<CostDistribution>(`/assets/${id}/cost-distribution?months=${months}`),
 
   // Cost rows
   listTimeBasedCosts: (id: string) => request<TimeBasedCost[]>(`/assets/${id}/time-based-costs`),

@@ -78,6 +78,7 @@ class AssetDetail:
     vehicle_age_years: int | None
     tracked_in_app_months: int
     average_monthly_cost: Decimal
+    avg_monthly_paid_out_of_pocket: Decimal
     next_maintenance: NextMaintenance | None
     tracks_usage: bool
     current_usage: int | None
@@ -126,6 +127,7 @@ class AssetDetailService:
             ),
             tracked_in_app_months=calculator.whole_months(asset.created_at.date(), today),
             average_monthly_cost=self._average_monthly_cost(asset_id, today),
+            avg_monthly_paid_out_of_pocket=self._avg_monthly_paid_out_of_pocket(asset_id, today),
             next_maintenance=self._next_maintenance(maintenance_items),
             tracks_usage=vehicle_profile is not None,
             current_usage=self._costs.current_asset_usage(user_id, asset_id),
@@ -161,6 +163,23 @@ class AssetDetailService:
             Decimal(0),
         )
         return calculator.quantize_currency((allocated + out_of_pocket) / Decimal(12))
+
+    def _avg_monthly_paid_out_of_pocket(self, asset_id: uuid.UUID, as_of: date) -> Decimal:
+        """Average trailing 12-month out-of-pocket expense funding, excluding bucket-covered allocations."""
+        bucket = expense_repository.get_bucket_for_asset(self._session, asset_id)
+        if bucket is None:
+            return Decimal("0.00")
+        window_start = _subtract_months_clamped(as_of, 12)
+        expenses = expense_repository.list_expenses_for_bucket(self._session, bucket.id)
+        out_of_pocket = sum(
+            (
+                expense.paid_out_of_pocket
+                for expense in expenses
+                if window_start <= expense.event_date <= as_of
+            ),
+            Decimal(0),
+        )
+        return calculator.quantize_currency(out_of_pocket / Decimal(12))
 
     def _next_maintenance(
         self, maintenance_items: list[MaintenanceItemView]

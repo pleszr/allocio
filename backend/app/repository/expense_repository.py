@@ -92,6 +92,16 @@ def list_expenses_for_bucket(session: Session, bucket_id: uuid.UUID) -> list[Exp
     return list(session.scalars(stmt).all())
 
 
+def list_expenses_for_bucket_since(session: Session, bucket_id: uuid.UUID, since: date) -> list[ExpenseEvent]:
+    """Return expense events for the bucket with `event_date >= since`, ordered by `event_date`."""
+    stmt = (
+        select(ExpenseEvent)
+        .where(ExpenseEvent.bucket_id == bucket_id, ExpenseEvent.event_date >= since)
+        .order_by(ExpenseEvent.event_date)
+    )
+    return list(session.scalars(stmt).all())
+
+
 def list_bucket_expense_movements(session: Session, bucket_id: uuid.UUID) -> list[tuple[date, Decimal]]:
     """Return effective-date, covered-amount pairs used to reconstruct bucket balances.
 
