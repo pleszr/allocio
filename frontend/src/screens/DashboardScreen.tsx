@@ -84,6 +84,11 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
               {e.tracks_usage && e.current_usage !== null
                 ? `${fmtNumber(e.current_usage)} km`
                 : fmt(e.daily_accrual, { decimals: 2 })}
+              {e.tracks_usage && e.usage_since_last_check_in !== null && (
+                <span className="muted" style={{ fontSize: 12, fontWeight: 400, marginLeft: 8 }}>
+                  {t("dashboard.usage_since_last", { km: fmtNumber(e.usage_since_last_check_in) })}
+                </span>
+              )}
             </div>
           </div>
           <div>
@@ -109,23 +114,22 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
       <div className="kpi-grid" style={{ marginBottom: 24 }}>
         {e.tracks_usage ? (
           <div className="kpi">
-            <div className="kpi-label">{t("dashboard.vehicle_overview")}</div>
-            <div className="kpi-copy">
-              {e.vehicle_age_years !== null && (
-                <div className="kpi-copy-line">
-                  {t("dashboard.vehicle_age", { count: e.vehicle_age_years })}
-                </div>
-              )}
-              <div className="kpi-copy-line">
-                {t("dashboard.tracked_in_app", {
-                  duration: formatTrackedDuration(e.tracked_in_app_months, t),
-                })}
-              </div>
-              <div className="kpi-copy-line">
-                {t("dashboard.average_monthly_cost", {
-                  amount: fmt(e.average_monthly_cost, { decimals: 0 }),
-                })}
-              </div>
+            <div className="kpi-label">{t("dashboard.avg_monthly_cost_label")}</div>
+            <div className="num-lg">
+              {fmt(e.average_monthly_cost, { decimals: 0 })}
+              <span className="muted" style={{ fontSize: 14 }}>
+                {t("dashboard.per_mo")}
+              </span>
+            </div>
+            <div className="kpi-sub">
+              {e.vehicle_age_years !== null
+                ? t("dashboard.avg_monthly_cost_sub_with_age", {
+                    age: e.vehicle_age_years,
+                    duration: formatTrackedDuration(e.tracked_in_app_months, t),
+                  })
+                : t("dashboard.avg_monthly_cost_sub_no_age", {
+                    duration: formatTrackedDuration(e.tracked_in_app_months, t),
+                  })}
             </div>
           </div>
         ) : (
@@ -139,16 +143,19 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
             </div>
           </div>
         )}
-        {e.tracks_usage && e.current_usage !== null ? (
+        {e.tracks_usage ? (
           <div className="kpi">
-            <div className="kpi-label">{t("dashboard.current_usage")}</div>
+            <div className="kpi-label">{t("dashboard.paid_out_of_pocket_label")}</div>
             <div className="num-lg">
-              {fmtNumber(e.current_usage)} <span className="muted" style={{ fontSize: 14 }}>km</span>
+              {fmt(e.avg_monthly_paid_out_of_pocket, { decimals: 0 })}
+              <span className="muted" style={{ fontSize: 14 }}>
+                {t("dashboard.per_mo_avg")}
+              </span>
             </div>
             <div className="kpi-sub">
-              {e.usage_since_last_check_in !== null
-                ? t("dashboard.usage_since_checkin", { km: fmtNumber(e.usage_since_last_check_in) })
-                : t("dashboard.no_checkin_yet")}
+              {t("dashboard.consider_adding_extra", {
+                amount: fmt(e.manual_extra_recommended, { decimals: 0 }),
+              })}
             </div>
           </div>
         ) : (

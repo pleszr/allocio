@@ -515,6 +515,10 @@ class AssetDetailResponse(BaseModel):
         description="Every posted allocation amount plus every expense's paid-out-of-pocket amount inside the "
         "inclusive, calendar-month-clamped trailing 12-month window, divided by 12 and currency-quantized."
     )
+    avg_monthly_paid_out_of_pocket: Decimal = Field(
+        description="Every expense's paid-out-of-pocket amount (excluding allocations) inside the inclusive, "
+        "calendar-month-clamped trailing 12-month window, divided by 12 and currency-quantized."
+    )
     next_maintenance: NextMaintenanceResponse | None = Field(
         description="Active maintenance item with the smallest non-null remaining_km, tied by case-insensitive "
         "label then UUID; null when no kilometer-comparable item qualifies."

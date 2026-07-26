@@ -102,6 +102,7 @@ export interface AssetDetail {
   vehicle_age_years: number | null;
   tracked_in_app_months: number;
   average_monthly_cost: number;
+  avg_monthly_paid_out_of_pocket: number;
   next_maintenance: { label: string; remaining_km: number } | null;
   tracks_usage: boolean;
   current_usage: number | null;
