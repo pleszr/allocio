@@ -244,7 +244,7 @@
     "calculating": "Számítás…",
     "last_recorded": "Utoljára rögzített használat: {{usage}} km",
     "step2": "2. lépés",
-    "step2_title": "Az esedékes tételek áttekintése",
+    "step2_title": "Az allokáció áttekintése",
     "review_hint": "Adj meg érvényes elszámolási adatokat az előnézet automatikus kiszámításához.",
     "retry_preview": "Számítás újrapróbálása",
     "baseline_note": "Ez egy aznapi alapbejelentkezés: rögzíti a kezdőállapotot, de még nem gyűjt semmit. A következő bejelentkezésed mától kezdi a számolást.",

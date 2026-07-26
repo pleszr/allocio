@@ -244,7 +244,7 @@
     "calculating": "Calculating…",
     "last_recorded": "Last recorded usage: {{usage}} km",
     "step2": "Step 2",
-    "step2_title": "Review what's owed",
+    "step2_title": "Review the allocation",
     "review_hint": "Enter valid check-in details to calculate the preview automatically.",
     "retry_preview": "Retry calculation",
     "baseline_note": "This is a same-day baseline check-in: it records your starting point but accrues nothing yet. Your next check-in will start counting from today.",
