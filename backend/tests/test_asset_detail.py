@@ -406,6 +406,7 @@ def test_average_monthly_cost_includes_all_allocations_and_only_out_of_pocket_ex
     detail = _service_detail(db_session, asset_id, as_of)
 
     assert detail.average_monthly_cost == Decimal("40.00")
+    assert detail.avg_monthly_paid_out_of_pocket == Decimal("10.00")
 
 
 def test_average_monthly_cost_uses_inclusive_clamped_window_and_excludes_outside_events(
@@ -426,6 +427,7 @@ def test_average_monthly_cost_uses_inclusive_clamped_window_and_excludes_outside
     detail = _service_detail(db_session, asset_id, as_of)
 
     assert detail.average_monthly_cost == Decimal("30.00")
+    assert detail.avg_monthly_paid_out_of_pocket == Decimal("10.00")
 
 
 def test_average_monthly_cost_is_quantized_zero_without_history(
@@ -436,6 +438,7 @@ def test_average_monthly_cost_is_quantized_zero_without_history(
     detail = _service_detail(db_session, asset_id, date(2026, 7, 25))
 
     assert detail.average_monthly_cost == Decimal("0.00")
+    assert detail.avg_monthly_paid_out_of_pocket == Decimal("0.00")
 
 
 def test_next_maintenance_selects_nearest_active_comparable_item(

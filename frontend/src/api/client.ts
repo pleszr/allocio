@@ -77,6 +77,7 @@ const DECIMAL_KEYS = new Set([
   "manual_extra_recommended",
   "average_monthly_usage",
   "average_monthly_cost",
+  "avg_monthly_paid_out_of_pocket",
   // Template catalog rows carry a per-currency amount map (`amounts`/`amounts_per_unit`/
   // `estimated_costs`, e.g. `{"HUF": "11650.00", ...}`); the reviver runs bottom-up per key, so it
   // sees "HUF"/"EUR"/"USD" as the string value's own key before it sees the parent map's key.

@@ -248,6 +248,7 @@ def _to_asset_detail_response(detail: AssetDetail) -> AssetDetailResponse:
         vehicle_age_years=detail.vehicle_age_years,
         tracked_in_app_months=detail.tracked_in_app_months,
         average_monthly_cost=detail.average_monthly_cost,
+        avg_monthly_paid_out_of_pocket=detail.avg_monthly_paid_out_of_pocket,
         next_maintenance=(
             NextMaintenanceResponse(
                 label=detail.next_maintenance.label,

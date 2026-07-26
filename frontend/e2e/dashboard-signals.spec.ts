@@ -38,6 +38,8 @@ test("dashboard renders backend-derived vehicle overview and next-maintenance si
         vehicle_age_years: 6,
         tracked_in_app_months: trackedInAppMonths,
         average_monthly_cost: 1200,
+        avg_monthly_paid_out_of_pocket: 80,
+        manual_extra_recommended: 50,
         next_maintenance: nextMaintenance,
         current_usage: 121012,
         usage_since_last_check_in: 1012,
@@ -48,17 +50,17 @@ test("dashboard renders backend-derived vehicle overview and next-maintenance si
   const assetId = await createVehicleBucket(page, bucketName);
   const dashboard = page.locator(".content");
   const averageBlock = dashboard.locator(".entity-hero");
-  const overviewKpi = dashboard.locator(".kpi").filter({ hasText: "Vehicle overview" });
-  const currentUsageKpi = dashboard.locator(".kpi").filter({ hasText: "Current usage" });
+  const avgMonthlyCostKpi = dashboard.locator(".kpi").filter({ hasText: "Avg. monthly cost" });
+  const paidOutOfPocketKpi = dashboard.locator(".kpi").filter({ hasText: "Paid out of pocket" });
   const nextMaintenanceKpi = dashboard.locator(".kpi").filter({ hasText: "Next maintenance" });
 
   await assertAverage(averageBlock, "200 Ft", 3);
   await expect(dashboard.getByText("Next allocation", { exact: true })).toHaveCount(0);
-  await expect(overviewKpi).toContainText("Vehicle is 6 years old.");
-  await expect(overviewKpi).toContainText("It has been tracked in the app for 23 months.");
-  await expect(overviewKpi).toContainText("Average monthly cost over the last 12 months was 1,200 Ft.");
-  await expect(currentUsageKpi).toContainText("121,012");
-  await expect(currentUsageKpi).toContainText("+1,012 km since last check-in");
+  await expect(dashboard.locator(".hero-stat-val").first()).toContainText("+1,012 km since last");
+  await expect(avgMonthlyCostKpi).toContainText("1,200 Ft");
+  await expect(avgMonthlyCostKpi).toContainText("6 yr old vehicle · tracked 23 months");
+  await expect(paidOutOfPocketKpi).toContainText("80 Ft");
+  await expect(paidOutOfPocketKpi).toContainText("Consider adding 50 Ft/mo extra for safety");
   await expect(nextMaintenanceKpi).toContainText(
     "Next maintenance is Oil service and it is 1,500 km away.",
   );
@@ -92,8 +94,8 @@ test("dashboard renders backend-derived vehicle overview and next-maintenance si
   trackedInAppMonths = 24;
   nextMaintenance = null;
   await reloadDashboard(page, bucketName);
-  await expect(page.locator(".kpi").filter({ hasText: "Vehicle overview" })).toContainText(
-    "It has been tracked in the app for 2 years and 0 months.",
+  await expect(page.locator(".kpi").filter({ hasText: "Avg. monthly cost" })).toContainText(
+    "tracked 2 years and 0 months",
   );
   await expect(page.locator(".kpi").filter({ hasText: "Next maintenance" })).toContainText(
     "No upcoming kilometer-based maintenance is available.",
