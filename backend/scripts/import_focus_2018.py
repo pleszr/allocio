@@ -58,10 +58,14 @@ the requesting task for the full column-by-column diff):
   the annual_service due-date clock from the real visit date. A near-zero (~5e-08) floating-point
   artifact in the tire-cost columns at 2018-08-22 is treated as exactly zero and skipped instead,
   since it is Excel formula noise rather than a deliberate entry.
-- 2024-02-01's AK ('Kifizettuk zsebbol') value is negative (-23247 Ft), which does not fit the
-  paid-out-of-pocket model (`apply_pocket_overrides` assumes a non-negative amount to distribute
-  across that period's expense lines). Left as `expected_paid_out_of_pocket=None` for that period
-  rather than guessed at; flagged for Roland.
+- The AK ('Kifizettuk zsebbol') column was corrected by Roland after the first import: the sheet
+  originally had one negative cell (2024-02-01, -23247 Ft) that did not fit the paid-out-of-pocket
+  model (`apply_pocket_overrides` assumes a non-negative amount to distribute across that period's
+  expense lines). Roland's correction removed that cell (now blank) and also revised several other
+  AK values across the sheet (2020-01-01, 2020-02-01 newly populated; 2020-09-01, 2021-01-01,
+  2021-02-01, 2024-07-01, 2025-09-01 cleared to blank; 2025-03-01 and 2026-03-01 changed to new
+  amounts). `build_periods` reflects the corrected column exactly; no other column changed in the
+  re-read sheet (verified by a full fresh re-dump and diff against the original, not assumed).
 
 MAINTENANCE_BASELINE_RESETS covers the maintenance items that never receive a real posted expense
 anywhere in the 101 rows (front_brake_disc, rear_brake_disc, rear_brake_pad) using the sheet's own
@@ -347,7 +351,7 @@ def build_periods(source_map: SourceMap) -> list[Period]:
                 other("35000", "Imported from spreadsheet: uncategorized 'egyéb' cost, Jan 2020", date(2020, 1, 1), 262132),
             ],
             zero,
-            None,
+            Decimal("68000"),
         ),
         Period(
             date(2020, 2, 1),
@@ -355,7 +359,7 @@ def build_periods(source_map: SourceMap) -> list[Period]:
             None,
             [modeled("motorway_vignette", "44460", source_map, date(2020, 2, 1), 262792)],
             zero,
-            None,
+            Decimal("26128"),
         ),
         Period(date(2020, 3, 1), 263700, None, [], zero, None),
         Period(
@@ -379,7 +383,7 @@ def build_periods(source_map: SourceMap) -> list[Period]:
                 modeled("mandatory_liability_insurance", "67000", source_map, date(2020, 9, 1), 270601),
             ],
             zero,
-            Decimal("26000"),
+            None,
         ),
         Period(date(2020, 10, 1), 271684, None, [], zero, None),
         Period(
@@ -394,15 +398,14 @@ def build_periods(source_map: SourceMap) -> list[Period]:
             Decimal("20000"),
         ),
         Period(date(2020, 12, 1), 273730, None, [], zero, None),
-        # No expenses this period; AK's 30000 becomes a synthetic 'other' via apply_pocket_overrides.
-        Period(date(2021, 1, 1), 274983, None, [], zero, Decimal("30000")),
+        Period(date(2021, 1, 1), 274983, None, [], zero, None),
         Period(
             date(2021, 2, 1),
             275470,
             None,
             [modeled("motorway_vignette", "46000", source_map, date(2021, 2, 1), 275470)],
             zero,
-            Decimal("18020"),
+            None,
         ),
         Period(date(2021, 3, 1), 276391, None, [], zero, None),
         Period(date(2021, 4, 1), 277043, None, [], zero, None),
@@ -546,8 +549,6 @@ def build_periods(source_map: SourceMap) -> list[Period]:
                 modeled("seasonal_tire_change", "14000", source_map, date(2024, 2, 1), 326243),
             ],
             zero,
-            # AK is -23247 (negative) this row -- doesn't fit the paid-out-of-pocket model. Left
-            # unset rather than guessed at; see module docstring.
             None,
         ),
         Period(
@@ -574,7 +575,7 @@ def build_periods(source_map: SourceMap) -> list[Period]:
             None,
             [other("200000", "Imported from spreadsheet: uncategorized 'egyéb' cost, Jul 2024", date(2024, 7, 1), 332590)],
             zero,
-            Decimal("30406"),
+            None,
         ),
         Period(date(2024, 8, 1), 334053, None, [], zero, None),
         Period(
@@ -607,7 +608,7 @@ def build_periods(source_map: SourceMap) -> list[Period]:
                 other("38500", "Imported from spreadsheet: uncategorized 'egyéb' cost, Mar 2025", date(2025, 3, 1), 338006),
             ],
             zero,
-            Decimal("12169"),
+            Decimal("38300"),
         ),
         Period(date(2025, 4, 1), 338906, None, [], zero, None),
         Period(
@@ -634,7 +635,7 @@ def build_periods(source_map: SourceMap) -> list[Period]:
             None,
             [modeled("mandatory_liability_insurance", "50119", source_map, date(2025, 9, 1), 343740)],
             zero,
-            Decimal("31758"),
+            None,
         ),
         Period(date(2025, 10, 1), 343741, None, [], zero, None),
         Period(date(2025, 11, 1), 344151, None, [], zero, None),
@@ -656,7 +657,7 @@ def build_periods(source_map: SourceMap) -> list[Period]:
             None,
             [modeled("fuel_filter", "19000", source_map, date(2026, 3, 1), 344913)],
             Decimal("10000"),
-            Decimal("19000"),
+            Decimal("10000"),
         ),
         Period(
             date(2026, 4, 1),
