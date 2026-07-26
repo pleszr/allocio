@@ -57,7 +57,6 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
   const maintRows = maint.data ?? [];
 
   const activeTimeRows = timeRows.filter((t) => t.is_active);
-  const timePerDay = activeTimeRows.reduce((sum, row) => sum + row.daily_rate, 0);
   const timePerYear = activeTimeRows.reduce((sum, row) => sum + row.annualized_amount, 0);
   const usageRate = usageRows.filter((u) => u.is_active).reduce((s, u) => s + u.amount_per_unit, 0);
 
@@ -97,23 +96,27 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
         <div className="kpi">
           <div className="kpi-label">{t("costs.time_total")}</div>
           <div className="num-lg">
-            {fmt(timePerYear, { decimals: 0 })}
+            {fmt(timePerYear / 12, { decimals: 0 })}
             <span className="muted" style={{ fontSize: 14 }}>
-              {t("costs.per_yr")}
+              {t("costs.per_mo")}
             </span>
           </div>
-          <div className="kpi-sub">{t("costs.per_day_equivalent", { amount: fmt(timePerDay, { decimals: 2 }) })}</div>
+          <div className="kpi-sub">
+            {fmt(timePerYear, { decimals: 0 })}
+            {t("costs.per_yr")}
+          </div>
         </div>
         <div className="kpi">
           <div className="kpi-label">{t("costs.usage_rate")}</div>
           <div className="num-lg">
-            {fmt(usageRate, { decimals: 3 })}
+            {fmt(usageRate * avgMonthlyUsage, { decimals: 2 })}
             <span className="muted" style={{ fontSize: 14 }}>
-              {t("costs.per_unit")}
+              {t("costs.per_mo")}
             </span>
           </div>
           <div className="kpi-sub">
-            {t("costs.active_components", { count: usageRows.filter((u) => u.is_active).length })}
+            {fmt(usageRate, { decimals: 3 })}
+            {t("costs.per_unit")}
           </div>
         </div>
         <div className="kpi">

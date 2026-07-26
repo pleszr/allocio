@@ -46,7 +46,7 @@ test("editing a posted check-in's expense from History updates the ledger with n
   await page.getByLabel("Comment").fill("Car wash");
 
   const previewed = page.waitForResponse((r) => r.url().includes("/check-ins/preview") && r.ok());
-  await page.getByRole("button", { name: /Update preview/ }).click();
+  await page.getByRole("button", { name: /Recalculate totals/ }).click();
   await previewed;
 
   // This is a same-day, zero-accrual baseline (elapsed_days = 0), so the bucket has nothing
@@ -76,7 +76,7 @@ test("editing a posted check-in's expense from History updates the ledger with n
 
   await page.getByLabel("Amount").fill("8000");
   const editPreviewed = page.waitForResponse((r) => r.url().includes("/check-ins/") && r.url().includes("/preview") && r.ok());
-  await page.getByRole("button", { name: /Update preview/ }).click();
+  await page.getByRole("button", { name: /Recalculate totals/ }).click();
   await editPreviewed;
 
   const edited = page.waitForResponse(

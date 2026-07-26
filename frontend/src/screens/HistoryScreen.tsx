@@ -63,6 +63,7 @@ export function HistoryScreen({ assetId, onEditCheckIn }: HistoryScreenProps) {
                   <th className="col-num">{t("history.th_paid_out_of_pocket")}</th>
                   <th className="col-num">{t("history.th_net")}</th>
                   <th className="col-num">{t("history.th_balance")}</th>
+                  <th style={{ width: 1 }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -124,7 +125,10 @@ function HistoryRow({
 
   return (
     <>
-      <tr>
+      <tr
+        onClick={() => hasExpenses && setExpanded((v) => !v)}
+        className={hasExpenses ? "history-row-clickable" : undefined}
+      >
         <td className="col-name">
           {hasExpenses && (
             <button
@@ -132,20 +136,14 @@ function HistoryRow({
               className={`history-row-toggle${expanded ? " history-row-toggle-open" : ""}`}
               aria-expanded={expanded}
               aria-label={t(expanded ? "history.collapse_expenses" : "history.expand_expenses")}
-              onClick={() => setExpanded((v) => !v)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded((v) => !v);
+              }}
             >
               <Icon name="chevronRight" />
             </button>
           )}
-          <button
-            type="button"
-            className="history-row-toggle"
-            aria-label={t("history.edit_check_in")}
-            title={t("history.edit_check_in")}
-            onClick={() => onEdit(row.check_in_id)}
-          >
-            <Icon name="edit" size={14} />
-          </button>
           {fmtDate(row.period_end)}
           {irregularCadence && (
             <span
@@ -176,10 +174,21 @@ function HistoryRow({
         <td className="col-num" style={{ fontWeight: 600 }}>
           {fmt(row.balance, { decimals: 2 })}
         </td>
+        <td onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="history-row-toggle"
+            aria-label={t("history.edit_check_in")}
+            title={t("history.edit_check_in")}
+            onClick={() => onEdit(row.check_in_id)}
+          >
+            <Icon name="edit" size={14} />
+          </button>
+        </td>
       </tr>
       {expanded && (
         <tr className="history-detail-row">
-          <td colSpan={10}>
+          <td colSpan={11}>
             <ul className="history-expense-list">
               {row.expenses.map((line, index) => (
                 <li key={index} className="history-expense-line">

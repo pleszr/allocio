@@ -57,7 +57,7 @@ test("tire-type picker is seeded and expenses are sent with the preview request"
   await page.getByLabel("Comment").fill("Car wash");
 
   const previewed = page.waitForResponse((r) => r.url().includes("/check-ins/preview"));
-  await page.getByRole("button", { name: /Update preview/ }).click();
+  await page.getByRole("button", { name: /Recalculate totals/ }).click();
   const previewResponse = await previewed;
   const previewBody = previewResponse.request().postDataJSON();
   expect(previewBody.active_tire_type).toBe("winter");
@@ -76,7 +76,7 @@ test("tire-type picker is seeded and expenses are sent with the preview request"
   await page.getByLabel("Type", { exact: true }).selectOption({ label: "All-season tires" });
 
   const secondPreview = page.waitForResponse((r) => r.url().includes("/check-ins/preview"));
-  await page.getByRole("button", { name: /Update preview/ }).click();
+  await page.getByRole("button", { name: /Recalculate totals/ }).click();
   const secondBody = (await secondPreview).request().postDataJSON();
   expect(secondBody.expenses).toHaveLength(1);
   expect(secondBody.expenses[0].source_type).toBe("maintenance_item");
@@ -85,7 +85,7 @@ test("tire-type picker is seeded and expenses are sent with the preview request"
   // Removing the row drops it from the next preview request.
   await page.getByRole("button", { name: "Remove" }).click();
   const thirdPreview = page.waitForResponse((r) => r.url().includes("/check-ins/preview"));
-  await page.getByRole("button", { name: /Update preview/ }).click();
+  await page.getByRole("button", { name: /Recalculate totals/ }).click();
   const thirdBody = (await thirdPreview).request().postDataJSON();
   expect(thirdBody.expenses).toEqual([]);
 });
@@ -111,7 +111,7 @@ test("out-of-pocket amount requires bilingual confirmation and stays out of the 
   await expect(page.getByRole("button", { name: "Confirm and post" })).toBeDisabled();
 
   const previewed = page.waitForResponse((r) => r.url().includes("/check-ins/preview") && r.ok());
-  await page.getByRole("button", { name: /Update preview/ }).click();
+  await page.getByRole("button", { name: /Recalculate totals/ }).click();
   await previewed;
   await expect(page.getByText("5,000.00 Ft", { exact: true }).first()).toBeVisible();
 
@@ -183,7 +183,7 @@ test("paid-out-of-pocket override forces the full expense out of the bucket in t
   await page.getByLabel("Paid out of pocket").fill("3000");
 
   const previewed = page.waitForResponse((r) => r.url().includes("/check-ins/preview") && r.ok());
-  await page.getByRole("button", { name: /Update preview/ }).click();
+  await page.getByRole("button", { name: /Recalculate totals/ }).click();
   const previewResponse = await previewed;
   const previewBody = previewResponse.request().postDataJSON();
   expect(previewBody.expenses[0].paid_out_of_pocket_override).toBe(3000);

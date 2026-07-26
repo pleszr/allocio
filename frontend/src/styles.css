@@ -899,6 +899,8 @@ body {
 .history-row-toggle .icon { transition: transform 120ms ease; }
 .history-row-toggle-open .icon { transform: rotate(90deg); }
 
+.history-row-clickable { cursor: pointer; }
+
 .history-detail-row td {
   background: var(--surface-sunk);
   padding: 12px var(--pad) 12px calc(var(--pad) + 22px);
