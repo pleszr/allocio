@@ -14,6 +14,7 @@ import { useAsync } from "../utils/useAsync";
 type AnyPreview = CheckInPreview | EditCheckInPreview;
 
 const TIRE_TYPES: TireType[] = ["summer", "winter", "all_season"];
+const PREVIEW_DEBOUNCE_MS = 300;
 
 interface DraftExpense {
   key: number;
@@ -25,11 +26,12 @@ interface DraftExpense {
 }
 
 function isDraftExpenseInvalid(draft: DraftExpense): boolean {
-  if (draft.amount === "" || Number(draft.amount) <= 0) return true;
+  const amount = Number(draft.amount);
+  if (draft.amount === "" || !Number.isFinite(amount) || amount <= 0) return true;
   if (draft.kind === "modeled" && draft.maintenanceItemId === "") return true;
   if (draft.pocketOverride !== "") {
     const override = Number(draft.pocketOverride);
-    if (!Number.isFinite(override) || override < 0 || override > Number(draft.amount)) return true;
+    if (!Number.isFinite(override) || override < 0 || override > amount) return true;
   }
   return false;
 }
@@ -84,14 +86,24 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
   const [draftExpenses, setDraftExpenses] = useState<DraftExpense[]>([]);
   const nextExpenseKey = useRef(0);
   const previewRequestId = useRef(0);
+  const initialNewPreviewSucceeded = useRef(false);
+  const [formInitialized, setFormInitialized] = useState(false);
   const [preview, setPreview] = useState<AnyPreview | null>(null);
+  const [previewIsCurrent, setPreviewIsCurrent] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [postingError, setPostingError] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
   const [posted, setPosted] = useState(false);
   const [showOutOfPocketDialog, setShowOutOfPocketDialog] = useState(false);
 
   const usageTracked = detail.data?.tracks_usage ?? false;
+  const hasInvalidExpense = draftExpenses.some(isDraftExpenseInvalid);
+  const usageValue = Number(usageEnd);
+  const hasValidUsage =
+    !usageTracked || (usageEnd.trim() !== "" && Number.isFinite(usageValue));
+  const formIsPreviewable =
+    formInitialized && periodEnd.trim() !== "" && hasValidUsage && !hasInvalidExpense;
 
   const runPreview = useCallback(
     async (
@@ -114,11 +126,14 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
         if (requestId !== previewRequestId.current) return;
         setPreview(result);
         if (seedTireType) {
+          initialNewPreviewSucceeded.current = true;
           setActiveTireType((result.active_tire_type as TireType | null) ?? null);
         }
+        setPreviewIsCurrent(true);
       } catch (err) {
         if (requestId !== previewRequestId.current) return;
         setPreview(null);
+        setPreviewIsCurrent(false);
         setPreviewError(err instanceof ApiError ? err.message : t("checkin.preview_failed"));
       } finally {
         if (requestId === previewRequestId.current) setLoadingPreview(false);
@@ -137,9 +152,11 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
         const result = await api.previewEditCheckIn(assetId, editCheckInId, { expenses });
         if (requestId !== previewRequestId.current) return;
         setPreview(result);
+        setPreviewIsCurrent(true);
       } catch (err) {
         if (requestId !== previewRequestId.current) return;
         setPreview(null);
+        setPreviewIsCurrent(false);
         setPreviewError(err instanceof ApiError ? err.message : t("checkin.preview_failed"));
       } finally {
         if (requestId === previewRequestId.current) setLoadingPreview(false);
@@ -148,23 +165,38 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
     [assetId, editCheckInId],
   );
 
-  // New-check-in mode: seed the usage field from the asset's current usage, then run the first
-  // preview. The first preview's `active_tire_type` reflects the server-resolved default (the
-  // previous posted check-in's value), which seeds the picker below.
+  // New-check-in mode seeds the form once asset data arrives. The automatic-preview effect below
+  // sends the first request after this state settles; its server-resolved tire type seeds the
+  // picker without scheduling a duplicate request.
   useEffect(() => {
     if (isEdit) return;
     if (!detail.data) return;
     const seed = detail.data.tracks_usage ? (detail.data.current_usage ?? 0) : null;
+    previewRequestId.current += 1;
+    initialNewPreviewSucceeded.current = false;
+    nextExpenseKey.current = 0;
     setUsageEnd(seed === null ? "" : String(seed));
-    void runPreview(seed, todayIso(), null, [], true);
-  }, [isEdit, detail.data, runPreview]);
+    setPeriodEnd(todayIso());
+    setActiveTireType(null);
+    setDraftExpenses([]);
+    setPreview(null);
+    setPreviewIsCurrent(false);
+    setPreviewError(null);
+    setLoadingPreview(false);
+    setPostingError(null);
+    setPosted(false);
+    setShowOutOfPocketDialog(false);
+    setFormInitialized(true);
+  }, [isEdit, detail.data]);
 
-  // Edit mode: seed the immutable period/usage/tire fields and the draft expenses from the stored
-  // check-in, then run the edit preview against that seeded state.
+  // Edit mode likewise seeds the immutable fields and stored expenses first, then lets the single
+  // automatic-preview effect issue the initial edit preview.
   useEffect(() => {
     if (!isEdit) return;
     if (!editTarget.data) return;
     const target = editTarget.data;
+    previewRequestId.current += 1;
+    nextExpenseKey.current = 0;
     setPeriodEnd(target.period_end);
     setUsageEnd(target.usage_end != null ? String(target.usage_end) : "");
     setActiveTireType((target.active_tire_type as TireType | null) ?? null);
@@ -173,8 +205,57 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
       key: nextExpenseKey.current++,
     }));
     setDraftExpenses(seeded);
-    void runEditPreview(toExpenseDrafts(seeded));
-  }, [isEdit, editTarget.data, runEditPreview]);
+    setPreview(null);
+    setPreviewIsCurrent(false);
+    setPreviewError(null);
+    setLoadingPreview(false);
+    setPostingError(null);
+    setPosted(false);
+    setShowOutOfPocketDialog(false);
+    setFormInitialized(true);
+  }, [isEdit, editTarget.data]);
+
+  useEffect(() => {
+    if (!formInitialized || previewIsCurrent || previewError || loadingPreview) return;
+
+    previewRequestId.current += 1;
+    if (!formIsPreviewable) {
+      setPreview(null);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      const expenses = toExpenseDrafts(draftExpenses);
+      if (isEdit) {
+        void runEditPreview(expenses);
+      } else {
+        void runPreview(
+          usageTracked ? usageValue : null,
+          periodEnd,
+          activeTireType,
+          expenses,
+          !initialNewPreviewSucceeded.current,
+        );
+      }
+    }, PREVIEW_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    activeTireType,
+    draftExpenses,
+    formInitialized,
+    formIsPreviewable,
+    isEdit,
+    loadingPreview,
+    periodEnd,
+    previewError,
+    previewIsCurrent,
+    runEditPreview,
+    runPreview,
+    usageEnd,
+    usageTracked,
+    usageValue,
+  ]);
 
   if (isEdit) {
     if (editTarget.loading) return <LoadingState label={t("checkin.loading_edit_target")} />;
@@ -194,13 +275,13 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
   const flags = e.maintenance_items.filter((m) => m.status && m.status !== "ok");
   const hasTireItems = e.maintenance_items.some((m) => m.tire_type);
   const activeMaintenanceItems = e.maintenance_items.filter((m) => m.is_active);
-  const hasInvalidExpense = draftExpenses.some(isDraftExpenseInvalid);
 
   const invalidatePreview = () => {
     previewRequestId.current += 1;
     setLoadingPreview(false);
-    setPreview(null);
+    setPreviewIsCurrent(false);
     setPreviewError(null);
+    setPostingError(null);
     setPosted(false);
     setShowOutOfPocketDialog(false);
   };
@@ -223,9 +304,27 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
     setDraftExpenses((rows) => rows.filter((row) => row.key !== key));
   };
 
+  const retryPreview = () => {
+    if (!formIsPreviewable) return;
+    const expenses = toExpenseDrafts(draftExpenses);
+    setPreviewIsCurrent(false);
+    if (isEdit) {
+      void runEditPreview(expenses);
+    } else {
+      void runPreview(
+        usageTracked ? usageValue : null,
+        periodEnd,
+        activeTireType,
+        expenses,
+        !initialNewPreviewSucceeded.current,
+      );
+    }
+  };
+
   const post = async () => {
+    if (!preview || !previewIsCurrent) return;
     setPosting(true);
-    setPreviewError(null);
+    setPostingError(null);
     try {
       if (isEdit && editCheckInId) {
         await api.editCheckIn(assetId, editCheckInId, {
@@ -244,7 +343,7 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
       onSaved();
       if (isEdit) onEditSaved();
     } catch (err) {
-      setPreviewError(err instanceof ApiError ? err.message : t("checkin.posting_failed"));
+      setPostingError(err instanceof ApiError ? err.message : t("checkin.posting_failed"));
     } finally {
       setPosting(false);
     }
@@ -252,6 +351,8 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
 
   const editValidity: EditCheckInPreview | null = preview && "is_valid" in preview ? preview : null;
   const editIsInvalid = editValidity !== null && editValidity.is_valid === false;
+  const calculatingPreview =
+    formIsPreviewable && !previewIsCurrent && previewError === null;
 
   return (
     <div className="content fade-in">
@@ -404,42 +505,31 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
               </button>
               {hasInvalidExpense && <div className="row-meta" style={{ color: "var(--bad)", marginTop: 8 }}>{t("checkin.expense_invalid")}</div>}
 
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
-                <button
-                  className="btn btn-outline btn-sm"
-                  disabled={loadingPreview || hasInvalidExpense}
-                  onClick={() =>
-                    isEdit
-                      ? runEditPreview(toExpenseDrafts(draftExpenses))
-                      : runPreview(
-                          usageTracked ? Number(usageEnd || 0) : null,
-                          periodEnd,
-                          activeTireType,
-                          toExpenseDrafts(draftExpenses),
-                          false,
-                        )
-                  }
-                >
-                  {loadingPreview ? t("checkin.calculating") : t("checkin.update_preview")}
-                </button>
-                {usageTracked && e.current_usage !== null && (
-                  <span className="row-meta">{t("checkin.last_recorded", { usage: fmtNumber(e.current_usage) })}</span>
-                )}
-              </div>
+              {usageTracked && e.current_usage !== null && (
+                <div className="row-meta" style={{ marginTop: 14 }}>
+                  {t("checkin.last_recorded", { usage: fmtNumber(e.current_usage) })}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Step 2: review */}
-          <div className="card">
+          <div className="card" aria-busy={calculatingPreview}>
             <div className="card-hd">
               <div>
                 <span className="card-title">{t("checkin.step2")}</span>{" "}
                 <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}>{t("checkin.step2_title")}</span>
               </div>
+              <span className="checkin-calculation-status row-meta" role="status" aria-live="polite">
+                {calculatingPreview ? t("checkin.calculating") : ""}
+              </span>
             </div>
             {previewError ? (
-              <div style={{ padding: "16px var(--pad)" }}>
+              <div className="checkin-preview-error" style={{ padding: "16px var(--pad)" }}>
                 <div className="error-banner">{previewError}</div>
+                <button className="btn btn-outline btn-sm" onClick={retryPreview}>
+                  {t("checkin.retry_preview")}
+                </button>
               </div>
             ) : !preview ? (
               <div style={{ padding: "16px var(--pad)" }} className="row-meta">
@@ -567,12 +657,27 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
                 {t("checkin.edit_would_break_balance", { date: fmtDate(editValidity.first_invalid_period_end) })}
               </div>
             )}
+            {postingError && (
+              <div className="error-banner" style={{ marginTop: 12 }}>
+                {postingError}
+              </div>
+            )}
             <button
               className="btn btn-primary"
               style={{ width: "100%", marginTop: 14, height: 38, justifyContent: "center" }}
-              disabled={!preview || posting || posted || hasInvalidExpense || editIsInvalid}
+              disabled={
+                !preview ||
+                !previewIsCurrent ||
+                calculatingPreview ||
+                loadingPreview ||
+                previewError !== null ||
+                posting ||
+                posted ||
+                !formIsPreviewable ||
+                editIsInvalid
+              }
               onClick={() => {
-                if (preview && preview.paid_out_of_pocket > 0) {
+                if (preview && previewIsCurrent && preview.paid_out_of_pocket > 0) {
                   setShowOutOfPocketDialog(true);
                 } else {
                   void post();
@@ -594,7 +699,7 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
           </div>
         </div>
       </div>
-      {showOutOfPocketDialog && preview && (
+      {showOutOfPocketDialog && preview && previewIsCurrent && (
         <div className="modal-backdrop">
           <div
             className="modal-card"
