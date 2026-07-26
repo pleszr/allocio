@@ -39,14 +39,19 @@ test("editing a posted check-in's expense from History updates the ledger with n
   page,
 }) => {
   await createVehicleBucket(page, "E2E Edit Car");
+  const initialPreviewed = page.waitForResponse(
+    (r) => r.url().endsWith("/check-ins/preview") && r.request().method() === "POST",
+  );
   await page.getByRole("tab", { name: "Check-in" }).click();
+  await initialPreviewed;
 
   await page.getByRole("button", { name: /Add expense/ }).click();
+  const previewed = page.waitForResponse((response) => {
+    if (!response.url().endsWith("/check-ins/preview") || !response.ok()) return false;
+    return response.request().postDataJSON().expenses?.[0]?.comment === "Car wash";
+  });
   await page.getByLabel("Amount").fill("5000");
   await page.getByLabel("Comment").fill("Car wash");
-
-  const previewed = page.waitForResponse((r) => r.url().includes("/check-ins/preview") && r.ok());
-  await page.getByRole("button", { name: /Recalculate totals/ }).click();
   await previewed;
 
   // This is a same-day, zero-accrual baseline (elapsed_days = 0), so the bucket has nothing
@@ -66,18 +71,27 @@ test("editing a posted check-in's expense from History updates the ledger with n
   await expect(historyRow.locator("td").nth(5)).toContainText("−5,000.00 Ft");
 
   const editTargetFetched = page.waitForResponse((r) => /\/check-ins\/[^/]+$/.test(r.url()) && r.ok());
+  const initialEditPreviewed = page.waitForResponse(
+    (r) => /\/check-ins\/[^/]+\/preview$/.test(r.url()) && r.ok(),
+  );
   await page.getByRole("button", { name: "Edit this check-in" }).click();
   await editTargetFetched;
+  await initialEditPreviewed;
 
   // Editing a past period is clearly indicated, and the period end field renders read-only (a plain
   // display value, not the editable date `<input>` the new-check-in flow uses).
   await expect(page.getByText(/Editing the check-in for/)).toBeVisible();
   await expect(page.locator("input#checkin-period-end")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Update preview/ })).toHaveCount(0);
 
+  const editPreviewed = page.waitForResponse((response) => {
+    if (!/\/check-ins\/[^/]+\/preview$/.test(response.url()) || !response.ok()) return false;
+    return response.request().postDataJSON().expenses?.[0]?.amount === 8000;
+  });
   await page.getByLabel("Amount").fill("8000");
-  const editPreviewed = page.waitForResponse((r) => r.url().includes("/check-ins/") && r.url().includes("/preview") && r.ok());
-  await page.getByRole("button", { name: /Recalculate totals/ }).click();
+  await expect(page.getByRole("button", { name: /Confirm and post/ })).toBeDisabled();
   await editPreviewed;
+  await expect(page.getByRole("button", { name: /Confirm and post/ })).toBeEnabled();
 
   const edited = page.waitForResponse(
     (r) => /\/check-ins\/[^/]+$/.test(r.url()) && r.request().method() === "PATCH" && r.ok(),

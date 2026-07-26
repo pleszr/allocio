@@ -14,6 +14,7 @@ from app.services.auth_service import AuthService
 from app.services.balance_history_service import BalanceHistoryService
 from app.services.check_in_history_service import CheckInHistoryService
 from app.services.check_in_service import CheckInService
+from app.services.cost_distribution_service import CostDistributionService
 from app.services.cost_service import CostService
 from app.services.expense_service import ExpenseService
 from app.services.user_settings_service import UserSettingsService
@@ -76,6 +77,11 @@ def get_balance_history_service(session: Session = Depends(get_session)) -> Bala
 def get_check_in_history_service(session: Session = Depends(get_session)) -> CheckInHistoryService:
     """Provide a `CheckInHistoryService` for the read-only check-in-history route over the request-scoped session."""
     return CheckInHistoryService(session)
+
+
+def get_cost_distribution_service(session: Session = Depends(get_session)) -> CostDistributionService:
+    """Provide a `CostDistributionService` for the read-only cost-distribution route over the request-scoped session."""
+    return CostDistributionService(session)
 
 
 def get_asset_detail_service(session: Session = Depends(get_session)) -> AssetDetailService:

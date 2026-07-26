@@ -102,6 +102,7 @@ export interface AssetDetail {
   vehicle_age_years: number | null;
   tracked_in_app_months: number;
   average_monthly_cost: number;
+  avg_monthly_paid_out_of_pocket: number;
   next_maintenance: { label: string; remaining_km: number } | null;
   tracks_usage: boolean;
   current_usage: number | null;
@@ -131,6 +132,23 @@ export interface BalanceHistory {
   asset_id: string;
   currency: string;
   points: BalancePoint[];
+}
+
+// ── Cost distribution (GET /api/assets/{id}/cost-distribution) ─────────
+export interface CostDistributionSlice {
+  label: string;
+  source_type: string | null;
+  amount: number;
+}
+
+export interface CostDistribution {
+  asset_id: string;
+  currency: string;
+  window_start: string;
+  window_end: string;
+  months_with_data: number;
+  total: number;
+  slices: CostDistributionSlice[];
 }
 
 // ── Check-in history (GET /api/assets/{id}/check-in-history) ───────────

@@ -11,8 +11,8 @@ React 18 + TypeScript + Vite product app for Allocio. Built as static assets, no
 - `src/routes.ts` — the `Route` union used for local-state navigation (no React Router)
 - `src/styles.css` — global stylesheet ported from the design; theming keys off `data-theme` / `data-density` on `<html>`
 - `src/api/` — `types.ts` (TS mirrors of backend response/request shapes) and `client.ts` (typed `fetch` wrapper over `/api/*`)
-- `src/components/` — presentational + chrome components (Icon, Sparkline, Illustrations, Sidebar, TopBar, Tabs, StateView)
-- `src/screens/` — one file per screen (Home, Dashboard, Costs, CheckIn, History, NewBucket)
+- `src/components/` — presentational + chrome components (Icon, Sparkline, CostDistributionChart, Illustrations, Sidebar, TopBar, UserMenu, Tabs, StateView)
+- `src/screens/` — one file per screen (Home, Dashboard, Costs, CheckIn, History, NewBucket, SignIn)
 - `src/utils/` — pure helpers: `format.ts` (currency-agnostic number/date helpers), `assetType.ts`, `health.ts`, and the `useAsync` fetch hook, plus `currency.tsx` — the `CurrencyProvider` React context and `useCurrency()` hook that own money rendering (the display currency symbol and its placement). Money must be rendered through `useCurrency()`'s `fmt`, not a hardcoded symbol. Do NOT name this `lib/` — the repo `.gitignore` ignores `lib/`.
 - `vite.config.ts` — Vite config, dev server, and `/api` proxy to the backend (port defaults to
   `5173`, overridable via `VITE_DEV_PORT`; proxy target defaults to `http://localhost:8000`,
