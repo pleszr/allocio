@@ -195,7 +195,16 @@
     "save": "Save",
     "add": "Add",
     "active_toggle": "Active (drives future allocations)",
-    "save_failed": "Save failed."
+    "save_failed": "Save failed.",
+    "distribution_title": "Cost distribution",
+    "distribution_subtitle_one": "Based on {{count}} month of posted expenses",
+    "distribution_subtitle_other": "Based on {{count}} months of posted expenses",
+    "distribution_total": "Total",
+    "distribution_other": "Other",
+    "distribution_empty_title": "No expenses yet",
+    "distribution_empty_message": "Once you log expenses for this asset, their distribution will show up here.",
+    "distribution_toggle": "Toggle {{label}}",
+    "distribution_all_hidden": "Everything is hidden. Toggle an item back on to see the chart."
   },
   "checkin": {
     "loading": "Loading check-in…",

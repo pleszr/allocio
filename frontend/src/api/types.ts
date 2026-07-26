@@ -134,6 +134,23 @@ export interface BalanceHistory {
   points: BalancePoint[];
 }
 
+// ── Cost distribution (GET /api/assets/{id}/cost-distribution) ─────────
+export interface CostDistributionSlice {
+  label: string;
+  source_type: string | null;
+  amount: number;
+}
+
+export interface CostDistribution {
+  asset_id: string;
+  currency: string;
+  window_start: string;
+  window_end: string;
+  months_with_data: number;
+  total: number;
+  slices: CostDistributionSlice[];
+}
+
 // ── Check-in history (GET /api/assets/{id}/check-in-history) ───────────
 export interface CheckInHistoryRow {
   check_in_id: string;
