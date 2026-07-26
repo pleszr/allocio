@@ -80,9 +80,9 @@ const DECIMAL_KEYS = new Set([
   "average_monthly_cost",
   "avg_monthly_paid_out_of_pocket",
   "total",
-  // Template catalog rows carry a per-currency amount map (`amounts`/`amounts_per_unit`/
-  // `estimated_costs`, e.g. `{"HUF": "11650.00", ...}`); the reviver runs bottom-up per key, so it
-  // sees "HUF"/"EUR"/"USD" as the string value's own key before it sees the parent map's key.
+  // Built-in template catalogs carry per-currency maps for row amounts, estimated costs, and
+  // monthly safety-buffer defaults. The reviver runs bottom-up, so it sees "HUF"/"EUR"/"USD" as
+  // the string value's own key before it sees the parent map's key.
   "HUF",
   "EUR",
   "USD",
@@ -172,7 +172,7 @@ export const api = {
   updateMaintenanceItem: (id: string, itemId: string, data: Partial<MaintenanceItem>) =>
     request<MaintenanceItem>(`/assets/${id}/maintenance-items/${itemId}`, { method: "PATCH", ...body(data) }),
 
-  // Template catalog (drives the vehicle cost picker at creation)
+  // Built-in template catalogs drive the cost picker and editable defaults at creation.
   getTemplateCatalog: (templateKey: string) =>
     request<AssetTemplateCatalog>(`/asset-templates/${templateKey}/catalog`),
 

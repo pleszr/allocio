@@ -348,18 +348,21 @@
     "add_custom_cost": "Egyéni költség hozzáadása…",
     "suggested_for": "Javaslatok ehhez: {{type}}",
     "template_costs": "Sablon költségek",
-    "template_costs_sub": "A jármű sablon ezeket a gyakori költségeket ajánlja. Vedd ki a pipát, amit nem szeretnél — csak a bejelölt sorok jönnek létre.",
+    "template_costs_sub": "A sablon ezeket a gyakori költségeket ajánlja. Vedd ki a pipát, amit nem szeretnél — csak a bejelölt sorok jönnek létre.",
     "group_recurring": "Rendszeres költségek",
     "group_usage": "Használati tartalék",
     "group_maint": "Karbantartás és cserék",
-    "catalog_loading": "A jármű költségkatalógus betöltése…",
-    "catalog_error": "A jármű katalógus betöltése sikertelen.",
+    "catalog_loading": "A sablon költségkatalógusának betöltése…",
+    "catalog_error": "A sablon katalógusának betöltése sikertelen.",
     "estimate_loading": "Számítás a háttérrendszerrel…",
     "estimate_updating": "A becslés frissítése…",
     "estimate_error": "Az allokáció becslése sikertelen.",
     "retry": "Újra",
     "group_all": "Mind",
     "group_none": "Egyik sem",
+    "safety_buffer_label": "Havi biztonsági tartalék",
+    "safety_buffer_desc": "Havi extra összeg azokra a költségekre, amelyeket a sablon nem fed le.",
+    "safety_buffer_invalid": "Adj meg egy nullánál nem kisebb számot.",
     "unnamed": "(névtelen)",
     "cost_name_ph": "Költség neve",
     "period_month": "havonta",
@@ -407,6 +410,12 @@
       "winter_tires": { "label": "Téli gumiabroncsok" },
       "summer_tires": { "label": "Nyári gumiabroncsok" },
       "other": { "label": "Egyéb" }
+    },
+    "house": {
+      "building_tax": { "label": "Építményadó" },
+      "home_insurance": { "label": "Lakásbiztosítás" },
+      "boiler_cleaning": { "label": "Kazántisztítás" },
+      "air_conditioner_cleaning": { "label": "Klímatisztítás" }
     }
   }
 }

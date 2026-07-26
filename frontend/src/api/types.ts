@@ -332,6 +332,7 @@ export interface AssetTemplateCatalog {
   time_based_costs: TemplateTimeBasedCostItem[];
   usage_based_costs: TemplateUsageBasedCostItem[];
   maintenance_items: TemplateMaintenanceItem[];
+  manual_extra_monthly_amounts: Record<CurrencyCode, number>;
 }
 
 // ── Request bodies ────────────────────────────────────────────────────
@@ -350,10 +351,11 @@ export interface TemplateCostOverride {
 export interface CreateAssetRequest {
   name: string;
   type?: string | null;
-  template?: "vehicle" | null;
+  template?: "vehicle" | "house" | null;
   vehicle?: VehicleDetailsInput | null;
   selected_cost_keys?: string[] | null;
   cost_overrides?: TemplateCostOverride[] | null;
+  manual_extra_monthly?: number | null;
 }
 
 export interface CreateAssetResponse {
@@ -373,6 +375,7 @@ export interface AllocationEstimateRequest {
   selected_cost_keys?: string[] | null;
   cost_overrides?: TemplateCostOverride[] | null;
   custom_time_based_costs?: AllocationEstimateCustomCost[] | null;
+  manual_extra_monthly?: number | null;
 }
 
 export interface AllocationEstimateLine {

@@ -15,6 +15,7 @@ from app.domain.vehicle_defaults import (  # noqa: E402
     overridable_catalog_keys,
     vehicle_catalog_keys,
 )
+from app.domain.asset_templates import VEHICLE_TEMPLATE  # noqa: E402
 
 SUPPORTED_CURRENCIES = {"HUF", "EUR", "USD"}
 
@@ -22,6 +23,11 @@ SUPPORTED_CURRENCIES = {"HUF", "EUR", "USD"}
 def test_template_counts():
     assert len(DEFAULT_TIME_BASED_COSTS) == 6
     assert len(DEFAULT_MAINTENANCE_ITEMS) == 14
+    assert VEHICLE_TEMPLATE.manual_extra_monthly_amounts == {
+        "HUF": Decimal("0"),
+        "EUR": Decimal("0"),
+        "USD": Decimal("0"),
+    }
 
 
 def test_technical_key_uniqueness_within_each_group():

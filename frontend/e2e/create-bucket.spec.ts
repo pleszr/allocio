@@ -76,11 +76,15 @@ test("vehicle manufacture year validation blocks an out-of-range value", async (
   await expect(page.getByRole("button", { name: /Continue/ })).toBeEnabled();
 });
 
-test("create a property bucket with name only", async ({ page }) => {
+test("create a property bucket from the House template", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Your buckets" })).toBeVisible();
   await page.getByRole("button", { name: "New bucket", exact: true }).click();
+  const catalogFetched = page.waitForResponse(
+    (response) => response.url().includes("/api/asset-templates/house/catalog") && response.ok(),
+  );
   await page.getByRole("button", { name: /^Property/ }).click();
+  await catalogFetched;
 
   await expect(page.getByText("Tell us about it")).toBeVisible();
   await expect(page.getByLabel("Bucket name")).toBeVisible();
@@ -89,7 +93,61 @@ test("create a property bucket with name only", async ({ page }) => {
   await expect(page.getByText("Size", { exact: true })).toHaveCount(0);
   await page.getByTestId("bucket-name-input").fill("E2E Test Property");
   await page.getByRole("button", { name: /Continue/ }).click();
+
+  for (const [key, label, amount] of [
+    ["building_tax", "Building tax", "38000"],
+    ["home_insurance", "Home insurance", "80000"],
+    ["boiler_cleaning", "Boiler cleaning", "35000"],
+    ["air_conditioner_cleaning", "Air-conditioner cleaning", "45000"],
+  ]) {
+    await expect(page.getByText(label, { exact: true })).toBeVisible();
+    await expect(page.getByTestId(`catalog-amount-${key}`)).toHaveValue(amount);
+  }
+  await expect(page.getByLabel("Monthly safety buffer")).toHaveValue("18000");
+  await expect(page.getByText("Usage reserve", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Maintenance & replacements", { exact: true })).toHaveCount(0);
+
+  // Edits survive moving back and forward within the same template.
+  await page.getByTestId("catalog-amount-home_insurance").fill("81000");
+  await page.getByLabel("Monthly safety buffer").fill("19000");
+  await page.getByRole("button", { name: /Back/ }).click();
+  await expect(page.getByLabel("Bucket name")).toHaveValue("E2E Test Property");
   await page.getByRole("button", { name: /Continue/ }).click();
+  await expect(page.getByTestId("catalog-amount-home_insurance")).toHaveValue("81000");
+  await expect(page.getByLabel("Monthly safety buffer")).toHaveValue("19000");
+
+  await page.getByLabel("Monthly safety buffer").fill("");
+  await expect(page.getByText("Enter a number that is 0 or greater.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Continue/ })).toBeDisabled();
+
+  const untouchedEstimate = page.waitForResponse((response) => {
+    if (!response.url().endsWith("/api/allocation-estimates") || !response.ok()) return false;
+    const body = response.request().postDataJSON();
+    return (
+      body.template === "house" &&
+      body.manual_extra_monthly === 18000 &&
+      body.cost_overrides?.some(
+        (row: { technical_key: string; amount: number }) =>
+          row.technical_key === "home_insurance" && row.amount === 80000,
+      )
+    );
+  });
+  await page.getByTestId("catalog-amount-home_insurance").fill("80000");
+  await page.getByLabel("Monthly safety buffer").fill("18000");
+  await untouchedEstimate;
+  await page.getByRole("button", { name: /Continue/ }).click();
+
+  await expect(page.locator(".allocation-callout")).toContainText("34,500 Ft");
+  await expect(page.locator(".allocation-callout")).toContainText("414,000 Ft/year");
+  for (const label of [
+    "Building tax",
+    "Home insurance",
+    "Boiler cleaning",
+    "Air-conditioner cleaning",
+    "Monthly safety buffer",
+  ]) {
+    await expect(page.getByText(label, { exact: true })).toBeVisible();
+  }
 
   const created = page.waitForResponse(
     (r) => r.url().endsWith("/api/assets") && r.request().method() === "POST",
@@ -97,11 +155,37 @@ test("create a property bucket with name only", async ({ page }) => {
   await page.getByRole("button", { name: /Create bucket/ }).click();
   const createResponse = await created;
   expect(createResponse.status()).toBe(201);
-  expect(createResponse.request().postDataJSON()).toEqual({
-    name: "E2E Test Property",
-    type: "house",
-  });
+  const requestBody = createResponse.request().postDataJSON();
+  expect(requestBody.name).toBe("E2E Test Property");
+  expect(requestBody.template).toBe("house");
+  expect(requestBody.selected_cost_keys).toEqual([
+    "building_tax",
+    "home_insurance",
+    "boiler_cleaning",
+    "air_conditioner_cleaning",
+  ]);
+  expect(requestBody.cost_overrides).toEqual([
+    { technical_key: "building_tax", amount: 38000, interval_value: 12, interval_unit: "months" },
+    { technical_key: "home_insurance", amount: 80000, interval_value: 12, interval_unit: "months" },
+    { technical_key: "boiler_cleaning", amount: 35000, interval_value: 12, interval_unit: "months" },
+    { technical_key: "air_conditioner_cleaning", amount: 45000, interval_value: 12, interval_unit: "months" },
+  ]);
+  expect(requestBody.manual_extra_monthly).toBe(18000);
+  expect(requestBody).not.toHaveProperty("type");
+  expect(requestBody).not.toHaveProperty("vehicle");
+
   await expect(page.getByRole("heading", { name: "E2E Test Property" })).toBeVisible();
+  await page.getByRole("tab", { name: "Costs" }).click();
+  for (const label of [
+    "Building tax",
+    "Home insurance",
+    "Boiler cleaning",
+    "Air-conditioner cleaning",
+  ]) {
+    await expect(page.getByRole("row", { name: new RegExp(label) })).toHaveCount(1);
+  }
+  await expect(page.getByText("Manual extra", { exact: true })).toBeVisible();
+  await expect(page.getByText("18,000 Ft/mo", { exact: true })).toBeVisible();
 });
 
 test("create a pet bucket with name only", async ({ page }) => {
@@ -132,25 +216,85 @@ test("create a pet bucket with name only", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "E2E Test Pet" })).toBeVisible();
 });
 
-test("Back from Step 2 preserves the selected type and re-advances on a new pick", async ({ page }) => {
+test("switching templates preserves the name and ignores a late prior catalog", async ({ page }) => {
+  let releaseVehicleCatalog: () => void = () => {};
+  const heldVehicleCatalog = new Promise<void>((resolve) => {
+    releaseVehicleCatalog = resolve;
+  });
+  await page.route("**/api/asset-templates/vehicle/catalog", async (route) => {
+    await heldVehicleCatalog;
+    await route.continue();
+  });
+
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Your buckets" })).toBeVisible();
 
   await page.getByRole("button", { name: "New bucket", exact: true }).click();
-  const catalogFetched = page.waitForResponse(
-    (r) => r.url().includes("/api/asset-templates/vehicle/catalog") && r.ok(),
+  const vehicleCatalogRequested = page.waitForRequest((request) =>
+    request.url().includes("/api/asset-templates/vehicle/catalog"),
   );
   await page.getByRole("button", { name: /Vehicle/ }).click();
-  await catalogFetched;
+  await vehicleCatalogRequested;
   await expect(page.getByText("Tell us about it")).toBeVisible();
+  await page.getByTestId("bucket-name-input").fill("Switching Home");
 
   // Back returns to Step 1 with the previously selected type still highlighted.
   await page.getByRole("button", { name: /Back/ }).click();
   await expect(page.getByRole("button", { name: /Vehicle/ })).toHaveAttribute("aria-pressed", "true");
 
-  // Picking a different type re-advances straight to Step 2 with the new type reflected.
+  const houseCatalogFetched = page.waitForResponse(
+    (response) => response.url().includes("/api/asset-templates/house/catalog") && response.ok(),
+  );
   await page.getByRole("button", { name: /^Property/ }).click();
+  await houseCatalogFetched;
   await expect(page.getByText("Tell us about it")).toBeVisible();
+  await expect(page.getByTestId("bucket-name-input")).toHaveValue("Switching Home");
+  const lateVehicleCatalog = page.waitForResponse(
+    (response) => response.url().includes("/api/asset-templates/vehicle/catalog") && response.ok(),
+  );
+  releaseVehicleCatalog();
+  await lateVehicleCatalog;
+  await page.getByRole("button", { name: /Continue/ }).click();
+  await expect(page.getByText("Building tax", { exact: true })).toBeVisible();
+  await expect(page.getByText("Seasonal tire change", { exact: true })).toHaveCount(0);
+});
+
+test("House catalog retry keeps the active template and entered name", async ({ page }) => {
+  let catalogCalls = 0;
+  await page.route("**/api/asset-templates/house/catalog", async (route) => {
+    catalogCalls += 1;
+    if (catalogCalls === 1) {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Temporary catalog failure" }),
+      });
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "New bucket", exact: true }).click();
+  const failedCatalog = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/asset-templates/house/catalog") &&
+      response.status() === 503,
+  );
+  await page.getByRole("button", { name: /^Property/ }).click();
+  await failedCatalog;
+  await page.getByTestId("bucket-name-input").fill("Retry House");
+  await page.getByRole("button", { name: /Continue/ }).click();
+
+  await expect(page.getByText("Could not load the template catalog.")).toBeVisible();
+  const retriedCatalog = page.waitForResponse(
+    (response) => response.url().includes("/api/asset-templates/house/catalog") && response.ok(),
+  );
+  await page.getByRole("button", { name: "Retry" }).click();
+  await retriedCatalog;
+  await expect(page.getByText("Building tax", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /Back/ }).click();
+  await expect(page.getByTestId("bucket-name-input")).toHaveValue("Retry House");
 });
 
 test("editing a template row's amount and interval on Step 3 persists the edited value", async ({ page }) => {
@@ -216,7 +360,7 @@ test("allocation estimate retries through the backend and preserves wizard input
 
   await expect(page.getByText("Temporary estimate failure")).toBeVisible();
   await page.getByRole("button", { name: "Retry" }).click();
-  await expect(page.getByText("100 Ft", { exact: true })).toBeVisible();
+  await expect(page.getByText("34,600 Ft", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: /Back/ }).click();
   await expect(page.getByPlaceholder("Cost name")).toHaveValue("Annual repair");

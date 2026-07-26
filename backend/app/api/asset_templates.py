@@ -19,9 +19,10 @@ router = APIRouter(prefix="/api", tags=["asset-templates"])
     "/asset-templates/{template_key}/catalog",
     summary="Read a creation template's pickable cost catalog",
     description="""Returns the complete code-backed default cost set for a creation template, grouped
-    into recurring time-based costs, a usage-based reserve, and maintenance/replacement items. The
-    client uses this to build a selection UI; the chosen `technical_key`s are then passed to asset
-    creation. Templates without a catalog (only the vehicle template has one today) return 404.""",
+    into recurring time-based, usage-based, and maintenance/replacement collections plus editable
+    per-currency monthly safety-buffer defaults. Some groups may be empty. The client uses this to
+    build a selection UI; the chosen `technical_key`s are then passed to asset creation. Unknown
+    template keys return 404.""",
     response_model=AssetTemplateCatalogResponse,
     status_code=status.HTTP_200_OK,
     responses={
@@ -55,11 +56,12 @@ def _to_catalog_response(catalog: TemplateCatalog) -> AssetTemplateCatalogRespon
         ],
         usage_based_costs=[
             TemplateUsageBasedCostItem(
-                technical_key=catalog.usage_based_cost.technical_key,
-                label=catalog.usage_based_cost.label,
-                amounts_per_unit=catalog.usage_based_cost.amounts_per_unit,
-                usage_unit=catalog.usage_based_cost.usage_unit,
+                technical_key=item.technical_key,
+                label=item.label,
+                amounts_per_unit=item.amounts_per_unit,
+                usage_unit=item.usage_unit,
             )
+            for item in catalog.usage_based_costs
         ],
         maintenance_items=[
             TemplateMaintenanceItem(
@@ -72,4 +74,5 @@ def _to_catalog_response(catalog: TemplateCatalog) -> AssetTemplateCatalogRespon
             )
             for item in catalog.maintenance_items
         ],
+        manual_extra_monthly_amounts=catalog.manual_extra_monthly_amounts,
     )
