@@ -653,36 +653,25 @@ body {
   max-width: 880px;
   margin: 0 auto;
 }
-.wizard-steps {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* Single horizontal fill bar — replaces the old numbered step-dot rendering, which doesn't
+   represent the wizard's branching path ("ask-checkin" forks) well. */
+.wizard-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--paper-2);
+  overflow: hidden;
   margin-bottom: 22px;
 }
-.wizard-step {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 13px;
-  color: var(--muted);
+.wizard-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.2s ease;
 }
-.wizard-step.active { color: var(--ink); font-weight: 500; }
-.wizard-step.done { color: var(--good); }
-.wizard-step-num {
-  width: 22px; height: 22px; border-radius: 50%;
-  background: var(--paper-2);
-  color: var(--muted);
-  font-size: 11.5px; font-weight: 600;
-  display: grid; place-items: center;
-}
-.wizard-step.active .wizard-step-num { background: var(--accent); color: white; }
-.wizard-step.done .wizard-step-num { background: var(--good); color: white; }
-.wizard-step-bar {
-  flex: 1; height: 1px; background: var(--line);
-}
-.wizard-step.done + .wizard-step-bar { background: var(--good); }
 
 .type-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 14px;
 }
 @media (max-width: 720px) { .type-grid { grid-template-columns: 1fr; } }
@@ -709,6 +698,58 @@ body {
 .type-card-body { padding: 14px 18px 18px; }
 .type-card-name { font-size: 15px; font-weight: 600; }
 .type-card-desc { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+/* Safety-buffer preset cards (new bucket wizard "safety" step) — a text-only toggle-card grid,
+   same interaction pattern as .type-card but without the illustration area. */
+.safety-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+@media (max-width: 720px) { .safety-grid { grid-template-columns: 1fr 1fr; } }
+.safety-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 0 rgba(15,23,42,.04), 0 4px 14px rgba(15,23,42,.05);
+  padding: 16px 14px;
+  text-align: left;
+}
+.safety-card:hover { transform: translateY(-2px); }
+.safety-card[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft), 0 4px 14px rgba(15,23,42,.06);
+}
+.safety-card-label { font-size: 14px; font-weight: 600; }
+.safety-card-desc { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+.safety-card-amount { font-size: 15px; font-weight: 600; margin-top: 12px; font-feature-settings: "tnum"; }
+
+/* Yes/No toggle pair (new bucket wizard "ask-checkin" step). */
+.yesno-row {
+  display: flex;
+  gap: 12px;
+}
+.yesno-btn {
+  flex: 1;
+  padding: 14px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+.yesno-btn:hover { transform: translateY(-2px); }
+.yesno-btn[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
 
 .cost-row {
   display: grid;
