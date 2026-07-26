@@ -15,6 +15,8 @@ from app.api.schemas.responses import (
     CheckInExpenseLineResponse,
     CheckInHistoryResponse,
     CheckInHistoryRowResponse,
+    CostDistributionResponse,
+    CostDistributionSliceResponse,
     CreateAssetResponse,
     ManualExtraResponse,
     NextMaintenanceResponse,
@@ -27,12 +29,14 @@ from app.services.asset_detail_service import AssetDetail, AssetDetailService
 from app.services.asset_service import AssetService, CostOverride, VehicleDetails
 from app.services.balance_history_service import BalanceHistory, BalanceHistoryService
 from app.services.check_in_history_service import CheckInHistory, CheckInHistoryService
+from app.services.cost_distribution_service import CostDistribution, CostDistributionService
 from app.services.cost_service import CostService
 from app.services.dependencies import (
     get_asset_detail_service,
     get_asset_service,
     get_balance_history_service,
     get_check_in_history_service,
+    get_cost_distribution_service,
     get_cost_service,
     get_current_user_id,
     get_workspace_service,
@@ -155,6 +159,34 @@ def get_balance_history(
     """Delegate to the balance-history service and map its DTO to the response model."""
     history = service.balance_history(user_id, asset_id, months)
     return _to_balance_history_response(history)
+
+
+@router.get(
+    "/assets/{asset_id}/cost-distribution",
+    summary="Group an asset's posted expenses by cost item over a trailing window",
+    description="""Returns the asset's posted expenses summed per distinct cost item (e.g. "Insurance",
+    "Fuel", "Tires"), largest first, over the trailing `months` months or however much history the
+    asset actually has, whichever is shorter — for the Costs screen's distribution pie chart. The
+    default window is 12 months, overridable with `?months=N` (1-60); an asset with no expenses in
+    the window returns a 200 with an empty slice list and a zero total.""",
+    response_model=CostDistributionResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "Cost items within the window, largest amount first."},
+        404: {"description": "Asset or bucket not found for this user."},
+        422: {"description": "months query param out of range (must be 1-60)."},
+        500: {"description": INTERNAL_ERROR},
+    },
+)
+def get_cost_distribution(
+    asset_id: uuid.UUID,
+    months: int = Query(12, ge=1, le=60),
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    service: CostDistributionService = Depends(get_cost_distribution_service),
+) -> CostDistributionResponse:
+    """Delegate to the cost-distribution service and map its DTO to the response model."""
+    distribution = service.cost_distribution(user_id, asset_id, months)
+    return _to_cost_distribution_response(distribution)
 
 
 @router.get(
@@ -300,6 +332,22 @@ def _to_balance_history_response(history: BalanceHistory) -> BalanceHistoryRespo
         points=[
             BalancePointResponse(month=point.month, as_of=point.as_of, balance=point.balance)
             for point in history.points
+        ],
+    )
+
+
+def _to_cost_distribution_response(distribution: CostDistribution) -> CostDistributionResponse:
+    """Map the service `CostDistribution` DTO to its Pydantic response, keeping the api layer off service DTOs."""
+    return CostDistributionResponse(
+        asset_id=distribution.asset_id,
+        currency=distribution.currency,
+        window_start=distribution.window_start,
+        window_end=distribution.window_end,
+        months_with_data=distribution.months_with_data,
+        total=distribution.total,
+        slices=[
+            CostDistributionSliceResponse(label=s.label, source_type=s.source_type, amount=s.amount)
+            for s in distribution.slices
         ],
     )
 

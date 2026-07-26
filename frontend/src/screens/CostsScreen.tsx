@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError } from "../api/client";
 import type { IntervalUnit, MaintenanceItem, TimeBasedCost, UsageBasedCost } from "../api/types";
+import { CostDistributionChart } from "../components/CostDistributionChart";
 import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { useCurrency } from "../utils/currency";
@@ -26,20 +27,24 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
   const time = useAsync(() => api.listTimeBasedCosts(assetId), [assetId]);
   const usage = useAsync(() => api.listUsageBasedCosts(assetId), [assetId]);
   const maint = useAsync(() => api.listMaintenanceItems(assetId), [assetId]);
+  const distribution = useAsync(() => api.getCostDistribution(assetId), [assetId]);
 
   const reloadAll = () => {
     asset.reload();
     time.reload();
     usage.reload();
     maint.reload();
+    distribution.reload();
     onChanged();
   };
 
-  if (asset.loading || time.loading || usage.loading || maint.loading) return <LoadingState label={t("costs.loading")} />;
-  if (asset.error || time.error || usage.error || maint.error || !asset.data) {
+  if (asset.loading || time.loading || usage.loading || maint.loading || distribution.loading) {
+    return <LoadingState label={t("costs.loading")} />;
+  }
+  if (asset.error || time.error || usage.error || maint.error || distribution.error || !asset.data) {
     return (
       <ErrorState
-        message={asset.error ?? time.error ?? usage.error ?? maint.error ?? t("costs.failed_load")}
+        message={asset.error ?? time.error ?? usage.error ?? maint.error ?? distribution.error ?? t("costs.failed_load")}
         onRetry={reloadAll}
       />
     );
@@ -148,6 +153,28 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
       {tab === "time" && <TimeTable assetId={assetId} rows={timeRows} onChanged={reloadAll} />}
       {tab === "usage" && <UsageTable assetId={assetId} rows={usageRows} avgMonthlyUsage={avgMonthlyUsage} onChanged={reloadAll} />}
       {tab === "maint" && <MaintTable assetId={assetId} rows={maintRows} onChanged={reloadAll} />}
+
+      <div className="card" style={{ marginTop: 24 }}>
+        <div className="card-hd">
+          <div>
+            <div className="card-title">{t("costs.distribution_title")}</div>
+            {distribution.data && distribution.data.months_with_data > 0 && (
+              <div className="card-sub">
+                {t("costs.distribution_subtitle", { count: distribution.data.months_with_data })}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="card-pad">
+          {distribution.data && (
+            <CostDistributionChart
+              key={assetId}
+              slices={distribution.data.slices}
+              total={distribution.data.total}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -30,6 +30,13 @@
   --bad-soft: #F5D2D2;
   --bad-band: #F8DEDE;
 
+  /* Categorical chart series — validated for CVD/contrast against --surface (see dataviz skill) */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+
   /* Type — Inter for friendlier feel + Geist Mono for numbers only */
   --sans: "Inter", ui-sans-serif, -apple-system, "Helvetica Neue", Arial, sans-serif;
   --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -61,6 +68,12 @@
   --good-band: rgba(44,154,106,.16);
   --warn-band: rgba(197,138,31,.16);
   --bad-band:  rgba(208,76,76,.16);
+
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
 }
 
 * { box-sizing: border-box; }

@@ -195,7 +195,16 @@
     "save": "Mentés",
     "add": "Hozzáadás",
     "active_toggle": "Aktív (befolyásolja a jövőbeli allokációkat)",
-    "save_failed": "A mentés sikertelen."
+    "save_failed": "A mentés sikertelen.",
+    "distribution_title": "Költségmegoszlás",
+    "distribution_subtitle_one": "{{count}} hónap rögzített kiadása alapján",
+    "distribution_subtitle_other": "{{count}} hónap rögzített kiadása alapján",
+    "distribution_total": "Összesen",
+    "distribution_other": "Egyéb",
+    "distribution_empty_title": "Még nincs kiadás",
+    "distribution_empty_message": "Amint rögzítesz kiadásokat ehhez az eszközhöz, itt megjelenik a megoszlásuk.",
+    "distribution_toggle": "{{label}} ki/be kapcsolása",
+    "distribution_all_hidden": "Minden tétel el van rejtve. Kapcsolj vissza legalább egyet a diagram megjelenítéséhez."
   },
   "checkin": {
     "loading": "Elszámolás betöltése…",

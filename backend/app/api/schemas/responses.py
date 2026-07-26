@@ -402,6 +402,31 @@ class BalanceHistoryResponse(BaseModel):
     points: list[BalancePointResponse] = Field(description="Monthly balance points ordered oldest → newest.")
 
 
+class CostDistributionSliceResponse(BaseModel):
+    """One cost item's total posted amount within the distribution window."""
+
+    label: str = Field(description="Display name of the cost item.", examples=["Insurance"])
+    source_type: str | None = Field(
+        description="Underlying cost-row kind this item resolved from, or null for an unmatched manual expense.",
+        examples=["time_based_cost"],
+    )
+    amount: Decimal = Field(description="Sum of this cost item's posted expense amounts within the window.")
+
+
+class CostDistributionResponse(BaseModel):
+    """An asset's expense-by-cost-item breakdown for the Costs screen's distribution pie chart."""
+
+    asset_id: uuid.UUID = Field(description="Asset whose cost distribution this is.")
+    currency: str = Field(description="ISO currency code of the asset's bucket.", examples=["HUF"])
+    window_start: date = Field(description="Start of the aggregation window (inclusive).")
+    window_end: date = Field(description="End of the aggregation window (inclusive); always today.")
+    months_with_data: int = Field(description="Distinct calendar months with at least one expense in the window.")
+    total: Decimal = Field(description="Sum of every slice's amount; zero when the window has no expenses.")
+    slices: list[CostDistributionSliceResponse] = Field(
+        description="Cost items within the window, largest amount first."
+    )
+
+
 class CheckInHistoryRowResponse(BaseModel):
     """One posted check-in's ledger row for the History tab, in period order."""
 
