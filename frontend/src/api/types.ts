@@ -113,6 +113,7 @@ export interface AssetDetail {
   upcoming_expenses: UpcomingExpense[];
   manual_extra_monthly: number;
   manual_extra_recommended: number;
+  manual_extra_recommended_months: number;
   average_monthly_usage: number;
   average_allocation: AverageAllocation;
 }

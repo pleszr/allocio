@@ -1049,18 +1049,61 @@ def test_manual_extra_monthly_defaults_to_zero(client: TestClient, backdate_asse
     assert Decimal(body["manual_extra_recommended"]) == Decimal("0")
 
 
-def test_manual_extra_recommended_reflects_12_month_gap(
-    client: TestClient, db_session: Session, backdate_asset_creation: Callable[[str], None]
+def test_manual_extra_recommended_divides_12_month_gap_by_elapsed_months_capped_at_12(
+    client: TestClient, db_session: Session
 ) -> None:
-    asset_id = _create_bare_vehicle(client, backdate_asset_creation)
-    check_in = _add_posted_check_in(db_session, uuid.UUID(asset_id), date.today() - timedelta(days=90), date.today())
+    """An asset well over a year old caps the divisor at 12, not the raw elapsed months."""
+    asset_id = client.post("/api/assets", json={"name": "Manual extra", "type": "house"}).json()["asset"]["id"]
+    asset_uuid = uuid.UUID(asset_id)
+    as_of = date(2026, 7, 25)
+    asset = db_session.get(Asset, asset_uuid)
+    assert asset is not None
+    asset.created_at = datetime(2024, 1, 1, tzinfo=UTC)  # well over 12 months before as_of
+    db_session.flush()
+    check_in = _add_posted_check_in(db_session, asset_uuid, as_of - timedelta(days=90), as_of)
     bucket_id = _bucket_id(db_session, asset_id)
-    _add_allocation(db_session, bucket_id, check_in.id, "1000.00", date.today() - timedelta(days=30))
-    _add_expense(db_session, bucket_id, "4000.00", date.today() - timedelta(days=20))
+    _add_allocation(db_session, bucket_id, check_in.id, "1000.00", as_of - timedelta(days=30))
+    _add_expense(db_session, bucket_id, "4000.00", as_of - timedelta(days=20))
 
-    body = client.get(f"/api/assets/{asset_id}").json()
+    detail = _service_detail(db_session, asset_id, as_of)
 
-    assert Decimal(body["manual_extra_recommended"]) == Decimal("3000.00")
+    assert detail.manual_extra_recommended_months == 12
+    assert detail.manual_extra_recommended == Decimal("250.00")
+
+
+def test_manual_extra_recommended_divides_by_elapsed_months_for_asset_younger_than_a_year(
+    client: TestClient, db_session: Session
+) -> None:
+    """An asset only 3 whole months old divides by 3, not a flat 12 — proves the adaptive divisor."""
+    asset_id = client.post("/api/assets", json={"name": "New asset", "type": "house"}).json()["asset"]["id"]
+    asset_uuid = uuid.UUID(asset_id)
+    as_of = date(2026, 7, 25)
+    asset = db_session.get(Asset, asset_uuid)
+    assert asset is not None
+    asset.created_at = datetime(2026, 4, 25, tzinfo=UTC)  # exactly 3 whole months before as_of
+    db_session.flush()
+    bucket_id = _bucket_id(db_session, asset_id)
+    _add_expense(db_session, bucket_id, "1500.00", as_of - timedelta(days=10))
+
+    detail = _service_detail(db_session, asset_id, as_of)
+
+    assert detail.manual_extra_recommended_months == 3
+    assert detail.manual_extra_recommended == Decimal("500.00")
+
+
+def test_manual_extra_recommended_months_floors_at_one_for_brand_new_asset(
+    client: TestClient, db_session: Session
+) -> None:
+    """A same-day-created asset must not divide by zero; the divisor floors at 1."""
+    asset_id = client.post("/api/assets", json={"name": "Brand new", "type": "house"}).json()["asset"]["id"]
+    as_of = date.today()  # same day as creation, so whole_months(created_at, as_of) is 0
+    bucket_id = _bucket_id(db_session, asset_id)
+    _add_expense(db_session, bucket_id, "600.00", as_of)
+
+    detail = _service_detail(db_session, asset_id, as_of)
+
+    assert detail.manual_extra_recommended_months == 1
+    assert detail.manual_extra_recommended == Decimal("600.00")
 
 
 def test_manual_extra_recommended_floors_at_zero(

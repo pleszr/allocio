@@ -518,8 +518,13 @@ class AssetDetailResponse(BaseModel):
         description="User-set flat monthly buffer added on top of the modeled time- and usage-based accruals."
     )
     manual_extra_recommended: Decimal = Field(
-        description="Derived guidance for manual_extra_monthly from the last 12 months' expense/allocation gap, "
-        "floored at zero. Informational only — never overwrites the stored value."
+        description="Derived per-month guidance for manual_extra_monthly: the last 12 months' expense/allocation "
+        "gap (floored at zero) divided by manual_extra_recommended_months. Informational only — never overwrites "
+        "the stored value."
+    )
+    manual_extra_recommended_months: int = Field(
+        description="Divisor behind manual_extra_recommended: whole calendar months since asset creation, "
+        "capped at 12 and floored at 1 so a brand-new asset isn't divided by zero."
     )
     average_monthly_usage: Decimal = Field(
         description="Trailing average usage per month across all posted check-ins; zero without enough data."

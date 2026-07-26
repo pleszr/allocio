@@ -55,6 +55,7 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
   const recommendedMonthly = asset.data.recommended_monthly_allocation;
   const manualExtra = asset.data.manual_extra_monthly;
   const manualExtraRecommended = asset.data.manual_extra_recommended;
+  const manualExtraRecommendedMonths = asset.data.manual_extra_recommended_months;
   const avgMonthlyUsage = asset.data.average_monthly_usage;
 
   const timeRows = time.data ?? [];
@@ -134,7 +135,10 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
           </div>
           <div className="kpi-sub">
             {manualExtraRecommended > 0
-              ? t("costs.manual_extra_recommended_sub", { amount: fmt(manualExtraRecommended, { decimals: 0 }) })
+              ? t("costs.manual_extra_recommended_sub", {
+                  amount: fmt(manualExtraRecommended, { decimals: 0 }),
+                  count: manualExtraRecommendedMonths,
+                })
               : t("costs.manual_extra_sub")}
           </div>
           <button className="kpi-link" onClick={() => setManualEditing(true)}>

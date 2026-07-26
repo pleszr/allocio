@@ -89,6 +89,7 @@ class AssetDetail:
     upcoming_expenses: list[UpcomingExpense]
     manual_extra_monthly: Decimal
     manual_extra_recommended: Decimal
+    manual_extra_recommended_months: int
     average_monthly_usage: Decimal
     average_allocation: AverageAllocation
 
@@ -111,6 +112,9 @@ class AssetDetailService:
         latest = check_in_repository.get_latest_posted_check_in(self._session, asset_id)
         vehicle_profile = check_in_repository.get_vehicle_profile(self._session, asset_id)
         maintenance_items = self._costs.list_maintenance_item_views(user_id, asset_id)
+        manual_extra_recommended_months = max(
+            1, min(12, calculator.whole_months(asset.created_at.date(), today))
+        )
         return AssetDetail(
             asset_id=asset.id,
             type=summary.type,
@@ -137,7 +141,10 @@ class AssetDetailService:
             recent_activity=self._recent_activity(asset_id),
             upcoming_expenses=self._upcoming_expenses(user_id, asset_id, maintenance_items),
             manual_extra_monthly=asset.manual_extra_monthly,
-            manual_extra_recommended=self._manual_extra_recommendation(asset_id),
+            manual_extra_recommended=self._manual_extra_recommendation(
+                asset_id, manual_extra_recommended_months, today
+            ),
+            manual_extra_recommended_months=manual_extra_recommended_months,
             average_monthly_usage=self._workspace.monthly_usage_rate(asset_id),
             average_allocation=self._average_allocation(asset_id, today),
         )
@@ -229,21 +236,27 @@ class AssetDetailService:
             amount=calculator.quantize_currency(total / Decimal(len(selected))),
         )
 
-    def _manual_extra_recommendation(self, asset_id: uuid.UUID) -> Decimal:
-        """Derive a recommended manual-extra buffer from the last 12 months' expense/allocation gap.
+    def _manual_extra_recommendation(
+        self, asset_id: uuid.UUID, elapsed_months: int, today: date
+    ) -> Decimal:
+        """Derive a recommended monthly manual-extra buffer from the trailing expense/allocation gap.
 
-        Floored at zero; derived guidance only, per docs/domain-model.md — never overwrites the
-        stored `manual_extra_monthly` value on its own.
+        Sums the last 12 months' expenses minus allocations (floored at zero), then divides by
+        `elapsed_months` — the asset's whole calendar months since creation, capped at 12 — rather
+        than a flat /12, so an asset younger than a year isn't understated by a mostly-empty
+        window. Derived guidance only, per docs/domain-model.md — never overwrites the stored
+        `manual_extra_monthly` value on its own.
         """
         bucket = expense_repository.get_bucket_for_asset(self._session, asset_id)
         if bucket is None:
             return Decimal(0)
-        window_start = date.today() - timedelta(days=365)
+        window_start = today - timedelta(days=365)
         allocations = check_in_repository.list_posted_allocation_events(self._session, bucket.id)
         expenses = expense_repository.list_expenses_for_bucket(self._session, bucket.id)
         total_allocated = sum((amount for event_date, amount in allocations if event_date >= window_start), Decimal(0))
         total_expense = sum((expense.amount for expense in expenses if expense.event_date >= window_start), Decimal(0))
-        return max(Decimal(0), total_expense - total_allocated)
+        shortfall = max(Decimal(0), total_expense - total_allocated)
+        return calculator.quantize_currency(shortfall / Decimal(elapsed_months))
 
     def _recent_activity(self, asset_id: uuid.UUID) -> list[ActivityItem]:
         """Merge posted allocations (inflow) and expenses (outflow) into a newest-first, capped feed."""
