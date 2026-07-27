@@ -6,15 +6,38 @@ Run once, from `backend/`, as a module so both `app.*` and this package resolve:
 
 Backdates the new asset's `created_at` directly in the DB (mirroring
 `tests/conftest.py::backdate_asset_creation` and `import_focus_kombi.py`) so the first check-in's
-period_start lands on the sheet's own earliest row (2015-02-20, starting odometer 190000), then
-replays all 101 real rows through 2026-07-01 as check-ins in chronological order, irregularly
-spaced exactly as recorded (not monthly -- unlike `import_focus_kombi.py`, whose 14 rows happened
-to all be ~monthly). Also replays the sheet's 'Extra safety' (AJ) column as `manual_extra_monthly`
-(only populated from 2026-01-01 onward; carried forward unchanged on later rows that leave it
-blank, since it reads as an ongoing manual buffer Roland set once rather than a per-period figure)
-and, via `apply_pocket_overrides`, distributes each period's 'Kifizettuk zsebbol' (AK) total across
-that period's expense lines as a `paid_out_of_pocket_override` (see issue #95), the same way
+period_start lands on 2018-08-22 (sheet row 6, starting odometer 242429), then replays the
+remaining 98 real rows through 2026-07-01 as check-ins in chronological order, irregularly spaced
+exactly as recorded (not monthly -- unlike `import_focus_kombi.py`, whose 14 rows happened to all
+be ~monthly). Also replays the sheet's 'Extra safety' (AJ) column as `manual_extra_monthly`
+(resetting to 0 on every row that leaves AJ blank -- confirmed against the sheet's own `AL`/`AO`
+formulas, which treat a blank AJ as exactly 0, not "same as the last non-blank value") and, via
+`apply_pocket_overrides`, distributes each period's 'Kifizettuk zsebbol' (AK) total across that
+period's expense lines as a `paid_out_of_pocket_override` (see issue #95), the same way
 `import_focus_kombi.py` does.
+
+Rows 3-5 (2015-02-20, 2016-01-20, 2018-05-11) are deliberately NOT replayed as check-ins. A
+post-import balance investigation found the app's posted balance overshot the sheet's own
+cumulative ground truth (`AO103`, `=SUM(AL$6:AL103)`) by ~1.01M Ft, of which ~925k Ft (91%) traced
+to exactly these three rows: the sheet's own `AF`/`AG`/`AL` formulas are completely blank for
+rows 3-5 (no formula at all, not just excluded from a sum) and `AO`'s cumulative sum explicitly
+starts at row 6 -- i.e. the sheet's own model never accrues anything before 2018-08-22, treating
+2015-2018 as pure pre-tracking odometer history. Posting them as real check-ins made the app
+accrue ~3.3 years of time-based and usage-based savings (mostly usage-based reserve, driven by the
+50,273 km gap across those sparse rows) that the sheet's own ground truth never counted. Roland
+confirmed: match the sheet, no accrual before 2018-08-22. All three rows have zero real values in
+every H:AC cost column (confirmed by re-reading the sheet fresh), so nothing needs preserving as a
+maintenance baseline or otherwise -- they are simply dropped.
+
+A remaining ~78,620 Ft residual (the app's time-based accrual still runs slightly higher than the
+sheet's `AF` column across the real 2018-08-22 to 2026-07-01 window, plus a small ~-18,440 Ft
+usage-based quirk at the very first real row where the sheet's own `AG6`/`AH6` cells don't follow
+its usual formula pattern) was investigated but not chased further -- same accepted-residual
+treatment as `import_focus_kombi.py`'s day-count/rollover gap. The `vehicle_tax` 12-month interval
+override (see COST_OVERRIDES) was specifically checked as a candidate cause and ruled out: a
+counterfactual simulation against the real posted `vehicle_tax` expense history shows it *reduces*
+total accrual by ~41,441 Ft relative to the original 6-month/2800 baseline, so it is not a
+contributor to this residual.
 
 Structural differences from the kombi sheet (same underlying logic, different real columns -- see
 the requesting task for the full column-by-column diff):
@@ -95,8 +118,10 @@ from app.services.cost_service import CostService
 
 OWNER_EMAIL = "plesz.roland@gmail.com"
 ASSET_NAME = "White Focus"
-STARTING_ODOMETER = 190000
-ACQUISITION_DATE = date(2015, 2, 20)
+# Row 6 (2018-08-22) -- the sheet's own accrual/tracking start, not the sheet's earliest row
+# (2015-02-20). See the module docstring for why rows 3-5 are dropped rather than replayed.
+STARTING_ODOMETER = 242429
+ACQUISITION_DATE = date(2018, 8, 22)
 MANUFACTURE_YEAR = 2009
 
 COST_OVERRIDES = [
@@ -214,14 +239,14 @@ def other(amount: str, comment: str, event_date: date, usage_km: int) -> Expense
 
 
 def build_periods(source_map: SourceMap) -> list[Period]:
-    """Return the sheet's 101 real check-in periods, columns B/C/D/AJ/AK mapped per row."""
+    """Return the sheet's 98 real check-in periods (rows 6-103), columns B/C/D/AJ/AK mapped per row.
+
+    Rows 3-5 (2015-02-20, 2016-01-20, 2018-05-11) are not included -- see module docstring.
+    """
     zero = Decimal(0)
     return [
-        # 2015-02-20: creation baseline, period_end == period_start. No cost data this early --
-        # sheet tracking for this car effectively starts 2018-08-22 (see module docstring).
-        Period(date(2015, 2, 20), 190000, None, [], zero, None),
-        Period(date(2016, 1, 20), 215000, None, [], zero, None),
-        Period(date(2018, 5, 11), 240273, None, [], zero, None),
+        # 2018-08-22: creation baseline, period_end == period_start. Row 6, the sheet's own
+        # accrual/tracking start (see module docstring).
         Period(
             date(2018, 8, 22),
             242429,
@@ -640,8 +665,8 @@ def build_periods(source_map: SourceMap) -> list[Period]:
         Period(date(2025, 10, 1), 343741, None, [], zero, None),
         Period(date(2025, 11, 1), 344151, None, [], zero, None),
         Period(date(2025, 12, 1), 344461, None, [], zero, None),
-        # 'Extra safety' (AJ) starts being tracked here; carried forward on later rows that leave
-        # it blank rather than reset to zero -- see module docstring.
+        # 'Extra safety' (AJ) starts being tracked here; a blank AJ resets to 0 rather than
+        # carrying forward the last non-blank value -- see module docstring.
         Period(date(2026, 1, 1), 344752, None, [], Decimal("5000"), None),
         Period(
             date(2026, 2, 1),
@@ -670,9 +695,9 @@ def build_periods(source_map: SourceMap) -> list[Period]:
             Decimal("10000"),
             None,
         ),
-        Period(date(2026, 5, 1), 344915, None, [], Decimal("10000"), None),
-        Period(date(2026, 6, 1), 344916, None, [], Decimal("10000"), None),
-        Period(date(2026, 7, 1), 344980, None, [], Decimal("10000"), None),
+        Period(date(2026, 5, 1), 344915, None, [], zero, None),
+        Period(date(2026, 6, 1), 344916, None, [], zero, None),
+        Period(date(2026, 7, 1), 344980, None, [], zero, None),
     ]
 
 
