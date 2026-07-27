@@ -29,15 +29,27 @@ confirmed: match the sheet, no accrual before 2018-08-22. All three rows have ze
 every H:AC cost column (confirmed by re-reading the sheet fresh), so nothing needs preserving as a
 maintenance baseline or otherwise -- they are simply dropped.
 
-A remaining ~78,620 Ft residual (the app's time-based accrual still runs slightly higher than the
+A remaining ~76,364 Ft residual (the app's time-based accrual still runs slightly higher than the
 sheet's `AF` column across the real 2018-08-22 to 2026-07-01 window, plus a small ~-18,440 Ft
 usage-based quirk at the very first real row where the sheet's own `AG6`/`AH6` cells don't follow
-its usual formula pattern) was investigated but not chased further -- same accepted-residual
-treatment as `import_focus_kombi.py`'s day-count/rollover gap. The `vehicle_tax` 12-month interval
-override (see COST_OVERRIDES) was specifically checked as a candidate cause and ruled out: a
-counterfactual simulation against the real posted `vehicle_tax` expense history shows it *reduces*
-total accrual by ~41,441 Ft relative to the original 6-month/2800 baseline, so it is not a
-contributor to this residual.
+its usual formula pattern) was investigated but not chased further to a root cause -- same
+accepted-residual treatment as `import_focus_kombi.py`'s day-count/rollover gap. The `vehicle_tax`
+12-month interval override (see COST_OVERRIDES) was specifically checked as a candidate cause and
+ruled out: a counterfactual simulation against the real posted `vehicle_tax` expense history shows
+it *reduces* total accrual by ~41,441 Ft relative to the original 6-month/2800 baseline, so it is
+not a contributor to this residual.
+
+Roland's explicit decision, though, is that the app should show his real known bucket balance
+(the sheet's own `AO103` = 36,870.79 Ft) rather than carry that residual forward. Per that
+instruction, the last period (2026-07-01) posts one additional synthetic `other` expense,
+"accrual-model reconciliation adjustment", for exactly the live gap at the time this change was
+made (76,364.29 Ft, i.e. the app's balance immediately before this adjustment, 113,235.08 Ft,
+minus the sheet's 36,870.79 Ft), with `paid_out_of_pocket_override=Decimal("0")` so it is fully
+bucket-funded and does not touch any real transaction's recorded paid-out-of-pocket amount. This is
+a deliberate plug, not a discovered cost -- it exists solely to land the final balance on Roland's
+known real number; a re-run after any future edit to `build_periods` upstream of it would need this
+adjustment amount recalculated (subtract the app's balance immediately before this expense from
+36,870.79) rather than assumed to still be exactly right.
 
 Structural differences from the kombi sheet (same underlying logic, different real columns -- see
 the requesting task for the full column-by-column diff):
@@ -697,7 +709,27 @@ def build_periods(source_map: SourceMap) -> list[Period]:
         ),
         Period(date(2026, 5, 1), 344915, None, [], zero, None),
         Period(date(2026, 6, 1), 344916, None, [], zero, None),
-        Period(date(2026, 7, 1), 344980, None, [], zero, None),
+        Period(
+            date(2026, 7, 1),
+            344980,
+            None,
+            [
+                # Deliberate reconciliation plug, not a discovered cost -- see module docstring for
+                # the exact derivation and why the amount is fixed rather than recomputed live.
+                replace(
+                    other(
+                        "76364.28833343349",
+                        "Imported from spreadsheet: accrual-model reconciliation adjustment, "
+                        "day-count/rollover residual -- see module docstring",
+                        date(2026, 7, 1),
+                        344980,
+                    ),
+                    paid_out_of_pocket_override=Decimal("0"),
+                ),
+            ],
+            zero,
+            None,
+        ),
     ]
 
 
