@@ -314,8 +314,8 @@
             {
               "name": "create_allocation_estimate",
               "line_start": 34,
-              "line_end": 80,
-              "hash": "5f384a8a5e561f3c"
+              "line_end": 81,
+              "hash": "9326c2c69f61cc61"
             }
           ],
           "classes": [],
@@ -325,8 +325,8 @@
               "path": "/allocation-estimates",
               "handler": "create_allocation_estimate",
               "line_start": 34,
-              "line_end": 80,
-              "hash": "5f384a8a5e561f3c"
+              "line_end": 81,
+              "hash": "9326c2c69f61cc61"
             }
           ]
         },
@@ -343,15 +343,15 @@
           "functions": [
             {
               "name": "_to_catalog_response",
-              "line_start": 42,
-              "line_end": 75,
-              "hash": "84562cd698adcc63"
+              "line_start": 43,
+              "line_end": 78,
+              "hash": "4b7a66181e89ec71"
             },
             {
               "name": "get_template_catalog",
-              "line_start": 33,
-              "line_end": 39,
-              "hash": "b9173412720e3235"
+              "line_start": 34,
+              "line_end": 40,
+              "hash": "ce117f0a7ead4cd6"
             }
           ],
           "classes": [],
@@ -360,9 +360,9 @@
               "method": "get",
               "path": "/asset-templates/{template_key}/catalog",
               "handler": "get_template_catalog",
-              "line_start": 33,
-              "line_end": 39,
-              "hash": "b9173412720e3235"
+              "line_start": 34,
+              "line_end": 40,
+              "hash": "ce117f0a7ead4cd6"
             }
           ]
         },
@@ -388,74 +388,74 @@
           "functions": [
             {
               "name": "_to_asset_detail_response",
-              "line_start": 269,
-              "line_end": 325,
+              "line_start": 271,
+              "line_end": 327,
               "hash": "5f0aa98d60fc6570"
             },
             {
               "name": "_to_balance_history_response",
-              "line_start": 328,
-              "line_end": 337,
+              "line_start": 330,
+              "line_end": 339,
               "hash": "0eb152e94e7e09a6"
             },
             {
               "name": "_to_check_in_history_response",
-              "line_start": 356,
-              "line_end": 392,
+              "line_start": 358,
+              "line_end": 394,
               "hash": "fc0f17ccde027e8d"
             },
             {
               "name": "_to_cost_distribution_response",
-              "line_start": 340,
-              "line_end": 353,
+              "line_start": 342,
+              "line_end": 355,
               "hash": "a5e1b4d0ffc6bb6a"
             },
             {
               "name": "_to_overview_response",
-              "line_start": 395,
-              "line_end": 414,
+              "line_start": 397,
+              "line_end": 416,
               "hash": "13bfb5c03c54d633"
             },
             {
               "name": "create_asset",
-              "line_start": 65,
-              "line_end": 109,
-              "hash": "1c0aecd11188137d"
+              "line_start": 66,
+              "line_end": 111,
+              "hash": "468e93e43f8b04c2"
             },
             {
               "name": "get_asset_detail",
-              "line_start": 259,
-              "line_end": 266,
+              "line_start": 261,
+              "line_end": 268,
               "hash": "08c5341f5d4576ce"
             },
             {
               "name": "get_balance_history",
-              "line_start": 153,
-              "line_end": 161,
+              "line_start": 155,
+              "line_end": 163,
               "hash": "40e3d7bdb5a0f3b6"
             },
             {
               "name": "get_check_in_history",
-              "line_start": 206,
-              "line_end": 213,
+              "line_start": 208,
+              "line_end": 215,
               "hash": "135600154f34af2c"
             },
             {
               "name": "get_cost_distribution",
-              "line_start": 181,
-              "line_end": 189,
+              "line_start": 183,
+              "line_end": 191,
               "hash": "246db1fe3652e05d"
             },
             {
               "name": "list_assets",
-              "line_start": 126,
-              "line_end": 132,
+              "line_start": 128,
+              "line_end": 134,
               "hash": "2a8c9bf0b483986a"
             },
             {
               "name": "update_manual_extra",
-              "line_start": 231,
-              "line_end": 239,
+              "line_start": 233,
+              "line_end": 241,
               "hash": "041cb26c6b7666df"
             }
           ],
@@ -465,56 +465,56 @@
               "method": "get",
               "path": "/assets",
               "handler": "list_assets",
-              "line_start": 126,
-              "line_end": 132,
+              "line_start": 128,
+              "line_end": 134,
               "hash": "2a8c9bf0b483986a"
             },
             {
               "method": "post",
               "path": "/assets",
               "handler": "create_asset",
-              "line_start": 65,
-              "line_end": 109,
-              "hash": "1c0aecd11188137d"
+              "line_start": 66,
+              "line_end": 111,
+              "hash": "468e93e43f8b04c2"
             },
             {
               "method": "get",
               "path": "/assets/{asset_id}",
               "handler": "get_asset_detail",
-              "line_start": 259,
-              "line_end": 266,
+              "line_start": 261,
+              "line_end": 268,
               "hash": "08c5341f5d4576ce"
             },
             {
               "method": "get",
               "path": "/assets/{asset_id}/balance-history",
               "handler": "get_balance_history",
-              "line_start": 153,
-              "line_end": 161,
+              "line_start": 155,
+              "line_end": 163,
               "hash": "40e3d7bdb5a0f3b6"
             },
             {
               "method": "get",
               "path": "/assets/{asset_id}/check-in-history",
               "handler": "get_check_in_history",
-              "line_start": 206,
-              "line_end": 213,
+              "line_start": 208,
+              "line_end": 215,
               "hash": "135600154f34af2c"
             },
             {
               "method": "get",
               "path": "/assets/{asset_id}/cost-distribution",
               "handler": "get_cost_distribution",
-              "line_start": 181,
-              "line_end": 189,
+              "line_start": 183,
+              "line_end": 191,
               "hash": "246db1fe3652e05d"
             },
             {
               "method": "put",
               "path": "/assets/{asset_id}/manual-extra",
               "handler": "update_manual_extra",
-              "line_start": 231,
-              "line_end": 239,
+              "line_start": 233,
+              "line_end": 241,
               "hash": "041cb26c6b7666df"
             }
           ]
@@ -973,96 +973,96 @@
             {
               "name": "AllocationEstimateRequest",
               "line_start": 90,
-              "line_end": 100,
-              "hash": "f85bc34b721bf584",
+              "line_end": 106,
+              "hash": "e37d7af7084bf2ee",
               "methods": []
             },
             {
               "name": "CreateAssetRequest",
-              "line_start": 103,
-              "line_end": 170,
-              "hash": "f6bb7b72508295fc",
+              "line_start": 109,
+              "line_end": 186,
+              "hash": "f49164d2ecd58b57",
               "methods": [
                 {
                   "name": "_bound_selected_cost_keys",
-                  "line_start": 146,
-                  "line_end": 153,
+                  "line_start": 158,
+                  "line_end": 165,
                   "hash": "cfdb25ba593f9fb6"
                 },
                 {
                   "name": "_check_template_and_type",
-                  "line_start": 156,
-                  "line_end": 170,
-                  "hash": "93ec3378528681b9"
+                  "line_start": 168,
+                  "line_end": 186,
+                  "hash": "29d6661569bb47b5"
                 }
               ]
             },
             {
               "name": "CreateMaintenanceItemRequest",
-              "line_start": 230,
-              "line_end": 249,
+              "line_start": 246,
+              "line_end": 265,
               "hash": "3f309ff06cbd9b8b",
               "methods": [
                 {
                   "name": "_require_an_interval",
-                  "line_start": 245,
-                  "line_end": 249,
+                  "line_start": 261,
+                  "line_end": 265,
                   "hash": "d3e06be21b4130e1"
                 }
               ]
             },
             {
               "name": "CreateTimeBasedCostRequest",
-              "line_start": 173,
-              "line_end": 185,
+              "line_start": 189,
+              "line_end": 201,
               "hash": "0d4640ab31ce2dda",
               "methods": []
             },
             {
               "name": "CreateUsageBasedCostRequest",
-              "line_start": 204,
-              "line_end": 210,
+              "line_start": 220,
+              "line_end": 226,
               "hash": "e0503cac79a12200",
               "methods": []
             },
             {
               "name": "EditCheckInRequest",
-              "line_start": 349,
-              "line_end": 364,
+              "line_start": 365,
+              "line_end": 380,
               "hash": "4b77f07e62d225cf",
               "methods": []
             },
             {
               "name": "LogExpenseRequest",
-              "line_start": 252,
-              "line_end": 313,
+              "line_start": 268,
+              "line_end": 329,
               "hash": "f9bdbef636802630",
               "methods": [
                 {
                   "name": "_check_source_matches_kind",
-                  "line_start": 299,
-                  "line_end": 306,
+                  "line_start": 315,
+                  "line_end": 322,
                   "hash": "d919c543a28c37a8"
                 },
                 {
                   "name": "_override_does_not_exceed_amount",
-                  "line_start": 309,
-                  "line_end": 313,
+                  "line_start": 325,
+                  "line_end": 329,
                   "hash": "d427a2ce97be25da"
                 }
               ]
             },
             {
               "name": "PostCheckInRequest",
-              "line_start": 341,
-              "line_end": 346,
+              "line_start": 357,
+              "line_end": 362,
               "hash": "b03fef63c359077f",
               "methods": []
             },
             {
               "name": "PreviewCheckInRequest",
-              "line_start": 316,
-              "line_end": 338,
+              "line_start": 332,
+              "line_end": 354,
               "hash": "9bf60568ba7f422c",
               "methods": []
             },
@@ -1082,8 +1082,8 @@
             },
             {
               "name": "UpdateMaintenanceItemRequest",
-              "line_start": 367,
-              "line_end": 380,
+              "line_start": 383,
+              "line_end": 396,
               "hash": "197bb31033bc827f",
               "methods": []
             },
@@ -1096,15 +1096,15 @@
             },
             {
               "name": "UpdateTimeBasedCostRequest",
-              "line_start": 188,
-              "line_end": 201,
+              "line_start": 204,
+              "line_end": 217,
               "hash": "1897160b400193ad",
               "methods": []
             },
             {
               "name": "UpdateUsageBasedCostRequest",
-              "line_start": 213,
-              "line_end": 227,
+              "line_start": 229,
+              "line_end": 243,
               "hash": "b1a4ff8aadacba01",
               "methods": []
             },
@@ -1146,15 +1146,15 @@
             },
             {
               "name": "AllocationEstimateLineResponse",
-              "line_start": 629,
-              "line_end": 637,
+              "line_start": 632,
+              "line_end": 640,
               "hash": "b27e012ce2d01b55",
               "methods": []
             },
             {
               "name": "AllocationEstimateResponse",
-              "line_start": 640,
-              "line_end": 647,
+              "line_start": 643,
+              "line_end": 650,
               "hash": "1be1ae9f2ff0cc32",
               "methods": []
             },
@@ -1196,8 +1196,8 @@
             {
               "name": "AssetTemplateCatalogResponse",
               "line_start": 618,
-              "line_end": 626,
-              "hash": "4a72e4925b14f5fb",
+              "line_end": 629,
+              "hash": "f734926a729a2288",
               "methods": []
             },
             {
@@ -1293,8 +1293,8 @@
             },
             {
               "name": "CreateAssetResponse",
-              "line_start": 650,
-              "line_end": 663,
+              "line_start": 653,
+              "line_end": 666,
               "hash": "c6a982f195b870cf",
               "methods": []
             },
@@ -1691,15 +1691,19 @@
           "path": "backend/app/domain/asset_templates.py",
           "language": "python",
           "imports": [
-            "dataclasses"
+            "app.domain.house_defaults",
+            "app.domain.template_catalog",
+            "app.domain.vehicle_defaults",
+            "dataclasses",
+            "decimal"
           ],
           "functions": [],
           "classes": [
             {
               "name": "AssetTemplate",
-              "line_start": 13,
-              "line_end": 18,
-              "hash": "b1d26816b1ea2691",
+              "line_start": 17,
+              "line_end": 24,
+              "hash": "10643ec8edf15d26",
               "methods": []
             }
           ],
@@ -2056,6 +2060,84 @@
           "routes": []
         },
         {
+          "path": "backend/app/domain/house_defaults.py",
+          "language": "python",
+          "imports": [
+            "app.domain.template_catalog",
+            "decimal"
+          ],
+          "functions": [],
+          "classes": [],
+          "routes": []
+        },
+        {
+          "path": "backend/app/domain/template_catalog.py",
+          "language": "python",
+          "imports": [
+            "app.domain.cost",
+            "dataclasses",
+            "decimal",
+            "uuid"
+          ],
+          "functions": [
+            {
+              "name": "_build_time_based_row",
+              "line_start": 126,
+              "line_end": 145,
+              "hash": "689d17db901e0ad0"
+            },
+            {
+              "name": "build_selected_rows",
+              "line_start": 72,
+              "line_end": 123,
+              "hash": "72b2329f889b3ce4"
+            },
+            {
+              "name": "catalog_keys",
+              "line_start": 52,
+              "line_end": 61,
+              "hash": "c39fbec65a26fcca"
+            },
+            {
+              "name": "overridable_catalog_keys",
+              "line_start": 64,
+              "line_end": 69,
+              "hash": "b36f6660ca33ff68"
+            }
+          ],
+          "classes": [
+            {
+              "name": "MaintenanceItemTemplate",
+              "line_start": 32,
+              "line_end": 40,
+              "hash": "392ba1ccfd446d8e",
+              "methods": []
+            },
+            {
+              "name": "TemplateCatalog",
+              "line_start": 44,
+              "line_end": 49,
+              "hash": "2c2478ecd4975087",
+              "methods": []
+            },
+            {
+              "name": "TimeBasedCostTemplate",
+              "line_start": 11,
+              "line_end": 18,
+              "hash": "afc40270f32a8877",
+              "methods": []
+            },
+            {
+              "name": "UsageBasedCostTemplate",
+              "line_start": 22,
+              "line_end": 28,
+              "hash": "41dcf8ff41b4453b",
+              "methods": []
+            }
+          ],
+          "routes": []
+        },
+        {
           "path": "backend/app/domain/user.py",
           "language": "python",
           "imports": [
@@ -2083,59 +2165,31 @@
           "language": "python",
           "imports": [
             "app.domain.cost",
-            "dataclasses",
+            "app.domain.template_catalog",
             "decimal",
             "uuid"
           ],
           "functions": [
             {
-              "name": "_build_time_based_row",
-              "line_start": 206,
-              "line_end": 225,
-              "hash": "7df9165a2d3ea4e0"
-            },
-            {
               "name": "build_selected_rows",
-              "line_start": 151,
-              "line_end": 203,
-              "hash": "5bab0b1db5ad5901"
+              "line_start": 127,
+              "line_end": 150,
+              "hash": "6950699e4400b576"
             },
             {
               "name": "overridable_catalog_keys",
-              "line_start": 140,
-              "line_end": 148,
-              "hash": "cd3b80cc9688d7f3"
+              "line_start": 118,
+              "line_end": 124,
+              "hash": "ed2d60edf2e75a7b"
             },
             {
               "name": "vehicle_catalog_keys",
-              "line_start": 128,
-              "line_end": 137,
-              "hash": "46cf83d58b27a085"
+              "line_start": 109,
+              "line_end": 115,
+              "hash": "3f6ad2e7b0e320d9"
             }
           ],
-          "classes": [
-            {
-              "name": "MaintenanceItemTemplate",
-              "line_start": 47,
-              "line_end": 55,
-              "hash": "874f205e417d28f4",
-              "methods": []
-            },
-            {
-              "name": "TimeBasedCostTemplate",
-              "line_start": 26,
-              "line_end": 33,
-              "hash": "59b3dd0611c2136f",
-              "methods": []
-            },
-            {
-              "name": "UsageBasedCostTemplate",
-              "line_start": 37,
-              "line_end": 43,
-              "hash": "64066bf331083999",
-              "methods": []
-            }
-          ],
+          "classes": [],
           "routes": []
         },
         {
@@ -2560,7 +2614,7 @@
             "app.common.exceptions",
             "app.domain",
             "app.domain.asset_templates",
-            "app.domain.vehicle_defaults",
+            "app.domain.template_catalog",
             "app.repository",
             "dataclasses",
             "decimal",
@@ -2571,85 +2625,103 @@
           "classes": [
             {
               "name": "AllocationEstimate",
-              "line_start": 54,
-              "line_end": 61,
+              "line_start": 50,
+              "line_end": 57,
               "hash": "a23510f520077e03",
               "methods": []
             },
             {
               "name": "AllocationEstimateLine",
-              "line_start": 42,
-              "line_end": 50,
+              "line_start": 38,
+              "line_end": 46,
               "hash": "63fe41671d85daa4",
               "methods": []
             },
             {
               "name": "AllocationEstimateService",
-              "line_start": 64,
-              "line_end": 193,
+              "line_start": 60,
+              "line_end": 249,
               "hash": "29d16be37d3062d7",
               "methods": [
                 {
                   "name": "__init__",
-                  "line_start": 67,
-                  "line_end": 68,
+                  "line_start": 63,
+                  "line_end": 64,
                   "hash": "2c8f2810305a160d"
                 },
                 {
                   "name": "_line",
-                  "line_start": 182,
-                  "line_end": 193,
+                  "line_start": 226,
+                  "line_end": 237,
                   "hash": "9c0e4e0d2003203e"
                 },
                 {
+                  "name": "_manual_extra_line",
+                  "line_start": 239,
+                  "line_end": 249,
+                  "hash": "4cf19fa962452417"
+                },
+                {
                   "name": "_owner_currency",
-                  "line_start": 103,
-                  "line_end": 107,
+                  "line_start": 106,
+                  "line_end": 110,
                   "hash": "35bf3a219f3f50f8"
                 },
                 {
+                  "name": "_resolve_manual_extra",
+                  "line_start": 206,
+                  "line_end": 224,
+                  "hash": "64b5c98a6dc13200"
+                },
+                {
+                  "name": "_resolve_template",
+                  "line_start": 112,
+                  "line_end": 119,
+                  "hash": "1725fad010f88121"
+                },
+                {
                   "name": "_template_inputs",
-                  "line_start": 154,
-                  "line_end": 180,
-                  "hash": "26dc3a865daca09b"
+                  "line_start": 172,
+                  "line_end": 204,
+                  "hash": "3a4262adc7f37a46"
                 },
                 {
                   "name": "_validate_inputs",
-                  "line_start": 140,
-                  "line_end": 152,
+                  "line_start": 158,
+                  "line_end": 170,
                   "hash": "1ffde51fd40d8137"
                 },
                 {
                   "name": "_validate_overrides",
-                  "line_start": 122,
-                  "line_end": 138,
-                  "hash": "e636403abad74825"
+                  "line_start": 134,
+                  "line_end": 156,
+                  "hash": "079413dfc2a64873"
                 },
                 {
                   "name": "_validate_selection",
-                  "line_start": 109,
-                  "line_end": 120,
-                  "hash": "0637acd681fba2fa"
+                  "line_start": 121,
+                  "line_end": 132,
+                  "hash": "fc3886763aa9aa84"
                 },
                 {
                   "name": "estimate",
-                  "line_start": 70,
-                  "line_end": 101,
-                  "hash": "7837413921316384"
+                  "line_start": 66,
+                  "line_end": 104,
+                  "hash": "78290219b62a4b0f"
                 }
               ]
             },
             {
               "name": "EstimateCostInput",
-              "line_start": 21,
-              "line_end": 28,
+              "line_start": 17,
+              "line_end": 24,
               "hash": "c504b5a987eb8841",
               "methods": []
             },
             {
               "name": "EstimateCostOverride",
-              "line_start": 32,
-              "line_end": 38,
+              "line_start": 28,
+              "line_end": 34,
               "hash": "8ddeacc57cc3f009",
               "methods": []
             }
@@ -2838,7 +2910,7 @@
             "app.domain.asset",
             "app.domain.asset_templates",
             "app.domain.cost",
-            "app.domain.vehicle_defaults",
+            "app.domain.template_catalog",
             "app.repository",
             "app.repository.asset_repository",
             "dataclasses",
@@ -2850,96 +2922,102 @@
           "classes": [
             {
               "name": "AssetService",
-              "line_start": 55,
-              "line_end": 207,
+              "line_start": 59,
+              "line_end": 258,
               "hash": "2650197894c247e6",
               "methods": [
                 {
                   "name": "__init__",
-                  "line_start": 58,
-                  "line_end": 59,
+                  "line_start": 62,
+                  "line_end": 63,
                   "hash": "2c8f2810305a160d"
                 },
                 {
                   "name": "_build_template_dependents",
-                  "line_start": 169,
-                  "line_end": 186,
-                  "hash": "1fa7ef257647bf28"
+                  "line_start": 215,
+                  "line_end": 237,
+                  "hash": "b77b514aa5cf7db2"
                 },
                 {
                   "name": "_build_vehicle_profile",
-                  "line_start": 200,
-                  "line_end": 207,
+                  "line_start": 251,
+                  "line_end": 258,
                   "hash": "1de4d8822ca640fb"
                 },
                 {
                   "name": "_require_type",
-                  "line_start": 137,
-                  "line_end": 141,
+                  "line_start": 149,
+                  "line_end": 153,
                   "hash": "47245ff66db21ba3"
                 },
                 {
+                  "name": "_resolve_manual_extra",
+                  "line_start": 195,
+                  "line_end": 213,
+                  "hash": "b262e19c483613ae"
+                },
+                {
                   "name": "_resolve_owner_currency",
-                  "line_start": 118,
-                  "line_end": 126,
+                  "line_start": 130,
+                  "line_end": 138,
                   "hash": "95ebfc99b8163505"
                 },
                 {
                   "name": "_resolve_template",
-                  "line_start": 128,
-                  "line_end": 135,
+                  "line_start": 140,
+                  "line_end": 147,
                   "hash": "35a2e345b5727d70"
                 },
                 {
                   "name": "_split_cost_overrides",
-                  "line_start": 188,
-                  "line_end": 198,
+                  "line_start": 239,
+                  "line_end": 249,
                   "hash": "5d4be6c257d63e2f"
                 },
                 {
                   "name": "_validate_cost_overrides",
-                  "line_start": 157,
-                  "line_end": 167,
-                  "hash": "d2e88427e42ff347"
+                  "line_start": 169,
+                  "line_end": 193,
+                  "hash": "9491d58c0275d59d"
                 },
                 {
                   "name": "_validate_selected_keys",
-                  "line_start": 143,
-                  "line_end": 155,
-                  "hash": "045b5a4e3bad7da4"
+                  "line_start": 155,
+                  "line_end": 167,
+                  "hash": "28e5f30e5e8b804e"
                 },
                 {
                   "name": "create_asset",
-                  "line_start": 61,
-                  "line_end": 107,
-                  "hash": "59fd1fcdcf6ab096"
+                  "line_start": 65,
+                  "line_end": 119,
+                  "hash": "dd1465130a49090a"
                 },
                 {
                   "name": "update_manual_extra_monthly",
-                  "line_start": 109,
-                  "line_end": 116,
+                  "line_start": 121,
+                  "line_end": 128,
                   "hash": "d11fc7ebfc666a92"
                 }
               ]
             },
             {
               "name": "CostOverride",
-              "line_start": 27,
-              "line_end": 37,
+              "line_start": 31,
+              "line_end": 41,
               "hash": "e461a77fbb286d6b",
               "methods": []
             },
             {
               "name": "CreatedAsset",
-              "line_start": 41,
-              "line_end": 52,
+              "line_start": 45,
+              "line_end": 56,
               "hash": "ee694be77e58c70f",
               "methods": []
             },
             {
               "name": "VehicleDetails",
-              "line_start": 19,
-              "line_end": 23,
+              "line_start": 23,
+              "line_end": 27,
               "hash": "879f22c22c2ea22f",
               "methods": []
             }
@@ -2952,36 +3030,31 @@
           "imports": [
             "app.common.exceptions",
             "app.domain.asset_templates",
-            "app.domain.vehicle_defaults",
-            "dataclasses"
+            "app.domain.template_catalog",
+            "dataclasses",
+            "decimal"
           ],
           "functions": [],
           "classes": [
             {
               "name": "AssetTemplateService",
-              "line_start": 32,
-              "line_end": 53,
+              "line_start": 26,
+              "line_end": 40,
               "hash": "51f9a78b22bcfa61",
               "methods": [
                 {
-                  "name": "_vehicle_catalog",
-                  "line_start": 46,
-                  "line_end": 53,
-                  "hash": "ebd8b96efe8594fb"
-                },
-                {
                   "name": "get_catalog",
-                  "line_start": 35,
-                  "line_end": 44,
-                  "hash": "92cc97fe8025da5f"
+                  "line_start": 29,
+                  "line_end": 40,
+                  "hash": "af8eb632c6bb3b65"
                 }
               ]
             },
             {
               "name": "TemplateCatalog",
-              "line_start": 23,
-              "line_end": 29,
-              "hash": "f1060f8324f88b8a",
+              "line_start": 16,
+              "line_end": 23,
+              "hash": "17e8a8c1a4f993b2",
               "methods": []
             }
           ],
@@ -5164,234 +5237,240 @@
           "functions": [
             {
               "name": "CatalogGroup",
-              "line_start": 914,
-              "line_end": 948,
+              "line_start": 987,
+              "line_end": 1021,
               "hash": "afaf5514e0286cb3"
             },
             {
               "name": "CatalogRow",
-              "line_start": 950,
-              "line_end": 962,
+              "line_start": 1023,
+              "line_end": 1035,
               "hash": "cb732551ac051385"
             },
             {
               "name": "CostRow",
-              "line_start": 1040,
-              "line_end": 1074,
+              "line_start": 1113,
+              "line_end": 1147,
               "hash": "945615c280622273"
             },
             {
               "name": "EditableCatalogRow",
-              "line_start": 968,
-              "line_end": 1038,
+              "line_start": 1041,
+              "line_end": 1111,
               "hash": "c00433b1dd41a392"
             },
             {
               "name": "NewBucketScreen",
-              "line_start": 140,
-              "line_end": 546,
-              "hash": "34b0eb74acb8bc71"
+              "line_start": 166,
+              "line_end": 609,
+              "hash": "2fb8a68592fe8391"
             },
             {
               "name": "StepAskCheckin",
-              "line_start": 1117,
-              "line_end": 1137,
+              "line_start": 1190,
+              "line_end": 1210,
               "hash": "00d4940260a9484c"
             },
             {
               "name": "StepCosts",
-              "line_start": 779,
-              "line_end": 812,
-              "hash": "6af9706d89317551"
+              "line_start": 844,
+              "line_end": 877,
+              "hash": "ebdc34f213918d5a"
             },
             {
               "name": "StepDetails",
-              "line_start": 670,
-              "line_end": 760,
+              "line_start": 735,
+              "line_end": 825,
               "hash": "bf49b737f3efd7b0"
             },
             {
               "name": "StepFirstCheckin",
-              "line_start": 1139,
-              "line_end": 1207,
+              "line_start": 1212,
+              "line_end": 1280,
               "hash": "58976a066b0f0732"
             },
             {
               "name": "StepReview",
-              "line_start": 1209,
-              "line_end": 1383,
+              "line_start": 1282,
+              "line_end": 1456,
               "hash": "0b62bd8397d40e63"
             },
             {
               "name": "StepSafety",
-              "line_start": 1076,
-              "line_end": 1115,
+              "line_start": 1149,
+              "line_end": 1188,
               "hash": "4b1598dad41c6241"
             },
             {
               "name": "StepType",
-              "line_start": 643,
-              "line_end": 668,
+              "line_start": 708,
+              "line_end": 733,
               "hash": "8252b8ee27a4d782"
             },
             {
-              "name": "VehicleCatalogPicker",
-              "line_start": 814,
-              "line_end": 912,
-              "hash": "3a2f6688a3f43795"
+              "name": "TemplateCatalogPicker",
+              "line_start": 879,
+              "line_end": 985,
+              "hash": "b8830907d2c05e0b"
             },
             {
               "name": "WizardProgress",
-              "line_start": 634,
-              "line_end": 641,
+              "line_start": 699,
+              "line_end": 706,
               "hash": "4fc9e9d1241fde84"
             },
             {
               "name": "allCatalogKeys",
-              "line_start": 104,
-              "line_end": 110,
+              "line_start": 121,
+              "line_end": 127,
               "hash": "4fb39deab4f58f38"
             },
             {
               "name": "buildCreateRequest",
-              "line_start": 585,
-              "line_end": 621,
-              "hash": "72ef818340d03130"
+              "line_start": 648,
+              "line_end": 686,
+              "hash": "2537c9858898084d"
             },
             {
               "name": "buildEstimateRequest",
-              "line_start": 548,
-              "line_end": 583,
-              "hash": "3907dd9604cab3bb"
+              "line_start": 611,
+              "line_end": 646,
+              "hash": "d5013704fe0c8b0f"
+            },
+            {
+              "name": "catalogSupportsCurrency",
+              "line_start": 151,
+              "line_end": 158,
+              "hash": "f69ede9eb502140a"
             },
             {
               "name": "draft",
-              "line_start": 100,
-              "line_end": 102,
+              "line_start": 117,
+              "line_end": 119,
               "hash": "deedf4693bb5e619"
             },
             {
               "name": "intervalLabel",
-              "line_start": 113,
-              "line_end": 118,
+              "line_start": 130,
+              "line_end": 135,
               "hash": "80a0ea50adb5981d"
             },
             {
               "name": "isValidManufactureYear",
-              "line_start": 623,
-              "line_end": 629,
+              "line_start": 688,
+              "line_end": 694,
               "hash": "a31d76fbf2322a47"
             },
             {
               "name": "maintenanceDetail",
-              "line_start": 121,
-              "line_end": 126,
+              "line_start": 138,
+              "line_end": 143,
               "hash": "2418ff75e0e35d9b"
             },
             {
               "name": "templateLabel",
-              "line_start": 130,
-              "line_end": 132,
-              "hash": "a6cd52189134a328"
+              "line_start": 147,
+              "line_end": 149,
+              "hash": "b8b64c87d16c7f20"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "CatalogGroup",
-              "line_start": 914,
-              "line_end": 948,
+              "line_start": 987,
+              "line_end": 1021,
               "hash": "afaf5514e0286cb3",
               "kind": "function"
             },
             {
               "name": "CatalogRow",
-              "line_start": 950,
-              "line_end": 962,
+              "line_start": 1023,
+              "line_end": 1035,
               "hash": "cb732551ac051385",
               "kind": "function"
             },
             {
               "name": "CostRow",
-              "line_start": 1040,
-              "line_end": 1074,
+              "line_start": 1113,
+              "line_end": 1147,
               "hash": "945615c280622273",
               "kind": "function"
             },
             {
               "name": "EditableCatalogRow",
-              "line_start": 968,
-              "line_end": 1038,
+              "line_start": 1041,
+              "line_end": 1111,
               "hash": "c00433b1dd41a392",
               "kind": "function"
             },
             {
               "name": "NewBucketScreen",
-              "line_start": 140,
-              "line_end": 546,
-              "hash": "34b0eb74acb8bc71",
+              "line_start": 166,
+              "line_end": 609,
+              "hash": "2fb8a68592fe8391",
               "kind": "function"
             },
             {
               "name": "StepAskCheckin",
-              "line_start": 1117,
-              "line_end": 1137,
+              "line_start": 1190,
+              "line_end": 1210,
               "hash": "00d4940260a9484c",
               "kind": "function"
             },
             {
               "name": "StepCosts",
-              "line_start": 779,
-              "line_end": 812,
-              "hash": "6af9706d89317551",
+              "line_start": 844,
+              "line_end": 877,
+              "hash": "ebdc34f213918d5a",
               "kind": "function"
             },
             {
               "name": "StepDetails",
-              "line_start": 670,
-              "line_end": 760,
+              "line_start": 735,
+              "line_end": 825,
               "hash": "bf49b737f3efd7b0",
               "kind": "function"
             },
             {
               "name": "StepFirstCheckin",
-              "line_start": 1139,
-              "line_end": 1207,
+              "line_start": 1212,
+              "line_end": 1280,
               "hash": "58976a066b0f0732",
               "kind": "function"
             },
             {
               "name": "StepReview",
-              "line_start": 1209,
-              "line_end": 1383,
+              "line_start": 1282,
+              "line_end": 1456,
               "hash": "0b62bd8397d40e63",
               "kind": "function"
             },
             {
               "name": "StepSafety",
-              "line_start": 1076,
-              "line_end": 1115,
+              "line_start": 1149,
+              "line_end": 1188,
               "hash": "4b1598dad41c6241",
               "kind": "function"
             },
             {
               "name": "StepType",
-              "line_start": 643,
-              "line_end": 668,
+              "line_start": 708,
+              "line_end": 733,
               "hash": "8252b8ee27a4d782",
               "kind": "function"
             },
             {
-              "name": "VehicleCatalogPicker",
-              "line_start": 814,
-              "line_end": 912,
-              "hash": "3a2f6688a3f43795",
+              "name": "TemplateCatalogPicker",
+              "line_start": 879,
+              "line_end": 985,
+              "hash": "b8830907d2c05e0b",
               "kind": "function"
             },
             {
               "name": "WizardProgress",
-              "line_start": 634,
-              "line_end": 641,
+              "line_start": 699,
+              "line_end": 706,
               "hash": "4fc9e9d1241fde84",
               "kind": "function"
             }

@@ -171,3 +171,74 @@ def test_allocation_estimate_empty_and_invalid_inputs(client: TestClient) -> Non
         },
     )
     assert invalid_interval.status_code == 422
+
+
+def test_house_allocation_estimate_defaults_overrides_and_template_isolation_are_persistence_free(
+    client: TestClient, db_session: Session
+) -> None:
+    models = (
+        Asset,
+        Bucket,
+        TimeBasedCost,
+        UsageBasedCost,
+        MaintenanceItem,
+        CheckIn,
+        AllocationEvent,
+        ExpenseEvent,
+    )
+    before = {model: _count(db_session, model) for model in models}
+    house_keys = [
+        "building_tax",
+        "home_insurance",
+        "boiler_cleaning",
+        "air_conditioner_cleaning",
+    ]
+
+    untouched = client.post(
+        "/api/allocation-estimates",
+        json={"template": "house", "selected_cost_keys": house_keys},
+    )
+    assert untouched.status_code == 200
+    payload = untouched.json()
+    assert [line["key"] for line in payload["lines"]] == [*house_keys, "manual_extra"]
+    assert Decimal(payload["yearly_total"]) == Decimal("414000.00")
+    assert Decimal(payload["monthly_total"]) == Decimal("34500.00")
+    assert Decimal(payload["daily_total"]) == Decimal("1134.25")
+    assert {model: _count(db_session, model) for model in models} == before
+
+    without_buffer = client.post(
+        "/api/allocation-estimates",
+        json={
+            "template": "house",
+            "selected_cost_keys": house_keys,
+            "manual_extra_monthly": "0",
+        },
+    )
+    assert without_buffer.status_code == 200
+    assert [line["key"] for line in without_buffer.json()["lines"]] == house_keys
+    assert Decimal(without_buffer.json()["yearly_total"]) == Decimal("198000.00")
+    assert Decimal(without_buffer.json()["monthly_total"]) == Decimal("16500.00")
+    assert {model: _count(db_session, model) for model in models} == before
+
+    overridden_buffer = client.post(
+        "/api/allocation-estimates",
+        json={
+            "template": "house",
+            "selected_cost_keys": house_keys,
+            "manual_extra_monthly": "1000",
+        },
+    )
+    assert overridden_buffer.status_code == 200
+    assert overridden_buffer.json()["lines"][-1]["key"] == "manual_extra"
+    assert Decimal(overridden_buffer.json()["lines"][-1]["monthly_amount"]) == Decimal("1000.00")
+    assert Decimal(overridden_buffer.json()["yearly_total"]) == Decimal("210000.00")
+    assert {model: _count(db_session, model) for model in models} == before
+
+    for body in (
+        {"template": "house", "selected_cost_keys": ["vehicle_tax"]},
+        {"template": "vehicle", "selected_cost_keys": ["building_tax"]},
+        {"template": "house", "manual_extra_monthly": "-1"},
+    ):
+        response = client.post("/api/allocation-estimates", json=body)
+        assert response.status_code == 422
+        assert {model: _count(db_session, model) for model in models} == before

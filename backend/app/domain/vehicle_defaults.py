@@ -16,43 +16,18 @@ currency yet (`estimated_costs` is `None` for every row today), so none is inven
 """
 
 import uuid
-from dataclasses import dataclass
 from decimal import Decimal
 
 from app.domain.cost import MaintenanceItem, TimeBasedCost, UsageBasedCost
-
-
-@dataclass(frozen=True)
-class TimeBasedCostTemplate:
-    """Recurring time-driven cost baseline (user-editable at clone time)."""
-
-    technical_key: str
-    label: str
-    amounts: dict[str, Decimal]
-    interval_value: int
-    interval_unit: str
-
-
-@dataclass(frozen=True)
-class UsageBasedCostTemplate:
-    """Per-usage-unit reserve baseline; one active usage-based row per asset."""
-
-    technical_key: str
-    label: str
-    amounts_per_unit: dict[str, Decimal]
-    usage_unit: str
-
-
-@dataclass(frozen=True)
-class MaintenanceItemTemplate:
-    """Tracked maintenance/replacement item baseline with optional km/month intervals."""
-
-    technical_key: str
-    label: str
-    interval_km: int | None
-    interval_months: int | None
-    tire_type: str | None
-    estimated_costs: dict[str, Decimal] | None
+from app.domain.template_catalog import (
+    MaintenanceItemTemplate,
+    TemplateCatalog,
+    TimeBasedCostTemplate,
+    UsageBasedCostTemplate,
+    build_selected_rows as build_catalog_rows,
+    catalog_keys,
+    overridable_catalog_keys as catalog_overridable_keys,
+)
 
 
 DEFAULT_TIME_BASED_COSTS: tuple[TimeBasedCostTemplate, ...] = (
@@ -124,6 +99,12 @@ DEFAULT_MAINTENANCE_ITEMS: tuple[MaintenanceItemTemplate, ...] = (
     MaintenanceItemTemplate("other", "Other", None, None, None, None),
 )
 
+VEHICLE_CATALOG = TemplateCatalog(
+    time_based_costs=DEFAULT_TIME_BASED_COSTS,
+    usage_based_costs=(DEFAULT_USAGE_BASED_COST,),
+    maintenance_items=DEFAULT_MAINTENANCE_ITEMS,
+)
+
 
 def vehicle_catalog_keys() -> frozenset[str]:
     """Return every pickable `technical_key` across the vehicle catalog's three groups.
@@ -131,10 +112,7 @@ def vehicle_catalog_keys() -> frozenset[str]:
     This is the validation set for a caller's selection and the single source of truth for
     "what is pickable" — the read service and the create service both derive from it.
     """
-    keys = {template.technical_key for template in DEFAULT_TIME_BASED_COSTS}
-    keys.add(DEFAULT_USAGE_BASED_COST.technical_key)
-    keys.update(template.technical_key for template in DEFAULT_MAINTENANCE_ITEMS)
-    return frozenset(keys)
+    return catalog_keys(VEHICLE_CATALOG)
 
 
 def overridable_catalog_keys() -> frozenset[str]:
@@ -143,9 +121,7 @@ def overridable_catalog_keys() -> frozenset[str]:
     Only time-based costs and the usage-based reserve carry an editable amount today;
     maintenance items have no curated cost in any currency yet, so they are excluded.
     """
-    keys = {template.technical_key for template in DEFAULT_TIME_BASED_COSTS}
-    keys.add(DEFAULT_USAGE_BASED_COST.technical_key)
-    return frozenset(keys)
+    return catalog_overridable_keys(VEHICLE_CATALOG)
 
 
 def build_selected_rows(
@@ -164,62 +140,11 @@ def build_selected_rows(
     `technical_key`, in which case the override wins. Field mapping is deterministic; does not
     open a session or persist anything.
     """
-    amount_overrides = amount_overrides or {}
-    interval_overrides = interval_overrides or {}
-    time_based = [
-        _build_time_based_row(asset_id, template, currency, amount_overrides, interval_overrides)
-        for template in DEFAULT_TIME_BASED_COSTS
-        if template.technical_key in selected_keys
-    ]
-    usage_based: list[UsageBasedCost] = []
-    if DEFAULT_USAGE_BASED_COST.technical_key in selected_keys:
-        usage_based.append(
-            UsageBasedCost(
-                asset_id=asset_id,
-                label=DEFAULT_USAGE_BASED_COST.label,
-                technical_key=DEFAULT_USAGE_BASED_COST.technical_key,
-                amount_per_unit=amount_overrides.get(
-                    DEFAULT_USAGE_BASED_COST.technical_key, DEFAULT_USAGE_BASED_COST.amounts_per_unit[currency]
-                ),
-                usage_unit=DEFAULT_USAGE_BASED_COST.usage_unit,
-                currency=currency,
-                is_active=True,
-            )
-        )
-    maintenance = [
-        MaintenanceItem(
-            asset_id=asset_id,
-            label=template.label,
-            technical_key=template.technical_key,
-            interval_km=template.interval_km,
-            interval_months=template.interval_months,
-            tire_type=template.tire_type,
-            estimated_cost=template.estimated_costs[currency] if template.estimated_costs else None,
-            is_active=True,
-        )
-        for template in DEFAULT_MAINTENANCE_ITEMS
-        if template.technical_key in selected_keys
-    ]
-    return time_based, usage_based, maintenance
-
-
-def _build_time_based_row(
-    asset_id: uuid.UUID,
-    template: TimeBasedCostTemplate,
-    currency: str,
-    amount_overrides: dict[str, Decimal],
-    interval_overrides: dict[str, tuple[int, str]],
-) -> TimeBasedCost:
-    """Clone one time-based template row, applying an amount/interval override when supplied."""
-    interval_value, interval_unit = interval_overrides.get(
-        template.technical_key, (template.interval_value, template.interval_unit)
-    )
-    return TimeBasedCost(
-        asset_id=asset_id,
-        label=template.label,
-        technical_key=template.technical_key,
-        amount=amount_overrides.get(template.technical_key, template.amounts[currency]),
-        interval_value=interval_value,
-        interval_unit=interval_unit,
-        is_active=True,
+    return build_catalog_rows(
+        VEHICLE_CATALOG,
+        asset_id,
+        selected_keys,
+        currency,
+        amount_overrides,
+        interval_overrides,
     )

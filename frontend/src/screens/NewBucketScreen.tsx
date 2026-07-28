@@ -36,7 +36,10 @@ interface TypeOption {
   descKey: string;
   bg: string;
   assetType: string;
+  templateKey?: TemplateKey;
 }
+
+type TemplateKey = "vehicle" | "house";
 
 // One review line for the review step / the running estimate. `monthly` is null for usage-based
 // (variable) rows, which are excluded from the steady monthly figure.
@@ -55,8 +58,22 @@ interface CheckinExpenseDraft {
 }
 
 const TYPES: TypeOption[] = [
-  { kind: "car", nameKey: "newBucket.type_vehicle_name", descKey: "newBucket.type_vehicle_desc", bg: "#DDE8F8", assetType: "vehicle" },
-  { kind: "house", nameKey: "newBucket.type_house_name", descKey: "newBucket.type_house_desc", bg: "#F8E5E2", assetType: "house" },
+  {
+    kind: "car",
+    nameKey: "newBucket.type_vehicle_name",
+    descKey: "newBucket.type_vehicle_desc",
+    bg: "#DDE8F8",
+    assetType: "vehicle",
+    templateKey: "vehicle",
+  },
+  {
+    kind: "house",
+    nameKey: "newBucket.type_house_name",
+    descKey: "newBucket.type_house_desc",
+    bg: "#F8E5E2",
+    assetType: "house",
+    templateKey: "house",
+  },
 ];
 
 // The wizard's guided one-question-per-step flow. `path`/`history` (not a plain number) so Back
@@ -125,10 +142,19 @@ function maintenanceDetail(interval_km: number | null, interval_months: number |
   return parts.length > 0 ? t("newBucket.maint_every", { parts: parts.join(" / ") }) : t("newBucket.no_fixed_interval");
 }
 
-// A vehicle template row's label, translated by its stable `technical_key`; falls back to the
+// A built-in template row's label, translated by its stable `technical_key`; falls back to the
 // backend-supplied English label if a translation key is missing (e.g. a future untranslated row).
-function templateLabel(t: TFunction, technicalKey: string, fallback: string): string {
-  return t(`templates.vehicle.${technicalKey}.label`, { defaultValue: fallback });
+function templateLabel(t: TFunction, templateKey: TemplateKey, technicalKey: string, fallback: string): string {
+  return t(`templates.${templateKey}.${technicalKey}.label`, { defaultValue: fallback });
+}
+
+function catalogSupportsCurrency(catalog: AssetTemplateCatalog, currency: string): boolean {
+  if (!(currency in catalog.manual_extra_monthly_amounts)) return false;
+  if (catalog.time_based_costs.some((row) => !(currency in row.amounts))) return false;
+  if (catalog.usage_based_costs.some((row) => !(currency in row.amounts_per_unit))) return false;
+  return !catalog.maintenance_items.some(
+    (row) => row.estimated_costs != null && !(currency in row.estimated_costs),
+  );
 }
 
 interface CatalogOverride {
@@ -157,8 +183,9 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   const [logFirstCheckin, setLogFirstCheckin] = useState<boolean | null>(null);
   const [checkinExpenses, setCheckinExpenses] = useState<CheckinExpenseDraft[]>([]);
 
-  // Vehicle template catalog + the user's row selection. Owned here so it survives Back/Continue.
+  // Template catalog + the user's row selection. Owned here so it survives Back/Continue.
   const isVehicle = type?.kind === "car";
+  const templateKey = type?.templateKey ?? null;
   const [catalog, setCatalog] = useState<AssetTemplateCatalog | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
@@ -172,6 +199,9 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   const [estimateError, setEstimateError] = useState<string | null>(null);
   const [estimateRetry, setEstimateRetry] = useState(0);
   const estimateRequestId = useRef(0);
+  const catalogRequestId = useRef(0);
+  const activeTemplateKey = useRef<TemplateKey | null>(templateKey);
+  activeTemplateKey.current = templateKey;
 
   const goTo = (next: WizardStep) => {
     setHistory((h) => [...h, next]);
@@ -187,16 +217,21 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
     setStep(nextHistory[nextHistory.length - 1]);
   };
 
-  const loadCatalog = () => {
+  const loadCatalog = (requestedTemplate: TemplateKey | null = activeTemplateKey.current) => {
+    if (!requestedTemplate) return;
+    const requestId = ++catalogRequestId.current;
     setCatalogLoading(true);
     setCatalogError(null);
     api
-      .getTemplateCatalog("vehicle")
+      .getTemplateCatalog(requestedTemplate)
       .then((c) => {
+        if (requestId !== catalogRequestId.current || activeTemplateKey.current !== requestedTemplate) return;
+        if (!catalogSupportsCurrency(c, currencyCode)) {
+          setCatalog(null);
+          setCatalogError(t("newBucket.catalog_error"));
+          return;
+        }
         setCatalog(c);
-        // Seed the default selection to every row the first time the catalog arrives.
-        // The effect below never re-fetches once `catalog` is set, so this seeds only once
-        // and the user's later edits are preserved across step navigation.
         setSelectedKeys(allCatalogKeys(c));
         setCatalogOverrides({
           ...Object.fromEntries(
@@ -210,18 +245,36 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
           ),
         });
       })
-      .catch((err: unknown) => setCatalogError(err instanceof ApiError ? err.message : t("newBucket.catalog_error")))
-      .finally(() => setCatalogLoading(false));
+      .catch(() => {
+        if (requestId === catalogRequestId.current && activeTemplateKey.current === requestedTemplate) {
+          setCatalogError(t("newBucket.catalog_error"));
+        }
+      })
+      .finally(() => {
+        if (requestId === catalogRequestId.current && activeTemplateKey.current === requestedTemplate) {
+          setCatalogLoading(false);
+        }
+      });
   };
 
   const updateCatalogOverride = (key: string, patch: Partial<CatalogOverride>) =>
     setCatalogOverrides((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
 
-  // Fetch the vehicle catalog once, as soon as the vehicle path is chosen.
+  // A template switch invalidates in-flight catalog/estimate requests and resets only template state.
   useEffect(() => {
-    if (isVehicle && !catalog && !catalogLoading && !catalogError) loadCatalog();
+    estimateRequestId.current += 1;
+    setCatalog(null);
+    setCatalogLoading(false);
+    setCatalogError(null);
+    setSelectedKeys(new Set());
+    setCatalogOverrides({});
+    setEstimate(null);
+    setEstimateLoading(false);
+    setEstimateError(null);
+    if (templateKey) loadCatalog(templateKey);
+    else catalogRequestId.current += 1;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isVehicle]);
+  }, [templateKey]);
 
   const toggleKey = (key: string) =>
     setSelectedKeys((prev) => {
@@ -242,15 +295,19 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
     });
 
   const estimateRequest = useMemo<AllocationEstimateRequest>(
-    () => buildEstimateRequest(isVehicle, selectedKeys, catalogOverrides, costs),
-    [isVehicle, selectedKeys, catalogOverrides, costs],
+    () => buildEstimateRequest(templateKey, selectedKeys, catalogOverrides, costs),
+    [templateKey, selectedKeys, catalogOverrides, costs],
   );
 
   // The wizard keeps the last successful estimate while a settled edit is refreshed. Starts as
   // soon as the "costs" step is reached (rather than only once the review step renders) because
   // the "safety" step needs `baseMonthly` before the user gets there.
   useEffect(() => {
-    if (STEP_ORDER.indexOf(step) < STEP_ORDER.indexOf("costs") || (isVehicle && !catalog)) return;
+    if (STEP_ORDER.indexOf(step) < STEP_ORDER.indexOf("costs") || (templateKey && !catalog)) {
+      estimateRequestId.current += 1;
+      setEstimateLoading(false);
+      return;
+    }
     const requestId = ++estimateRequestId.current;
     const timer = window.setTimeout(() => {
       setEstimateLoading(true);
@@ -270,7 +327,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
         });
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [step, isVehicle, catalog, estimateRequest, estimateRetry, t]);
+  }, [step, templateKey, catalog, estimateRequest, estimateRetry, t]);
 
   // Combine backend-derived time rows with presentation-only labels and recurrence descriptions.
   const reviewTimeLines = useMemo<ReviewLine[]>(() => {
@@ -284,7 +341,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
       return {
         id: line.key,
         name: catalogRow
-          ? templateLabel(t, catalogRow.technical_key, catalogRow.label)
+          ? templateLabel(t, templateKey!, catalogRow.technical_key, catalogRow.label)
           : customRow?.name || line.label || t("newBucket.unnamed"),
         monthly: line.monthly_amount,
         sub:
@@ -298,17 +355,17 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
               : "",
       };
     });
-  }, [estimate, catalog, catalogOverrides, costs, fmt, t]);
+  }, [estimate, catalog, catalogOverrides, costs, fmt, t, templateKey]);
 
   const reviewUsageLines = useMemo<ReviewLine[]>(() => {
     const lines: ReviewLine[] = [];
-    if (isVehicle && catalog) {
+    if (templateKey && catalog) {
       for (const c of catalog.usage_based_costs) {
         if (!selectedKeys.has(c.technical_key)) continue;
         const amount = catalogOverrides[c.technical_key]?.amount ?? c.amounts_per_unit[currencyCode];
         lines.push({
           id: c.technical_key,
-          name: templateLabel(t, c.technical_key, c.label),
+          name: templateLabel(t, templateKey, c.technical_key, c.label),
           monthly: null,
           sub: `${fmtNumber(amount)}/${c.usage_unit}`,
         });
@@ -323,7 +380,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
       });
     }
     return lines;
-  }, [isVehicle, catalog, selectedKeys, catalogOverrides, currencyCode, costs, fmt, t]);
+  }, [templateKey, catalog, selectedKeys, catalogOverrides, currencyCode, costs, fmt, t]);
 
   const addCost = (c: DraftCost) => setCosts((arr) => [...arr, { ...c, id: Math.random().toString(36).slice(2, 8) }]);
   const removeCost = (id: string) => setCosts((arr) => arr.filter((c) => c.id !== id));
@@ -353,7 +410,13 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   const displayedMonthlyTotal = baseMonthly + chosenPreset.amount;
 
   const manufactureYearValid = !isVehicle || isValidManufactureYear(manufactureYear);
-  const canNext = step === "details" ? !!name.trim() && manufactureYearValid : true;
+  const templateReady = templateKey == null || (!!catalog && !catalogLoading && !catalogError);
+  const canNext =
+    step === "details"
+      ? !!name.trim() && manufactureYearValid
+      : step === "costs"
+        ? templateReady
+        : true;
   const showRunningTotal = STEP_ORDER.indexOf(step) >= STEP_ORDER.indexOf("costs");
 
   const submit = async () => {
@@ -452,7 +515,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
             catalog={catalog}
             catalogLoading={catalogLoading}
             catalogError={catalogError}
-            onRetryCatalog={loadCatalog}
+            onRetryCatalog={() => loadCatalog()}
             selectedKeys={selectedKeys}
             onToggleKey={toggleKey}
             onSetGroup={setGroup}
@@ -534,7 +597,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
                 {t("newBucket.continue")} <Icon name="arrowRight" size={13} />
               </button>
             ) : (
-              <button className="btn btn-primary" disabled={submitting} onClick={submit}>
+              <button className="btn btn-primary" disabled={submitting || !templateReady} onClick={submit}>
                 <Icon name="check" size={14} /> {submitting ? t("newBucket.creating") : t("newBucket.create")}
               </button>
             )}
@@ -546,12 +609,12 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
 }
 
 function buildEstimateRequest(
-  isVehicle: boolean,
+  templateKey: TemplateKey | null,
   selectedKeys: Set<string>,
   catalogOverrides: Record<string, CatalogOverride>,
   costs: DraftCost[],
 ): AllocationEstimateRequest {
-  const costOverrides: TemplateCostOverride[] = isVehicle
+  const costOverrides: TemplateCostOverride[] = templateKey
     ? Array.from(selectedKeys)
         .filter((key) => key in catalogOverrides)
         .map((key) => {
@@ -567,8 +630,8 @@ function buildEstimateRequest(
         })
     : [];
   return {
-    template: isVehicle ? "vehicle" : null,
-    selected_cost_keys: isVehicle ? Array.from(selectedKeys) : [],
+    template: templateKey,
+    selected_cost_keys: templateKey ? Array.from(selectedKeys) : [],
     cost_overrides: costOverrides,
     custom_time_based_costs: costs
       .filter((cost) => cost.period !== "usage")
@@ -590,8 +653,7 @@ function buildCreateRequest(
   selectedKeys: Set<string>,
   catalogOverrides: Record<string, { amount: number; interval_value?: number; interval_unit?: IntervalUnit }>,
 ): CreateAssetRequest {
-  if (type.kind === "car") {
-    const trimmedManufactureYear = manufactureYear.trim();
+  if (type.templateKey) {
     const costOverrides: TemplateCostOverride[] = Array.from(selectedKeys)
       .filter((key) => key in catalogOverrides)
       .map((key) => {
@@ -600,19 +662,22 @@ function buildCreateRequest(
           ? { technical_key: key, amount: o.amount, interval_value: o.interval_value, interval_unit: o.interval_unit }
           : { technical_key: key, amount: o.amount };
       });
-    return {
+    const request: CreateAssetRequest = {
       name,
-      template: "vehicle",
-      vehicle: {
+      template: type.templateKey,
+      selected_cost_keys: Array.from(selectedKeys),
+      cost_overrides: costOverrides,
+    };
+    if (type.templateKey === "vehicle") {
+      const trimmedManufactureYear = manufactureYear.trim();
+      request.vehicle = {
         ...(trimmedManufactureYear && isValidManufactureYear(trimmedManufactureYear)
           ? { manufacture_year: Number(trimmedManufactureYear) }
           : {}),
         starting_odometer: odometer ? Number(odometer.replace(/[^\d]/g, "")) : 0,
-      },
-      // Catalog rows are cloned server-side from these keys; only the chosen rows are created.
-      selected_cost_keys: Array.from(selectedKeys),
-      cost_overrides: costOverrides,
-    };
+      };
+    }
+    return request;
   }
   return {
     name,
@@ -779,24 +844,24 @@ interface StepCostsProps {
 function StepCosts(props: StepCostsProps) {
   const { t } = useTranslation();
   const { type, costs, onAdd, onRemove, onUpdate } = props;
-  const isVehicle = type.kind === "car";
+  const hasTemplate = type.templateKey != null;
 
   return (
     <>
-      {isVehicle && <VehicleCatalogPicker {...props} />}
+      {hasTemplate && <TemplateCatalogPicker {...props} />}
 
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ padding: "20px var(--pad) 14px" }}>
-          <div className="card-title">{isVehicle ? t("newBucket.custom_costs") : t("newBucket.costs_heading")}</div>
+          <div className="card-title">{hasTemplate ? t("newBucket.custom_costs") : t("newBucket.costs_heading")}</div>
           <div className="card-sub">
-            {isVehicle ? t("newBucket.costs_sub_vehicle") : t("newBucket.costs_sub_other")}
+            {hasTemplate ? t("newBucket.costs_sub_vehicle") : t("newBucket.costs_sub_other")}
           </div>
         </div>
 
         {costs.length === 0 ? (
           <div style={{ padding: "14px var(--pad) 18px", borderTop: "1px solid var(--line-soft)" }}>
             <div className="muted" style={{ fontSize: 13 }}>
-              {isVehicle ? t("newBucket.no_custom_costs_vehicle") : t("newBucket.no_costs_other")}
+              {hasTemplate ? t("newBucket.no_custom_costs_vehicle") : t("newBucket.no_costs_other")}
             </div>
           </div>
         ) : (
@@ -811,7 +876,8 @@ function StepCosts(props: StepCostsProps) {
   );
 }
 
-function VehicleCatalogPicker({
+function TemplateCatalogPicker({
+  type,
   catalog,
   catalogLoading,
   catalogError,
@@ -846,6 +912,7 @@ function VehicleCatalogPicker({
     );
   }
   if (!catalog) return null;
+  const templateKey = type.templateKey!;
 
   const timeKeys = catalog.time_based_costs.map((c) => c.technical_key);
   const usageKeys = catalog.usage_based_costs.map((c) => c.technical_key);
@@ -860,53 +927,59 @@ function VehicleCatalogPicker({
         </div>
       </div>
 
-      <CatalogGroup title={t("newBucket.group_recurring")} allKeys={timeKeys} selectedKeys={selectedKeys} onSetGroup={onSetGroup}>
-        {catalog.time_based_costs.map((c) => {
-          const o = catalogOverrides[c.technical_key];
-          return (
+      {timeKeys.length > 0 && (
+        <CatalogGroup title={t("newBucket.group_recurring")} allKeys={timeKeys} selectedKeys={selectedKeys} onSetGroup={onSetGroup}>
+          {catalog.time_based_costs.map((c) => {
+            const o = catalogOverrides[c.technical_key];
+            return (
+              <EditableCatalogRow
+                key={c.technical_key}
+                technicalKey={c.technical_key}
+                checked={selectedKeys.has(c.technical_key)}
+                onToggle={() => onToggleKey(c.technical_key)}
+                label={templateLabel(t, templateKey, c.technical_key, c.label)}
+                amount={o?.amount ?? c.amounts[currencyCode]}
+                onAmountChange={(v) => onUpdateCatalogOverride(c.technical_key, { amount: v })}
+                intervalValue={o?.interval_value ?? c.interval_value}
+                intervalUnit={o?.interval_unit ?? c.interval_unit}
+                onIntervalChange={(value, unit) =>
+                  onUpdateCatalogOverride(c.technical_key, { interval_value: value, interval_unit: unit })
+                }
+              />
+            );
+          })}
+        </CatalogGroup>
+      )}
+
+      {usageKeys.length > 0 && (
+        <CatalogGroup title={t("newBucket.group_usage")} allKeys={usageKeys} selectedKeys={selectedKeys} onSetGroup={onSetGroup}>
+          {catalog.usage_based_costs.map((c) => (
             <EditableCatalogRow
               key={c.technical_key}
               technicalKey={c.technical_key}
               checked={selectedKeys.has(c.technical_key)}
               onToggle={() => onToggleKey(c.technical_key)}
-              label={templateLabel(t, c.technical_key, c.label)}
-              amount={o?.amount ?? c.amounts[currencyCode]}
+              label={`${templateLabel(t, templateKey, c.technical_key, c.label)} (/${c.usage_unit})`}
+              amount={catalogOverrides[c.technical_key]?.amount ?? c.amounts_per_unit[currencyCode]}
               onAmountChange={(v) => onUpdateCatalogOverride(c.technical_key, { amount: v })}
-              intervalValue={o?.interval_value ?? c.interval_value}
-              intervalUnit={o?.interval_unit ?? c.interval_unit}
-              onIntervalChange={(value, unit) =>
-                onUpdateCatalogOverride(c.technical_key, { interval_value: value, interval_unit: unit })
-              }
             />
-          );
-        })}
-      </CatalogGroup>
+          ))}
+        </CatalogGroup>
+      )}
 
-      <CatalogGroup title={t("newBucket.group_usage")} allKeys={usageKeys} selectedKeys={selectedKeys} onSetGroup={onSetGroup}>
-        {catalog.usage_based_costs.map((c) => (
-          <EditableCatalogRow
-            key={c.technical_key}
-            technicalKey={c.technical_key}
-            checked={selectedKeys.has(c.technical_key)}
-            onToggle={() => onToggleKey(c.technical_key)}
-            label={`${templateLabel(t, c.technical_key, c.label)} (/${c.usage_unit})`}
-            amount={catalogOverrides[c.technical_key]?.amount ?? c.amounts_per_unit[currencyCode]}
-            onAmountChange={(v) => onUpdateCatalogOverride(c.technical_key, { amount: v })}
-          />
-        ))}
-      </CatalogGroup>
-
-      <CatalogGroup title={t("newBucket.group_maint")} allKeys={maintKeys} selectedKeys={selectedKeys} onSetGroup={onSetGroup}>
-        {catalog.maintenance_items.map((m) => (
-          <CatalogRow
-            key={m.technical_key}
-            checked={selectedKeys.has(m.technical_key)}
-            onToggle={() => onToggleKey(m.technical_key)}
-            label={templateLabel(t, m.technical_key, m.label)}
-            detail={maintenanceDetail(m.interval_km, m.interval_months, t)}
-          />
-        ))}
-      </CatalogGroup>
+      {maintKeys.length > 0 && (
+        <CatalogGroup title={t("newBucket.group_maint")} allKeys={maintKeys} selectedKeys={selectedKeys} onSetGroup={onSetGroup}>
+          {catalog.maintenance_items.map((m) => (
+            <CatalogRow
+              key={m.technical_key}
+              checked={selectedKeys.has(m.technical_key)}
+              onToggle={() => onToggleKey(m.technical_key)}
+              label={templateLabel(t, templateKey, m.technical_key, m.label)}
+              detail={maintenanceDetail(m.interval_km, m.interval_months, t)}
+            />
+          ))}
+        </CatalogGroup>
+      )}
     </div>
   );
 }

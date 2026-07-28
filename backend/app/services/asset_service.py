@@ -10,7 +10,11 @@ from app.common.exceptions import NotFoundError, ValidationError
 from app.domain.asset import Asset, Bucket, VehicleProfile
 from app.domain.asset_templates import ASSET_TEMPLATES, AssetTemplate
 from app.domain.cost import MaintenanceItem, TimeBasedCost, UsageBasedCost
-from app.domain.vehicle_defaults import build_selected_rows, overridable_catalog_keys, vehicle_catalog_keys
+from app.domain.template_catalog import (
+    build_selected_rows,
+    catalog_keys,
+    overridable_catalog_keys,
+)
 from app.repository import check_in_repository, user_repository
 from app.repository.asset_repository import insert_asset_dependents, persist_asset
 
@@ -67,23 +71,31 @@ class AssetService:
         vehicle_details: VehicleDetails | None,
         selected_cost_keys: list[str] | None = None,
         cost_overrides: list[CostOverride] | None = None,
+        manual_extra_monthly: Decimal | None = None,
     ) -> CreatedAsset:
         """Create an asset, its bucket, and any template-supplied profile and selected cost rows atomically.
 
         A template-less asset gets only a bucket. Selecting a template resolves the stored type and
-        attaches a vehicle profile when the template carries one; only the template cost rows whose
-        `technical_key` is in `selected_cost_keys` are cloned (omitted/empty clones none). Each cloned
-        row uses the template's default for the owner's currency unless `cost_overrides` supplies a
-        caller-edited value for that row's `technical_key`. Persists the asset first for its id,
-        inserts every dependent, and commits exactly once; any failure rolls back the whole set.
+        manual-extra default and attaches a vehicle profile when the template carries one; only the
+        template cost rows whose `technical_key` is in `selected_cost_keys` are cloned (omitted/empty
+        clones none). Each cloned row uses the template's default for the owner's currency unless
+        `cost_overrides` supplies a caller-edited value for that row's `technical_key`. Persists the
+        asset first for its id, inserts every dependent, and commits exactly once; any failure rolls
+        back the whole set.
         """
         template = self._resolve_template(template_key)
         resolved_type = template.asset_type if template is not None else self._require_type(asset_type)
         selected_keys = self._validate_selected_keys(template, selected_cost_keys)
-        self._validate_cost_overrides(selected_keys, cost_overrides)
+        self._validate_cost_overrides(template, selected_keys, cost_overrides)
         currency = self._resolve_owner_currency(user_id)
+        manual_extra = self._resolve_manual_extra(template, currency, manual_extra_monthly)
         try:
-            asset = Asset(type=resolved_type, user_id=user_id, name=name)
+            asset = Asset(
+                type=resolved_type,
+                user_id=user_id,
+                name=name,
+                manual_extra_monthly=manual_extra,
+            )
             persist_asset(self._session, asset)
 
             bucket = Bucket(asset_id=asset.id, currency=currency)
@@ -149,22 +161,56 @@ class AssetService:
             if selected:
                 raise ValidationError("Cost selection requires a template.")
             return set()
-        unknown = selected - vehicle_catalog_keys()
+        unknown = selected - catalog_keys(template.catalog)
         if unknown:
             raise ValidationError(f"Unknown cost keys: {sorted(unknown)}.")
         return selected
 
-    def _validate_cost_overrides(self, selected_keys: set[str], cost_overrides: list[CostOverride] | None) -> None:
+    def _validate_cost_overrides(
+        self,
+        template: AssetTemplate | None,
+        selected_keys: set[str],
+        cost_overrides: list[CostOverride] | None,
+    ) -> None:
         """Reject an override for a key that isn't selected or doesn't accept an override.
 
-        Only time-based costs and the usage-based reserve accept an override; a maintenance-item
-        key has no curated amount to override.
+        Only time-based and usage-based costs accept an override; a maintenance-item key has no
+        curated amount to override.
         """
+        seen: set[str] = set()
+        overridable = (
+            overridable_catalog_keys(template.catalog) if template is not None else frozenset()
+        )
         for override in cost_overrides or ():
+            if override.technical_key in seen:
+                raise ValidationError(f"Duplicate cost override for '{override.technical_key}'.")
+            seen.add(override.technical_key)
             if override.technical_key not in selected_keys:
                 raise ValidationError(f"Cost override for unselected key '{override.technical_key}'.")
-            if override.technical_key not in overridable_catalog_keys():
+            if override.technical_key not in overridable:
                 raise ValidationError(f"Cost key '{override.technical_key}' does not accept an override.")
+            if override.amount < 0:
+                raise ValidationError("Cost amounts must not be negative.")
+
+    def _resolve_manual_extra(
+        self,
+        template: AssetTemplate | None,
+        currency: str,
+        manual_extra_monthly: Decimal | None,
+    ) -> Decimal:
+        """Use an explicit buffer, the selected template default, or zero for a bare asset."""
+        if manual_extra_monthly is not None:
+            if manual_extra_monthly < 0:
+                raise ValidationError("Manual extra must not be negative.")
+            return manual_extra_monthly
+        if template is None:
+            return Decimal(0)
+        try:
+            return template.manual_extra_monthly_amounts[currency]
+        except KeyError as exc:
+            raise ValidationError(
+                f"Template '{template.key}' has no manual extra default for currency '{currency}'."
+            ) from exc
 
     def _build_template_dependents(
         self,
@@ -180,7 +226,12 @@ class AssetService:
             return None, [], [], []
         amount_overrides, interval_overrides = self._split_cost_overrides(cost_overrides)
         time_based, usage_based, maintenance = build_selected_rows(
-            asset_id, selected_keys, currency, amount_overrides, interval_overrides
+            template.catalog,
+            asset_id,
+            selected_keys,
+            currency,
+            amount_overrides,
+            interval_overrides,
         )
         profile = self._build_vehicle_profile(asset_id, vehicle_details) if template.has_vehicle_profile else None
         return profile, time_based, usage_based, maintenance

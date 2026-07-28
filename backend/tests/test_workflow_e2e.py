@@ -30,6 +30,38 @@ VEHICLE_BODY = {
         {"technical_key": "usage_based_reserve", "amount": 10},
     ],
 }
+HOUSE_KEYS = [
+    "building_tax",
+    "home_insurance",
+    "boiler_cleaning",
+    "air_conditioner_cleaning",
+]
+HOUSE_OVERRIDES = [
+    {
+        "technical_key": "building_tax",
+        "amount": 38000,
+        "interval_value": 12,
+        "interval_unit": "months",
+    },
+    {
+        "technical_key": "home_insurance",
+        "amount": 80000,
+        "interval_value": 12,
+        "interval_unit": "months",
+    },
+    {
+        "technical_key": "boiler_cleaning",
+        "amount": 35000,
+        "interval_value": 12,
+        "interval_unit": "months",
+    },
+    {
+        "technical_key": "air_conditioner_cleaning",
+        "amount": 45000,
+        "interval_value": 12,
+        "interval_unit": "months",
+    },
+]
 STARTING_ODOMETER = 120000
 # The asset is backdated 90 days below so this period can end in the past (the browser also lets
 # the user pick a past period_end; see docs/vehicle-rules.md).
@@ -159,3 +191,51 @@ def test_create_bucket_and_check_in_workflow(
     assert rows[0]["usage_since_last"] == 900
     assert Decimal(rows[0]["paid_out_of_pocket"]) == Decimal("100.00")
     assert Decimal(str(rows[0]["balance"])) == Decimal(str(expected_balance_after))
+
+
+def test_create_house_template_workflow(client: TestClient) -> None:
+    """Walk the House catalog, estimate, create, and detail reads used by the browser."""
+    catalog = client.get("/api/asset-templates/house/catalog")
+    assert catalog.status_code == 200
+    catalog_body = catalog.json()
+    assert [row["technical_key"] for row in catalog_body["time_based_costs"]] == HOUSE_KEYS
+    assert catalog_body["usage_based_costs"] == []
+    assert catalog_body["maintenance_items"] == []
+
+    estimate = client.post(
+        "/api/allocation-estimates",
+        json={
+            "template": "house",
+            "selected_cost_keys": HOUSE_KEYS,
+            "cost_overrides": HOUSE_OVERRIDES,
+            "custom_time_based_costs": [],
+            "manual_extra_monthly": 18000,
+        },
+    )
+    assert estimate.status_code == 200
+    assert Decimal(estimate.json()["monthly_total"]) == Decimal("34500.00")
+
+    created = client.post(
+        "/api/assets",
+        json={
+            "name": "My House",
+            "template": "house",
+            "selected_cost_keys": HOUSE_KEYS,
+            "cost_overrides": HOUSE_OVERRIDES,
+            "manual_extra_monthly": 18000,
+        },
+    )
+    assert created.status_code == 201
+    asset_id = created.json()["asset"]["id"]
+    assert created.json()["profile"] is None
+
+    detail = client.get(f"/api/assets/{asset_id}")
+    assert detail.status_code == 200
+    assert detail.json()["tracks_usage"] is False
+    assert Decimal(detail.json()["manual_extra_monthly"]) == Decimal("18000.00")
+    assert Decimal(detail.json()["recommended_monthly_allocation"]) == Decimal("34500.00")
+
+    time_based = client.get(f"/api/assets/{asset_id}/time-based-costs")
+    assert time_based.status_code == 200
+    assert {row["technical_key"] for row in time_based.json()} == set(HOUSE_KEYS)
+    assert len(time_based.json()) == 4

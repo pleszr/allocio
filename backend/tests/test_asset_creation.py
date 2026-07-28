@@ -18,6 +18,17 @@ VEHICLE_BODY = {
 SELECTED_KEYS = ["mandatory_liability_insurance", "usage_based_reserve", "all_season_tires"]
 VEHICLE_BODY_WITH_SELECTION = {**VEHICLE_BODY, "selected_cost_keys": SELECTED_KEYS}
 HOUSE_BODY = {"name": "My House", "type": "house"}
+HOUSE_KEYS = [
+    "building_tax",
+    "home_insurance",
+    "boiler_cleaning",
+    "air_conditioner_cleaning",
+]
+HOUSE_TEMPLATE_BODY = {
+    "name": "My House",
+    "template": "house",
+    "selected_cost_keys": HOUSE_KEYS,
+}
 
 
 def test_create_vehicle_no_selection_creates_profile_and_bucket_but_no_rows(client: TestClient) -> None:
@@ -47,6 +58,7 @@ def test_create_vehicle_no_selection_persists_profile_bucket_and_zero_rows(
     assert len(assets) == 1
     asset = assets[0]
     assert asset.type == "vehicle"
+    assert asset.manual_extra_monthly == Decimal("0")
 
     profiles = db_session.scalars(select(VehicleProfile).where(VehicleProfile.asset_id == asset.id)).all()
     assert len(profiles) == 1
@@ -120,10 +132,105 @@ def test_create_bare_asset_has_bucket_but_no_profile_or_rows(client: TestClient,
 
     asset = db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).one()
     assert asset.type == "house"
+    assert asset.manual_extra_monthly == Decimal("0")
     assert db_session.scalars(select(VehicleProfile).where(VehicleProfile.asset_id == asset.id)).all() == []
     buckets = db_session.scalars(select(Bucket).where(Bucket.asset_id == asset.id)).all()
     assert len(buckets) == 1
     assert db_session.scalars(select(TimeBasedCost).where(TimeBasedCost.asset_id == asset.id)).all() == []
+
+
+def test_create_house_template_persists_rows_bucket_and_default_manual_extra(
+    client: TestClient, db_session: Session
+) -> None:
+    response = client.post("/api/assets", json=HOUSE_TEMPLATE_BODY)
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["asset"]["type"] == "house"
+    assert payload["profile"] is None
+    assert [row["technical_key"] for row in payload["time_based_costs"]] == HOUSE_KEYS
+    assert payload["usage_based_costs"] == []
+    assert payload["maintenance_items"] == []
+
+    asset = db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).one()
+    assert asset.manual_extra_monthly == Decimal("18000.00")
+    assert len(db_session.scalars(select(Bucket).where(Bucket.asset_id == asset.id)).all()) == 1
+    assert db_session.scalars(select(VehicleProfile).where(VehicleProfile.asset_id == asset.id)).all() == []
+    rows = db_session.scalars(
+        select(TimeBasedCost).where(TimeBasedCost.asset_id == asset.id)
+    ).all()
+    assert {row.technical_key for row in rows} == set(HOUSE_KEYS)
+    assert len({row.technical_key for row in rows}) == 4
+
+
+@pytest.mark.parametrize(
+    ("manual_extra", "expected"),
+    [(0, Decimal("0.00")), (22500, Decimal("22500.00"))],
+)
+def test_create_house_template_persists_explicit_manual_extra(
+    client: TestClient,
+    db_session: Session,
+    manual_extra: int,
+    expected: Decimal,
+) -> None:
+    response = client.post(
+        "/api/assets",
+        json={**HOUSE_TEMPLATE_BODY, "manual_extra_monthly": manual_extra},
+    )
+
+    assert response.status_code == 201
+    asset = db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).one()
+    assert asset.manual_extra_monthly == expected
+
+
+def test_create_house_with_eur_currency_uses_exact_eur_defaults(
+    client: TestClient, db_session: Session
+) -> None:
+    assert (
+        client.put(
+            "/api/users/me/settings",
+            json={"default_currency": "EUR", "language": "en"},
+        ).status_code
+        == 200
+    )
+
+    response = client.post("/api/assets", json=HOUSE_TEMPLATE_BODY)
+
+    assert response.status_code == 201
+    asset = db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).one()
+    assert asset.manual_extra_monthly == Decimal("45.00")
+    rows = db_session.scalars(
+        select(TimeBasedCost).where(TimeBasedCost.asset_id == asset.id)
+    ).all()
+    assert {row.technical_key: row.amount for row in rows} == {
+        "building_tax": Decimal("95.00"),
+        "home_insurance": Decimal("200.00"),
+        "boiler_cleaning": Decimal("88.00"),
+        "air_conditioner_cleaning": Decimal("113.00"),
+    }
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {**HOUSE_TEMPLATE_BODY, "selected_cost_keys": ["vehicle_tax"]},
+        {**HOUSE_TEMPLATE_BODY, "type": "vehicle"},
+        {
+            **HOUSE_TEMPLATE_BODY,
+            "vehicle": {"starting_odometer": 1},
+        },
+        {**HOUSE_TEMPLATE_BODY, "manual_extra_monthly": -1},
+    ],
+)
+def test_invalid_house_template_inputs_leave_no_residue(
+    client: TestClient, db_session: Session, body: dict[str, object]
+) -> None:
+    response = client.post("/api/assets", json=body)
+
+    assert response.status_code == 422
+    assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
+    assert db_session.scalars(select(Bucket)).all() == []
+    assert db_session.scalars(select(TimeBasedCost)).all() == []
 
 
 def test_new_bucket_adopts_owner_default_currency_after_settings_change(
@@ -172,6 +279,22 @@ def test_create_asset_rolls_back_on_failure(
     assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
     assert len(db_session.scalars(select(Bucket)).all()) == bucket_count_before
     assert len(db_session.scalars(select(TimeBasedCost)).all()) == time_based_count_before
+
+
+def test_create_house_rolls_back_aggregate_and_manual_extra_on_failure(
+    client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def boom(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("forced failure mid-transaction")
+
+    monkeypatch.setattr("app.services.asset_service.insert_asset_dependents", boom)
+
+    response = client.post("/api/assets", json=HOUSE_TEMPLATE_BODY)
+
+    assert response.status_code == 500
+    assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
+    assert db_session.scalars(select(Bucket)).all() == []
+    assert db_session.scalars(select(TimeBasedCost)).all() == []
 
 
 def test_create_asset_missing_name_is_422(client: TestClient, db_session: Session) -> None:

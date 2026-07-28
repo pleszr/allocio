@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 IntervalUnit: TypeAlias = Literal["months", "years"]
 TireType: TypeAlias = Literal["summer", "winter", "all_season"]
-AssetTemplateKey: TypeAlias = Literal["vehicle"]
+AssetTemplateKey: TypeAlias = Literal["vehicle", "house"]
 ExpenseKind: TypeAlias = Literal["modeled", "other"]
 ExpenseSourceType: TypeAlias = Literal["time_based_cost", "usage_based_cost", "maintenance_item"]
 CurrencyCode: TypeAlias = Literal["HUF", "EUR", "USD"]
@@ -98,13 +98,19 @@ class AllocationEstimateRequest(BaseModel):
     custom_time_based_costs: list[AllocationEstimateCustomCost] | None = Field(
         default=None, max_length=100
     )
+    manual_extra_monthly: Decimal | None = Field(
+        default=None,
+        ge=0,
+        description="Editable monthly safety buffer. Null uses the selected template's currency default.",
+        examples=[18000],
+    )
 
 
 class CreateAssetRequest(BaseModel):
     """Body for creating an asset. `user_id` and bucket currency are server-set, not accepted here.
 
     A bare asset needs a free-form `type`. Selecting a `template` prefills the type and default cost
-    rows instead; the vehicle template additionally accepts a `vehicle` detail block.
+    rows instead; only the vehicle template additionally accepts a `vehicle` detail block.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -140,6 +146,12 @@ class CreateAssetRequest(BaseModel):
         "clones the template's default for the owner's currency. Only time-based costs and the usage-based "
         "reserve accept an override; a maintenance-item key is rejected.",
     )
+    manual_extra_monthly: Decimal | None = Field(
+        default=None,
+        ge=0,
+        description="Editable monthly safety buffer. Null uses the selected template's currency default.",
+        examples=[18000],
+    )
 
     @field_validator("selected_cost_keys")
     @classmethod
@@ -165,8 +177,12 @@ class CreateAssetRequest(BaseModel):
             if self.cost_overrides:
                 raise ValueError("Cost overrides require a template.")
             return self
-        if self.template == "vehicle" and self.type not in (None, "vehicle"):
-            raise ValueError("The vehicle template sets type to 'vehicle'; a conflicting type is not allowed.")
+        if self.type not in (None, self.template):
+            raise ValueError(
+                f"The {self.template} template sets type to '{self.template}'; a conflicting type is not allowed."
+            )
+        if self.vehicle is not None and self.template != "vehicle":
+            raise ValueError("Vehicle details require the vehicle template.")
         return self
 
 

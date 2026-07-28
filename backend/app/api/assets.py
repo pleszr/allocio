@@ -50,10 +50,11 @@ router = APIRouter(prefix="/api", tags=["assets"])
     "/assets",
     summary="Create an asset, optionally from a template",
     description="""Creates an asset and its savings bucket. A bare asset needs a free-form type and
-    gets no default rows. Selecting a template prefills the type and attaches a vehicle profile
-    when the template carries one; template cost rows are cloned only when their `technical_key`
-    is listed in `selected_cost_keys` (omitting it clones no rows — there is no implicit clone-all).
-    Returns the full created record set so a client can render it without a second request.""",
+    gets no default rows. Selecting a template prefills the type, applies its monthly safety-buffer
+    default, and attaches a vehicle profile only when the template carries one; template cost rows
+    are cloned only when their `technical_key` is listed in `selected_cost_keys` (omitting it clones
+    no rows — there is no implicit clone-all). Returns the full created record set so a client can
+    render it without a second request.""",
     response_model=CreateAssetResponse,
     status_code=status.HTTP_201_CREATED,
     responses={
@@ -92,6 +93,7 @@ def create_asset(
         vehicle_details=vehicle_details,
         selected_cost_keys=body.selected_cost_keys,
         cost_overrides=cost_overrides,
+        manual_extra_monthly=body.manual_extra_monthly,
     )
     response.headers["Location"] = f"/api/assets/{created.asset.id}"
     return CreateAssetResponse.model_validate(

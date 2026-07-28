@@ -1,18 +1,18 @@
 # Allocio Domain Model
 
 Status: Draft v1
-Last updated: 2026-07-25
+Last updated: 2026-07-26
 
 ## Purpose
 
-This document defines the canonical domain model for the vehicle-first MVP.
+This document defines the canonical domain model for the asset-allocation MVP.
 
 It is the source of truth for:
 
 - core product entities
 - relationships between entities
 - what is stored versus what is derived
-- default vehicle templates
+- built-in asset templates
 - auditability rules for balances, check-ins, and future edits
 
 This document is intentionally product-oriented. It is not yet the SQL schema.
@@ -20,7 +20,8 @@ This document is intentionally product-oriented. It is not yet the SQL schema.
 ## MVP Scope
 
 - `asset.type` is type-agnostic: any asset (e.g. a house, an appliance) can be tracked
-- `vehicle` is not a first-class type; it is a built-in creation template that prefills a vehicle profile and default cost rows
+- `vehicle` and `house` are built-in creation templates, not hardcoded first-class types
+- the Vehicle template prefills a vehicle profile and default cost rows; House prefills only default cost rows and a manual safety buffer
 - a bare asset gets only a bucket; it has no profile and no default rows until the user adds them
 - the model should stay extensible for future built-in templates
 - the bucket is virtual
@@ -428,7 +429,9 @@ Clients format and label that result but do not recalculate the window or amount
 
 ## Built-In Templates
 
-Vehicle is the first built-in template; more may be added later, each as its own registry entry with its own default rows. The template exposes a catalog of pickable default rows the caller selects from at creation time, across:
+Vehicle and House are built-in templates. More may be added later, each as its own registry entry
+with its own catalog and editable per-currency monthly safety-buffer default. A catalog groups
+pickable creation defaults across:
 
 - time-based costs
 - usage-based reserve settings
@@ -437,8 +440,9 @@ Vehicle is the first built-in template; more may be added later, each as its own
 Creation rule:
 
 - the template's full catalog is readable up front so a client can build a selection UI
-- selecting the vehicle template clones only the caller-selected catalog rows (by `technical_key`) into asset-owned rows; selecting none clones no rows (there is no implicit clone-all)
-- the vehicle profile and bucket are still created from the template regardless of the cost selection
+- selecting a template clones only the caller-selected catalog rows (by `technical_key`) into asset-owned rows; selecting none clones no rows (there is no implicit clone-all)
+- every template creates the asset and bucket; only Vehicle creates a vehicle profile
+- House creates no profile, usage-based defaults, or maintenance defaults
 - after creation, the asset owns those rows
 - the user may deactivate or remove them
 - the user may add custom rows
@@ -446,16 +450,46 @@ Creation rule:
 - system-defined template rows should carry both a user-facing `label` and an internal `technical_key`
 - a time-based or usage-based row's default amount is curated per currency (HUF/EUR/USD); the clone uses the entry matching the asset owner's currency, never a live or computed conversion
 - the caller may override a selected time-based or usage-based row's amount (and, for time-based rows, its interval) at clone time; the template value is only the starting default. A maintenance-item row has no curated amount yet and does not accept an override
-- a template row's `label` is the stable translation source: the New Bucket wizard looks up a UI-language translation keyed by `technical_key`, falling back to this `label` when no translation exists for the active language
+- a template row's `label` is the stable translation fallback: the New Bucket wizard looks up
+  `templates.<templateKey>.<technical_key>.label`, falling back to the backend label when no
+  translation exists for the active language
 
-The defaults are code-backed seed definitions today (`app/domain/vehicle_defaults.py`), selected through the template registry (`app/domain/asset_templates.py`). That implementation choice is separate from the domain model.
+The defaults are code-backed seed definitions today (`app/domain/vehicle_defaults.py` and
+`app/domain/house_defaults.py`), selected through the template registry
+(`app/domain/asset_templates.py`). That implementation choice is separate from the domain model.
 
 The creation review uses a non-persisting backend allocation estimate. It resolves selected
 template rows and overrides from these same definitions, combines them with unsaved custom
 time-based rows, and returns canonical per-row and aggregate daily/monthly/yearly values. Usage
 and maintenance selections do not contribute to that steady estimate without usage input. Calling
-the estimate creates no asset, cost, check-in, allocation, or expense records. House and pet remain
-bare asset choices; they have no curated frontend-only default rows.
+the estimate creates no asset, cost, check-in, allocation, or expense records. Pet remains the
+template-less creation example.
+
+## Default Time-Based Cost Templates For Houses
+
+House supplies these four annual time-based defaults in catalog order:
+
+| Technical key | Persisted English label | HUF source amount | Interval |
+| --- | --- | ---: | --- |
+| `building_tax` | Building tax | 38,000 | 12 months |
+| `home_insurance` | Home insurance | 80,000 | 12 months |
+| `boiler_cleaning` | Boiler cleaning | 35,000 | 12 months |
+| `air_conditioner_cleaning` | Air-conditioner cleaning | 45,000 | 12 months |
+
+The HUF figures are authoritative user-supplied defaults. House also carries editable placeholder
+defaults for EUR and USD (`95/106`, `200/222`, `88/97`, and `113/125`, respectively, in the same
+row order). These are curated once, not calculated at runtime; no live FX or exchange-rate service
+participates in estimate or creation.
+
+House's editable monthly safety-buffer defaults are `18,000 HUF`, `45 EUR`, and `50 USD`.
+At estimate and creation time, an explicit request value wins, including an explicit zero that
+disables the buffer. An omitted or null value uses the selected template's owner-currency default;
+without a template it resolves to zero. The asset, bucket, selected House rows, and resolved buffer
+are created atomically.
+
+House adds no profile, usage-based rows, or maintenance rows. Template defaults are copied only at
+creation, so existing House assets are never retroactively seeded or changed when code-backed
+defaults evolve.
 
 ## Default Time-Based Cost Templates For Vehicles
 
@@ -535,7 +569,7 @@ This allows check-ins to update the correct tire-specific maintenance progress.
 - no fuel purchase tracking
 - no real-money account integration
 - no support for miles in MVP
-- bare non-vehicle assets are creatable via the API, but the asset-creation and template-picker UI is a later increment
+- template-less assets such as Pet remain creatable with a free-form type and no seeded rows
 - no retroactive mutation of posted history through normal editing flows
 
 ## Deferred Concepts From The Workbook

@@ -60,6 +60,7 @@ def create_allocation_estimate(
             )
             for item in body.custom_time_based_costs or ()
         ],
+        manual_extra_monthly=body.manual_extra_monthly,
     )
     return AllocationEstimateResponse(
         currency=estimate.currency,

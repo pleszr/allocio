@@ -343,18 +343,21 @@
     "add_custom_cost": "Add a custom cost…",
     "suggested_for": "Suggested for {{type}}",
     "template_costs": "Template costs",
-    "template_costs_sub": "The vehicle template seeds these common costs. Uncheck anything you don't want — only the checked rows are created.",
+    "template_costs_sub": "This template seeds common costs. Uncheck anything you don't want — only the checked rows are created.",
     "group_recurring": "Recurring costs",
     "group_usage": "Usage reserve",
     "group_maint": "Maintenance & replacements",
-    "catalog_loading": "Loading the vehicle cost catalog…",
-    "catalog_error": "Could not load the vehicle catalog.",
+    "catalog_loading": "Loading the template cost catalog…",
+    "catalog_error": "Could not load the template catalog.",
     "estimate_loading": "Calculating with the backend…",
     "estimate_updating": "Updating estimate…",
     "estimate_error": "Could not calculate the allocation estimate.",
     "retry": "Retry",
     "group_all": "All",
     "group_none": "None",
+    "safety_buffer_label": "Monthly safety buffer",
+    "safety_buffer_desc": "Extra monthly amount for costs this template does not cover.",
+    "safety_buffer_invalid": "Enter a number that is 0 or greater.",
     "unnamed": "(unnamed)",
     "cost_name_ph": "Cost name",
     "period_month": "per month",
@@ -428,6 +431,12 @@
       "winter_tires": { "label": "Winter tires" },
       "summer_tires": { "label": "Summer tires" },
       "other": { "label": "Other" }
+    },
+    "house": {
+      "building_tax": { "label": "Building tax" },
+      "home_insurance": { "label": "Home insurance" },
+      "boiler_cleaning": { "label": "Boiler cleaning" },
+      "air_conditioner_cleaning": { "label": "Air-conditioner cleaning" }
     }
   }
 }

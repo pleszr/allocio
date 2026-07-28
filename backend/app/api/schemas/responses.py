@@ -621,9 +621,12 @@ class AssetTemplateCatalogResponse(BaseModel):
     template_key: str = Field(description="The template whose catalog this is.", examples=["vehicle"])
     time_based_costs: list[TemplateTimeBasedCostItem] = Field(description="Pickable recurring time-based cost rows.")
     usage_based_costs: list[TemplateUsageBasedCostItem] = Field(
-        description="Pickable per-usage-unit reserve rows (a list for a uniform client shape; vehicle has one)."
+        description="Pickable per-usage-unit reserve rows; empty when the template has none."
     )
     maintenance_items: list[TemplateMaintenanceItem] = Field(description="Pickable maintenance/replacement item rows.")
+    manual_extra_monthly_amounts: dict[str, Decimal] = Field(
+        description="Editable per-currency monthly safety-buffer defaults keyed by currency code."
+    )
 
 
 class AllocationEstimateLineResponse(BaseModel):

@@ -147,6 +147,31 @@ def test_created_vehicle_recommended_matches_seeded_time_based(client: TestClien
     assert _dec(summary["recommended_monthly_allocation"]) == quantize_currency(expected_time_based)
 
 
+def test_created_house_recommended_includes_template_manual_extra(
+    client: TestClient,
+) -> None:
+    created = client.post(
+        "/api/assets",
+        json={
+            "name": "My House",
+            "template": "house",
+            "selected_cost_keys": [
+                "building_tax",
+                "home_insurance",
+                "boiler_cleaning",
+                "air_conditioner_cleaning",
+            ],
+        },
+    ).json()
+
+    summary = _asset_by_id(
+        client.get("/api/assets").json(),
+        uuid.UUID(created["asset"]["id"]),
+    )
+
+    assert _dec(summary["recommended_monthly_allocation"]) == Decimal("34500.00")
+
+
 def test_balance_is_event_derived(client: TestClient, db_session: Session) -> None:
     asset, bucket = _make_asset(db_session, name="Balance")
     check_in = _add_posted_check_in(db_session, asset.id, 0, date(2026, 1, 1), date(2026, 2, 1))
