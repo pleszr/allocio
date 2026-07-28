@@ -225,12 +225,15 @@ def test_create_house_with_eur_currency_uses_exact_eur_defaults(
 def test_invalid_house_template_inputs_leave_no_residue(
     client: TestClient, db_session: Session, body: dict[str, object]
 ) -> None:
+    bucket_count_before = len(db_session.scalars(select(Bucket)).all())
+    time_based_count_before = len(db_session.scalars(select(TimeBasedCost)).all())
+
     response = client.post("/api/assets", json=body)
 
     assert response.status_code == 422
     assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
-    assert db_session.scalars(select(Bucket)).all() == []
-    assert db_session.scalars(select(TimeBasedCost)).all() == []
+    assert len(db_session.scalars(select(Bucket)).all()) == bucket_count_before
+    assert len(db_session.scalars(select(TimeBasedCost)).all()) == time_based_count_before
 
 
 def test_new_bucket_adopts_owner_default_currency_after_settings_change(
@@ -284,6 +287,9 @@ def test_create_asset_rolls_back_on_failure(
 def test_create_house_rolls_back_aggregate_and_manual_extra_on_failure(
     client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    bucket_count_before = len(db_session.scalars(select(Bucket)).all())
+    time_based_count_before = len(db_session.scalars(select(TimeBasedCost)).all())
+
     def boom(*_args: object, **_kwargs: object) -> None:
         raise RuntimeError("forced failure mid-transaction")
 
@@ -293,8 +299,8 @@ def test_create_house_rolls_back_aggregate_and_manual_extra_on_failure(
 
     assert response.status_code == 500
     assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
-    assert db_session.scalars(select(Bucket)).all() == []
-    assert db_session.scalars(select(TimeBasedCost)).all() == []
+    assert len(db_session.scalars(select(Bucket)).all()) == bucket_count_before
+    assert len(db_session.scalars(select(TimeBasedCost)).all()) == time_based_count_before
 
 
 def test_create_asset_missing_name_is_422(client: TestClient, db_session: Session) -> None:
