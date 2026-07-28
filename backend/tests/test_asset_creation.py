@@ -29,6 +29,12 @@ HOUSE_TEMPLATE_BODY = {
     "template": "house",
     "selected_cost_keys": HOUSE_KEYS,
 }
+PET_KEYS = ["pet_insurance", "annual_vaccinations"]
+PET_TEMPLATE_BODY = {
+    "name": "Maya",
+    "template": "pet",
+    "selected_cost_keys": PET_KEYS,
+}
 
 
 def test_create_vehicle_no_selection_creates_profile_and_bucket_but_no_rows(client: TestClient) -> None:
@@ -223,6 +229,139 @@ def test_create_house_with_eur_currency_uses_exact_eur_defaults(
     ],
 )
 def test_invalid_house_template_inputs_leave_no_residue(
+    client: TestClient, db_session: Session, body: dict[str, object]
+) -> None:
+    bucket_count_before = len(db_session.scalars(select(Bucket)).all())
+    time_based_count_before = len(db_session.scalars(select(TimeBasedCost)).all())
+
+    response = client.post("/api/assets", json=body)
+
+    assert response.status_code == 422
+    assert db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).all() == []
+    assert len(db_session.scalars(select(Bucket)).all()) == bucket_count_before
+    assert len(db_session.scalars(select(TimeBasedCost)).all()) == time_based_count_before
+
+
+def test_create_pet_template_persists_exact_rows_bucket_and_zero_manual_extra(
+    client: TestClient, db_session: Session
+) -> None:
+    response = client.post("/api/assets", json=PET_TEMPLATE_BODY)
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["asset"]["type"] == "pet"
+    assert payload["profile"] is None
+    assert [row["technical_key"] for row in payload["time_based_costs"]] == PET_KEYS
+    assert payload["usage_based_costs"] == []
+    assert payload["maintenance_items"] == []
+
+    asset = db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).one()
+    assert asset.manual_extra_monthly == Decimal("0.00")
+    assert len(db_session.scalars(select(Bucket).where(Bucket.asset_id == asset.id)).all()) == 1
+    assert db_session.scalars(select(VehicleProfile).where(VehicleProfile.asset_id == asset.id)).all() == []
+    assert db_session.scalars(select(UsageBasedCost).where(UsageBasedCost.asset_id == asset.id)).all() == []
+    assert db_session.scalars(select(MaintenanceItem).where(MaintenanceItem.asset_id == asset.id)).all() == []
+    rows = db_session.scalars(
+        select(TimeBasedCost).where(TimeBasedCost.asset_id == asset.id)
+    ).all()
+    assert len(rows) == 2
+    assert {row.technical_key: row.amount for row in rows} == {
+        "pet_insurance": Decimal("30000.00"),
+        "annual_vaccinations": Decimal("20000.00"),
+    }
+
+
+def test_create_pet_template_honors_selection_amount_and_interval_override(
+    client: TestClient, db_session: Session
+) -> None:
+    response = client.post(
+        "/api/assets",
+        json={
+            **PET_TEMPLATE_BODY,
+            "selected_cost_keys": ["annual_vaccinations"],
+            "cost_overrides": [
+                {
+                    "technical_key": "annual_vaccinations",
+                    "amount": 24000,
+                    "interval_value": 6,
+                    "interval_unit": "months",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 201
+    asset = db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).one()
+    row = db_session.scalars(
+        select(TimeBasedCost).where(TimeBasedCost.asset_id == asset.id)
+    ).one()
+    assert row.technical_key == "annual_vaccinations"
+    assert row.amount == Decimal("24000.00")
+    assert row.interval_value == 6
+    assert row.interval_unit == "months"
+
+
+def test_create_pet_with_eur_currency_uses_exact_eur_defaults(
+    client: TestClient, db_session: Session
+) -> None:
+    assert (
+        client.put(
+            "/api/users/me/settings",
+            json={"default_currency": "EUR", "language": "en"},
+        ).status_code
+        == 200
+    )
+
+    response = client.post("/api/assets", json=PET_TEMPLATE_BODY)
+
+    assert response.status_code == 201
+    asset = db_session.scalars(select(Asset).where(Asset.user_id == TEST_USER_ID)).one()
+    rows = db_session.scalars(
+        select(TimeBasedCost).where(TimeBasedCost.asset_id == asset.id)
+    ).all()
+    assert len(rows) == 2
+    assert {row.technical_key: row.amount for row in rows} == {
+        "pet_insurance": Decimal("75.00"),
+        "annual_vaccinations": Decimal("50.00"),
+    }
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {**PET_TEMPLATE_BODY, "selected_cost_keys": ["vehicle_tax"]},
+        {**PET_TEMPLATE_BODY, "selected_cost_keys": ["building_tax"]},
+        {**PET_TEMPLATE_BODY, "type": "vehicle"},
+        {**PET_TEMPLATE_BODY, "vehicle": {"starting_odometer": 1}},
+        {
+            **PET_TEMPLATE_BODY,
+            "cost_overrides": [
+                {"technical_key": "pet_insurance", "amount": 1},
+                {"technical_key": "pet_insurance", "amount": 2},
+            ],
+        },
+        {
+            **PET_TEMPLATE_BODY,
+            "selected_cost_keys": ["pet_insurance"],
+            "cost_overrides": [{"technical_key": "annual_vaccinations", "amount": 1}],
+        },
+        {
+            **PET_TEMPLATE_BODY,
+            "cost_overrides": [{"technical_key": "pet_insurance", "amount": -1}],
+        },
+        {
+            **PET_TEMPLATE_BODY,
+            "cost_overrides": [
+                {
+                    "technical_key": "pet_insurance",
+                    "amount": 1,
+                    "interval_value": 6,
+                }
+            ],
+        },
+    ],
+)
+def test_invalid_pet_template_inputs_leave_no_residue(
     client: TestClient, db_session: Session, body: dict[str, object]
 ) -> None:
     bucket_count_before = len(db_session.scalars(select(Bucket)).all())

@@ -318,6 +318,9 @@
     "type_vehicle_desc": "Car, motorcycle, or anything with an odometer.",
     "type_house_name": "Property",
     "type_house_desc": "House, apartment, or any place you maintain.",
+    "type_pet_name": "Pet",
+    "type_pet_desc": "A dog, cat, or another companion with recurring care.",
+    "type_pet_name_placeholder": "Maya",
     "step1_title": "What are you tracking?",
     "step1_sub": "Pick a category — it sets the icon and creation flow.",
     "step2_title": "Tell us about it",
@@ -437,6 +440,10 @@
       "home_insurance": { "label": "Home insurance" },
       "boiler_cleaning": { "label": "Boiler cleaning" },
       "air_conditioner_cleaning": { "label": "Air-conditioner cleaning" }
+    },
+    "pet": {
+      "pet_insurance": { "label": "Pet insurance" },
+      "annual_vaccinations": { "label": "Annual vaccinations" }
     }
   }
 }

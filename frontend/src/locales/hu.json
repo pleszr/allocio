@@ -318,6 +318,9 @@
     "type_vehicle_desc": "Autó, motor vagy bármi, aminek van kilométerórája.",
     "type_house_name": "Ingatlan",
     "type_house_desc": "Ház, lakás vagy bármilyen fenntartott ingatlan.",
+    "type_pet_name": "Házi kedvenc",
+    "type_pet_desc": "Kutya, macska vagy más társállat rendszeres ellátással.",
+    "type_pet_name_placeholder": "Maya",
     "step1_title": "Mit szeretnél követni?",
     "step1_sub": "Válassz kategóriát — ez határozza meg az ikont és a létrehozási folyamatot.",
     "step2_title": "Mesélj róla",
@@ -437,6 +440,10 @@
       "home_insurance": { "label": "Lakásbiztosítás" },
       "boiler_cleaning": { "label": "Kazántisztítás" },
       "air_conditioner_cleaning": { "label": "Klímatisztítás" }
+    },
+    "pet": {
+      "pet_insurance": { "label": "Kisállat-biztosítás" },
+      "annual_vaccinations": { "label": "Éves oltások" }
     }
   }
 }

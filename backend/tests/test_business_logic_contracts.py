@@ -242,3 +242,69 @@ def test_house_allocation_estimate_defaults_overrides_and_template_isolation_are
         response = client.post("/api/allocation-estimates", json=body)
         assert response.status_code == 422
         assert {model: _count(db_session, model) for model in models} == before
+
+
+def test_pet_allocation_estimate_defaults_overrides_and_template_isolation_are_persistence_free(
+    client: TestClient, db_session: Session
+) -> None:
+    models = (
+        Asset,
+        Bucket,
+        TimeBasedCost,
+        UsageBasedCost,
+        MaintenanceItem,
+        CheckIn,
+        AllocationEvent,
+        ExpenseEvent,
+    )
+    before = {model: _count(db_session, model) for model in models}
+    pet_keys = ["pet_insurance", "annual_vaccinations"]
+
+    for body in (
+        {"template": "pet", "selected_cost_keys": pet_keys},
+        {
+            "template": "pet",
+            "selected_cost_keys": pet_keys,
+            "manual_extra_monthly": "0",
+        },
+    ):
+        response = client.post("/api/allocation-estimates", json=body)
+        assert response.status_code == 200
+        payload = response.json()
+        assert [line["key"] for line in payload["lines"]] == pet_keys
+        assert Decimal(payload["yearly_total"]) == Decimal("50000.00")
+        assert Decimal(payload["monthly_total"]) == Decimal("4166.67")
+        assert Decimal(payload["daily_total"]) == Decimal("136.99")
+        assert {model: _count(db_session, model) for model in models} == before
+
+    overridden = client.post(
+        "/api/allocation-estimates",
+        json={
+            "template": "pet",
+            "selected_cost_keys": ["annual_vaccinations"],
+            "cost_overrides": [
+                {
+                    "technical_key": "annual_vaccinations",
+                    "amount": "24000",
+                    "interval_value": 6,
+                    "interval_unit": "months",
+                }
+            ],
+        },
+    )
+    assert overridden.status_code == 200
+    payload = overridden.json()
+    assert [line["key"] for line in payload["lines"]] == ["annual_vaccinations"]
+    assert Decimal(payload["lines"][0]["reference_amount"]) == Decimal("24000.00")
+    assert Decimal(payload["yearly_total"]) == Decimal("48000.00")
+    assert Decimal(payload["monthly_total"]) == Decimal("4000.00")
+    assert Decimal(payload["daily_total"]) == Decimal("131.51")
+    assert {model: _count(db_session, model) for model in models} == before
+
+    for body in (
+        {"template": "pet", "selected_cost_keys": ["vehicle_tax"]},
+        {"template": "pet", "selected_cost_keys": ["building_tax"]},
+    ):
+        response = client.post("/api/allocation-estimates", json=body)
+        assert response.status_code == 422
+        assert {model: _count(db_session, model) for model in models} == before

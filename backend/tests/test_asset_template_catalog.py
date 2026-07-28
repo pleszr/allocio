@@ -104,6 +104,47 @@ def test_get_house_catalog_returns_exact_recurring_rows_and_manual_extra(
     } == {"HUF": Decimal("18000"), "EUR": Decimal("45"), "USD": Decimal("50")}
 
 
+def test_get_pet_catalog_returns_exact_recurring_rows_and_zero_manual_extra(
+    client: TestClient,
+) -> None:
+    response = client.get("/api/asset-templates/pet/catalog")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["template_key"] == "pet"
+    assert [
+        (
+            row["technical_key"],
+            row["label"],
+            row["interval_value"],
+            row["interval_unit"],
+            {currency: Decimal(str(amount)) for currency, amount in row["amounts"].items()},
+        )
+        for row in payload["time_based_costs"]
+    ] == [
+        (
+            "pet_insurance",
+            "Pet insurance",
+            12,
+            "months",
+            {"HUF": Decimal("30000"), "EUR": Decimal("75"), "USD": Decimal("83")},
+        ),
+        (
+            "annual_vaccinations",
+            "Annual vaccinations",
+            12,
+            "months",
+            {"HUF": Decimal("20000"), "EUR": Decimal("50"), "USD": Decimal("56")},
+        ),
+    ]
+    assert payload["usage_based_costs"] == []
+    assert payload["maintenance_items"] == []
+    assert {
+        currency: Decimal(str(amount))
+        for currency, amount in payload["manual_extra_monthly_amounts"].items()
+    } == {"HUF": Decimal("0"), "EUR": Decimal("0"), "USD": Decimal("0")}
+
+
 def test_get_catalog_unknown_template_is_404(client: TestClient) -> None:
     response = client.get("/api/asset-templates/spaceship/catalog")
 

@@ -62,6 +62,21 @@ HOUSE_OVERRIDES = [
         "interval_unit": "months",
     },
 ]
+PET_KEYS = ["pet_insurance", "annual_vaccinations"]
+PET_OVERRIDES = [
+    {
+        "technical_key": "pet_insurance",
+        "amount": 30000,
+        "interval_value": 12,
+        "interval_unit": "months",
+    },
+    {
+        "technical_key": "annual_vaccinations",
+        "amount": 20000,
+        "interval_value": 12,
+        "interval_unit": "months",
+    },
+]
 STARTING_ODOMETER = 120000
 # The asset is backdated 90 days below so this period can end in the past (the browser also lets
 # the user pick a past period_end; see docs/vehicle-rules.md).
@@ -239,3 +254,53 @@ def test_create_house_template_workflow(client: TestClient) -> None:
     assert time_based.status_code == 200
     assert {row["technical_key"] for row in time_based.json()} == set(HOUSE_KEYS)
     assert len(time_based.json()) == 4
+
+
+def test_create_pet_template_workflow(client: TestClient) -> None:
+    """Walk the Pet catalog, estimate, create, and detail reads used by the browser."""
+    catalog = client.get("/api/asset-templates/pet/catalog")
+    assert catalog.status_code == 200
+    catalog_body = catalog.json()
+    assert [row["technical_key"] for row in catalog_body["time_based_costs"]] == PET_KEYS
+    assert catalog_body["usage_based_costs"] == []
+    assert catalog_body["maintenance_items"] == []
+
+    estimate = client.post(
+        "/api/allocation-estimates",
+        json={
+            "template": "pet",
+            "selected_cost_keys": PET_KEYS,
+            "cost_overrides": PET_OVERRIDES,
+            "custom_time_based_costs": [],
+        },
+    )
+    assert estimate.status_code == 200
+    estimate_body = estimate.json()
+    assert [line["key"] for line in estimate_body["lines"]] == PET_KEYS
+    assert Decimal(estimate_body["yearly_total"]) == Decimal("50000.00")
+    assert Decimal(estimate_body["monthly_total"]) == Decimal("4166.67")
+    assert Decimal(estimate_body["daily_total"]) == Decimal("136.99")
+    assert all(line["key"] != "manual_extra" for line in estimate_body["lines"])
+
+    created = client.post(
+        "/api/assets",
+        json={
+            "name": "Maya",
+            "template": "pet",
+            "selected_cost_keys": PET_KEYS,
+            "cost_overrides": PET_OVERRIDES,
+        },
+    )
+    assert created.status_code == 201
+    asset_id = created.json()["asset"]["id"]
+    assert created.json()["profile"] is None
+
+    detail = client.get(f"/api/assets/{asset_id}")
+    assert detail.status_code == 200
+    assert detail.json()["tracks_usage"] is False
+    assert Decimal(detail.json()["manual_extra_monthly"]) == Decimal("0.00")
+
+    time_based = client.get(f"/api/assets/{asset_id}/time-based-costs")
+    assert time_based.status_code == 200
+    assert len(time_based.json()) == 2
+    assert {row["technical_key"] for row in time_based.json()} == set(PET_KEYS)

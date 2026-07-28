@@ -19,8 +19,7 @@ test("create a vehicle bucket through the wizard and land on its dashboard", asy
   await page.getByRole("button", { name: "New bucket", exact: true }).click();
   await expect(page.getByRole("heading", { name: "New bucket" })).toBeVisible();
 
-  // Type step — pick the Vehicle type; selecting it triggers the template catalog fetch. Only
-  // Vehicle and Property are offered (Pet was dropped from the creation flow).
+  // Type step — pick the Vehicle type; selecting it triggers the template catalog fetch.
   const catalogFetched = page.waitForResponse(
     (r) => r.url().includes("/api/asset-templates/vehicle/catalog") && r.ok(),
   );
@@ -214,12 +213,102 @@ test("create a property bucket from the House template", async ({ page }) => {
   await expect(manualExtraKpi.locator(".num-lg")).not.toHaveText("0 Ft/mo");
 });
 
-test("Pet is not offered as a creation type", async ({ page }) => {
+test("create a pet bucket from the Pet template without a safety-buffer follow-up", async ({ page }) => {
+  const manualExtraRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/manual-extra") && request.method() === "PUT") {
+      manualExtraRequests.push(request.url());
+    }
+  });
+
   await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Your buckets" })).toBeVisible();
   await page.getByRole("button", { name: "New bucket", exact: true }).click();
-  await expect(page.getByRole("button", { name: /Vehicle/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^Property/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^Pet/ })).toHaveCount(0);
+  const catalogFetched = page.waitForResponse(
+    (response) => response.url().includes("/api/asset-templates/pet/catalog") && response.ok(),
+  );
+  await expect(page.getByRole("button", { name: /^Pet/ })).toBeVisible();
+  await page.getByRole("button", { name: /^Pet/ }).click();
+  await catalogFetched;
+
+  await expect(page.getByText("Tell us about it")).toBeVisible();
+  await expect(page.getByLabel("Bucket name")).toHaveAttribute("placeholder", "Maya");
+  await expect(page.getByLabel("Manufacture year (optional)")).toHaveCount(0);
+  await expect(page.getByLabel("Current odometer")).toHaveCount(0);
+  await page.getByTestId("bucket-name-input").fill("E2E Test Pet");
+  await page.getByRole("button", { name: /Continue/ }).click();
+
+  for (const [key, label, amount] of [
+    ["pet_insurance", "Pet insurance", "30000"],
+    ["annual_vaccinations", "Annual vaccinations", "20000"],
+  ]) {
+    const row = page.getByText(label, { exact: true }).locator("..");
+    await expect(row.locator('input[type="checkbox"]')).toBeChecked();
+    await expect(page.getByTestId(`catalog-amount-${key}`)).toHaveValue(amount);
+    await expect(page.getByTestId(`catalog-interval-value-${key}`)).toHaveValue("12");
+    await expect(page.getByTestId(`catalog-interval-unit-${key}`)).toHaveValue("months");
+  }
+  await expect(page.getByText("Usage reserve", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Maintenance & replacements", { exact: true })).toHaveCount(0);
+
+  await page.getByTestId("catalog-amount-pet_insurance").fill("31000");
+  await page.getByRole("button", { name: /Back/ }).click();
+  await expect(page.getByLabel("Bucket name")).toHaveValue("E2E Test Pet");
+  await page.getByRole("button", { name: /Continue/ }).click();
+  await expect(page.getByTestId("catalog-amount-pet_insurance")).toHaveValue("31000");
+
+  const baselineEstimate = page.waitForResponse((response) => {
+    if (!response.url().endsWith("/api/allocation-estimates") || !response.ok()) return false;
+    const body = response.request().postDataJSON();
+    return (
+      body.template === "pet" &&
+      body.cost_overrides?.some(
+        (row: { technical_key: string; amount: number }) =>
+          row.technical_key === "pet_insurance" && row.amount === 30000,
+      )
+    );
+  });
+  await page.getByTestId("catalog-amount-pet_insurance").fill("30000");
+  await baselineEstimate;
+  await page.getByRole("button", { name: /Continue/ }).click();
+
+  await expect(page.getByText("Add a safety buffer?")).toBeVisible();
+  await page.getByRole("button", { name: /^None/ }).click();
+  await page.getByRole("button", { name: /Continue/ }).click();
+  await page.getByRole("button", { name: "No", exact: true }).click();
+
+  await expect(page.locator(".wizard-footer")).toContainText("4,167 Ft/mo");
+  await expect(page.locator(".allocation-callout")).toContainText("136.99 Ft/day · 50,000 Ft/year");
+  await expect(page.getByText("Pet insurance", { exact: true })).toBeVisible();
+  await expect(page.getByText("Annual vaccinations", { exact: true })).toBeVisible();
+
+  const created = page.waitForResponse(
+    (response) => response.url().endsWith("/api/assets") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: /Create bucket/ }).click();
+  const createResponse = await created;
+  expect(createResponse.status()).toBe(201);
+  const requestBody = createResponse.request().postDataJSON();
+  expect(requestBody).toEqual({
+    name: "E2E Test Pet",
+    template: "pet",
+    selected_cost_keys: ["pet_insurance", "annual_vaccinations"],
+    cost_overrides: [
+      { technical_key: "pet_insurance", amount: 30000, interval_value: 12, interval_unit: "months" },
+      { technical_key: "annual_vaccinations", amount: 20000, interval_value: 12, interval_unit: "months" },
+    ],
+  });
+  expect(requestBody).not.toHaveProperty("manual_extra_monthly");
+  expect(requestBody).not.toHaveProperty("type");
+  expect(requestBody).not.toHaveProperty("vehicle");
+
+  await expect(page.getByRole("heading", { name: "E2E Test Pet" })).toBeVisible();
+  await expect(page.locator(".error-banner")).toHaveCount(0);
+  expect(manualExtraRequests).toEqual([]);
+
+  await page.getByRole("tab", { name: "Costs" }).click();
+  await expect(page.getByRole("row", { name: /Pet insurance/ })).toHaveCount(1);
+  await expect(page.getByRole("row", { name: /Annual vaccinations/ })).toHaveCount(1);
 });
 
 test("switching templates preserves the name and ignores a late prior catalog", async ({ page }) => {
@@ -242,27 +331,28 @@ test("switching templates preserves the name and ignores a late prior catalog", 
   await page.getByRole("button", { name: /Vehicle/ }).click();
   await vehicleCatalogRequested;
   await expect(page.getByText("Tell us about it")).toBeVisible();
-  await page.getByTestId("bucket-name-input").fill("Switching Home");
+  await page.getByTestId("bucket-name-input").fill("Switching Pet");
 
   // Back returns to the type step with the previously selected type still highlighted.
   await page.getByRole("button", { name: /Back/ }).click();
   await expect(page.getByRole("button", { name: /Vehicle/ })).toHaveAttribute("aria-pressed", "true");
 
   // Picking a different type re-advances straight to the details step with the new type reflected.
-  const houseCatalogFetched = page.waitForResponse(
-    (response) => response.url().includes("/api/asset-templates/house/catalog") && response.ok(),
+  const petCatalogFetched = page.waitForResponse(
+    (response) => response.url().includes("/api/asset-templates/pet/catalog") && response.ok(),
   );
-  await page.getByRole("button", { name: /^Property/ }).click();
-  await houseCatalogFetched;
+  await page.getByRole("button", { name: /^Pet/ }).click();
+  await petCatalogFetched;
   await expect(page.getByText("Tell us about it")).toBeVisible();
-  await expect(page.getByTestId("bucket-name-input")).toHaveValue("Switching Home");
+  await expect(page.getByTestId("bucket-name-input")).toHaveValue("Switching Pet");
   const lateVehicleCatalog = page.waitForResponse(
     (response) => response.url().includes("/api/asset-templates/vehicle/catalog") && response.ok(),
   );
   releaseVehicleCatalog();
   await lateVehicleCatalog;
   await page.getByRole("button", { name: /Continue/ }).click();
-  await expect(page.getByText("Building tax", { exact: true })).toBeVisible();
+  await expect(page.getByText("Pet insurance", { exact: true })).toBeVisible();
+  await expect(page.getByText("Annual vaccinations", { exact: true })).toBeVisible();
   await expect(page.getByText("Seasonal tire change", { exact: true })).toHaveCount(0);
 });
 

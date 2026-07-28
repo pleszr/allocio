@@ -1,7 +1,7 @@
 # Allocio Product Backlog
 
 Status: Draft v1
-Last updated: 2026-07-26
+Last updated: 2026-07-28
 
 ## Product Frame
 
@@ -345,7 +345,8 @@ Expand first-class support beyond vehicles to:
 Current increment:
 
 - Issue #118 adds property as a built-in creation template with recurring house costs and an editable monthly safety buffer.
-- Property-specific profile, maintenance, and dashboard experiences remain deferred.
+- Issue #125 adds Pet as the next built-in template increment with annual insurance and vaccination reserves.
+- Property- and Pet-specific profiles, schedules, maintenance, dashboards, and reminders remain deferred.
 
 #### PM-19 Reminder System
 

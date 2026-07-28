@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 IntervalUnit: TypeAlias = Literal["months", "years"]
 TireType: TypeAlias = Literal["summer", "winter", "all_season"]
-AssetTemplateKey: TypeAlias = Literal["vehicle", "house"]
+AssetTemplateKey: TypeAlias = Literal["vehicle", "house", "pet"]
 ExpenseKind: TypeAlias = Literal["modeled", "other"]
 ExpenseSourceType: TypeAlias = Literal["time_based_cost", "usage_based_cost", "maintenance_item"]
 CurrencyCode: TypeAlias = Literal["HUF", "EUR", "USD"]
@@ -126,8 +126,9 @@ class CreateAssetRequest(BaseModel):
     )
     template: AssetTemplateKey | None = Field(
         default=None,
-        description="Built-in creation template to apply. Omit for a bare asset with no default rows.",
-        examples=["vehicle"],
+        description="Built-in creation template (`vehicle`, `house`, or `pet`). "
+        "Omit for a bare asset with no default rows.",
+        examples=["vehicle", "house", "pet"],
     )
     vehicle: VehicleDetailsInput | None = Field(
         default=None, description="Vehicle profile details; only valid with the vehicle template."

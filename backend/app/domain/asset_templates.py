@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from app.domain.house_defaults import HOUSE_CATALOG
+from app.domain.pet_defaults import PET_CATALOG
 from app.domain.template_catalog import TemplateCatalog
 from app.domain.vehicle_defaults import VEHICLE_CATALOG
 
@@ -46,8 +47,20 @@ HOUSE_TEMPLATE = AssetTemplate(
         "USD": Decimal("50"),
     },
 )
+PET_TEMPLATE = AssetTemplate(
+    key="pet",
+    asset_type="pet",
+    has_vehicle_profile=False,
+    catalog=PET_CATALOG,
+    manual_extra_monthly_amounts={
+        "HUF": Decimal("0"),
+        "EUR": Decimal("0"),
+        "USD": Decimal("0"),
+    },
+)
 
 ASSET_TEMPLATES: dict[str, AssetTemplate] = {
     VEHICLE_TEMPLATE.key: VEHICLE_TEMPLATE,
     HOUSE_TEMPLATE.key: HOUSE_TEMPLATE,
+    PET_TEMPLATE.key: PET_TEMPLATE,
 }
