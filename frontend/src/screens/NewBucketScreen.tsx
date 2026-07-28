@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { api, ApiError } from "../api/client";
@@ -14,7 +14,7 @@ import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
 import type { IlloKind } from "../utils/assetType";
 import { useCurrency, useCurrencyCode } from "../utils/currency";
-import { fmtNumber } from "../utils/format";
+import { fmtNumber, todayIso } from "../utils/format";
 
 interface NewBucketScreenProps {
   onCancel: () => void;
@@ -41,13 +41,20 @@ interface TypeOption {
 
 type TemplateKey = "vehicle" | "house";
 
-// One review line for Step 4 / the running estimate. `monthly` is null for usage-based
+// One review line for the review step / the running estimate. `monthly` is null for usage-based
 // (variable) rows, which are excluded from the steady monthly figure.
 interface ReviewLine {
   id: string;
   name: string;
   monthly: number | null;
   sub: string;
+}
+
+// A single ad-hoc "what for / amount" row collected on the optional first-check-in step.
+interface CheckinExpenseDraft {
+  id: string;
+  name: string;
+  amount: number;
 }
 
 const TYPES: TypeOption[] = [
@@ -67,8 +74,45 @@ const TYPES: TypeOption[] = [
     assetType: "house",
     templateKey: "house",
   },
-  { kind: "pet", nameKey: "newBucket.type_pet_name", descKey: "newBucket.type_pet_desc", bg: "#F8EBD8", assetType: "pet" },
 ];
+
+// The wizard's guided one-question-per-step flow. `path`/`history` (not a plain number) so Back
+// can retrace the actual branch taken — "ask-checkin" forks to either "first-checkin" or straight
+// to "review" depending on the user's Yes/No answer.
+type WizardStep = "type" | "details" | "costs" | "safety" | "ask-checkin" | "first-checkin" | "review";
+
+// Monotonic progress-bar weights along the longest possible path. Back/Continue always moves the
+// bar in the expected direction regardless of which branch ("ask-checkin" → "first-checkin" or
+// straight to "review") was actually taken.
+const STEP_WEIGHT: Record<WizardStep, number> = {
+  type: 1,
+  details: 2,
+  costs: 3,
+  safety: 4,
+  "ask-checkin": 5,
+  "first-checkin": 6,
+  review: 7,
+};
+const TOTAL_WEIGHT = 7;
+
+// Order used only to test "have we reached the costs step yet" (the estimate fetch/footer total
+// gate) — not for computing progress-bar position, which uses STEP_WEIGHT above.
+const STEP_ORDER: WizardStep[] = ["type", "details", "costs", "safety", "ask-checkin", "first-checkin", "review"];
+
+// The step a step's own footer "Continue" button advances to. "type" auto-advances on card click
+// and "ask-checkin" navigates on the Yes/No click itself — neither has a footer Continue button.
+const NEXT_STEP: Partial<Record<WizardStep, WizardStep>> = {
+  details: "costs",
+  costs: "safety",
+  safety: "ask-checkin",
+  "first-checkin": "review",
+};
+
+type SafetyPresetId = "none" | "light" | "recommended" | "extra";
+interface SafetyPreset {
+  id: SafetyPresetId;
+  amount: number;
+}
 
 function draft(name: string, period: Period, amount: number, unit?: string): DraftCost {
   return { id: Math.random().toString(36).slice(2, 8), name, period, amount, unit };
@@ -104,12 +148,6 @@ function templateLabel(t: TFunction, templateKey: TemplateKey, technicalKey: str
   return t(`templates.${templateKey}.${technicalKey}.label`, { defaultValue: fallback });
 }
 
-function parseManualExtra(value: string): number | null {
-  if (!value.trim()) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
-}
-
 function catalogSupportsCurrency(catalog: AssetTemplateCatalog, currency: string): boolean {
   if (!(currency in catalog.manual_extra_monthly_amounts)) return false;
   if (catalog.time_based_costs.some((row) => !(currency in row.amounts))) return false;
@@ -130,7 +168,8 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   const fmt = useCurrency();
   const currencyCode = useCurrencyCode();
   const periodLabel = (p: Period) => t(`newBucket.period_noun_${p === "2 years" ? "2years" : p}`);
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<WizardStep>("type");
+  const [history, setHistory] = useState<WizardStep[]>(["type"]);
   const [type, setType] = useState<TypeOption | null>(null);
   const [name, setName] = useState("");
   const [manufactureYear, setManufactureYear] = useState("");
@@ -138,6 +177,11 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   const [costs, setCosts] = useState<DraftCost[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Safety-buffer preset and optional first-check-in expenses (new steps).
+  const [safetyId, setSafetyId] = useState<SafetyPresetId>("recommended");
+  const [logFirstCheckin, setLogFirstCheckin] = useState<boolean | null>(null);
+  const [checkinExpenses, setCheckinExpenses] = useState<CheckinExpenseDraft[]>([]);
 
   // Template catalog + the user's row selection. Owned here so it survives Back/Continue.
   const isVehicle = type?.kind === "car";
@@ -150,7 +194,6 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   // template default in the owner's currency once, then owned by the user. Maintenance items don't
   // participate here — they have no curated amount to edit.
   const [catalogOverrides, setCatalogOverrides] = useState<Record<string, CatalogOverride>>({});
-  const [manualExtraInput, setManualExtraInput] = useState("");
   const [estimate, setEstimate] = useState<AllocationEstimate | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(false);
   const [estimateError, setEstimateError] = useState<string | null>(null);
@@ -159,6 +202,20 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   const catalogRequestId = useRef(0);
   const activeTemplateKey = useRef<TemplateKey | null>(templateKey);
   activeTemplateKey.current = templateKey;
+
+  const goTo = (next: WizardStep) => {
+    setHistory((h) => [...h, next]);
+    setStep(next);
+  };
+  const back = () => {
+    if (history.length <= 1) {
+      onCancel();
+      return;
+    }
+    const nextHistory = history.slice(0, -1);
+    setHistory(nextHistory);
+    setStep(nextHistory[nextHistory.length - 1]);
+  };
 
   const loadCatalog = (requestedTemplate: TemplateKey | null = activeTemplateKey.current) => {
     if (!requestedTemplate) return;
@@ -187,7 +244,6 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
             c.usage_based_costs.map((row) => [row.technical_key, { amount: row.amounts_per_unit[currencyCode] }]),
           ),
         });
-        setManualExtraInput(String(c.manual_extra_monthly_amounts[currencyCode]));
       })
       .catch(() => {
         if (requestId === catalogRequestId.current && activeTemplateKey.current === requestedTemplate) {
@@ -212,7 +268,6 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
     setCatalogError(null);
     setSelectedKeys(new Set());
     setCatalogOverrides({});
-    setManualExtraInput("");
     setEstimate(null);
     setEstimateLoading(false);
     setEstimateError(null);
@@ -239,16 +294,16 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
       return next;
     });
 
-  const manualExtra = parseManualExtra(manualExtraInput);
-  const manualExtraValid = templateKey == null || manualExtra != null;
   const estimateRequest = useMemo<AllocationEstimateRequest>(
-    () => buildEstimateRequest(templateKey, selectedKeys, catalogOverrides, costs, manualExtra),
-    [templateKey, selectedKeys, catalogOverrides, costs, manualExtra],
+    () => buildEstimateRequest(templateKey, selectedKeys, catalogOverrides, costs),
+    [templateKey, selectedKeys, catalogOverrides, costs],
   );
 
-  // The wizard keeps the last successful estimate while a settled edit is refreshed.
+  // The wizard keeps the last successful estimate while a settled edit is refreshed. Starts as
+  // soon as the "costs" step is reached (rather than only once the review step renders) because
+  // the "safety" step needs `baseMonthly` before the user gets there.
   useEffect(() => {
-    if (step < 3 || (templateKey && (!catalog || !manualExtraValid))) {
+    if (STEP_ORDER.indexOf(step) < STEP_ORDER.indexOf("costs") || (templateKey && !catalog)) {
       estimateRequestId.current += 1;
       setEstimateLoading(false);
       return;
@@ -272,12 +327,12 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
         });
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [step, templateKey, catalog, manualExtraValid, estimateRequest, estimateRetry, t]);
+  }, [step, templateKey, catalog, estimateRequest, estimateRetry, t]);
 
   // Combine backend-derived time rows with presentation-only labels and recurrence descriptions.
   const reviewTimeLines = useMemo<ReviewLine[]>(() => {
     if (!estimate) return [];
-    const lines = estimate.lines.filter((line) => line.key !== "manual_extra").map((line) => {
+    return estimate.lines.map((line) => {
       const catalogRow = catalog?.time_based_costs.find((row) => row.technical_key === line.key);
       const customRow = costs.find((row) => row.id === line.key);
       const override = catalogRow ? catalogOverrides[catalogRow.technical_key] : undefined;
@@ -300,16 +355,6 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
               : "",
       };
     });
-    const manualLine = estimate.lines.find((line) => line.key === "manual_extra");
-    if (manualLine) {
-      lines.push({
-        id: manualLine.key,
-        name: t("newBucket.safety_buffer_label"),
-        monthly: manualLine.monthly_amount,
-        sub: t("newBucket.safety_buffer_desc"),
-      });
-    }
-    return lines;
   }, [estimate, catalog, catalogOverrides, costs, fmt, t, templateKey]);
 
   const reviewUsageLines = useMemo<ReviewLine[]>(() => {
@@ -342,32 +387,47 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
   const updateCost = (id: string, patch: Partial<DraftCost>) =>
     setCosts((arr) => arr.map((c) => (c.id === id ? { ...c, ...patch } : c)));
 
+  const addCheckinExpense = () =>
+    setCheckinExpenses((arr) => [...arr, { id: Math.random().toString(36).slice(2, 8), name: "", amount: 0 }]);
+  const removeCheckinExpense = (id: string) => setCheckinExpenses((arr) => arr.filter((e) => e.id !== id));
+  const updateCheckinExpense = (id: string, patch: Partial<CheckinExpenseDraft>) =>
+    setCheckinExpenses((arr) => arr.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+
+  // Safety-buffer presets, derived from the running estimate (0 while it's still loading).
+  const baseMonthly = estimate?.monthly_total ?? 0;
+  const presets = useMemo<SafetyPreset[]>(() => {
+    const recommended = Math.max(10, Math.round(baseMonthly * 0.15));
+    return [
+      { id: "none", amount: 0 },
+      { id: "light", amount: Math.round(recommended * 0.4) },
+      { id: "recommended", amount: recommended },
+      { id: "extra", amount: Math.round(recommended * 2) },
+    ];
+  }, [baseMonthly]);
+  const chosenPreset = presets.find((p) => p.id === safetyId) ?? presets[2];
+  // Computed once and reused everywhere a running total is shown (footer + review callout) rather
+  // than repeating `estimate.monthly_total + chosenPreset.amount` inline in multiple spots.
+  const displayedMonthlyTotal = baseMonthly + chosenPreset.amount;
+
   const manufactureYearValid = !isVehicle || isValidManufactureYear(manufactureYear);
   const templateReady = templateKey == null || (!!catalog && !catalogLoading && !catalogError);
   const canNext =
-    step === 1
-      ? !!type
-      : step === 2
-        ? !!name.trim() && manufactureYearValid
-        : step === 3
-          ? templateReady && manualExtraValid
-          : true;
+    step === "details"
+      ? !!name.trim() && manufactureYearValid
+      : step === "costs"
+        ? templateReady
+        : true;
+  const showRunningTotal = STEP_ORDER.indexOf(step) >= STEP_ORDER.indexOf("costs");
 
   const submit = async () => {
-    if (!type || !manualExtraValid) return;
+    if (!type) return;
     setSubmitting(true);
     setError(null);
+    let assetCreated = false;
     try {
-      const req = buildCreateRequest(
-        type,
-        name,
-        manufactureYear,
-        odometer,
-        selectedKeys,
-        catalogOverrides,
-        manualExtra,
-      );
+      const req = buildCreateRequest(type, name, manufactureYear, odometer, selectedKeys, catalogOverrides);
       const created = await api.createAsset(req);
+      assetCreated = true;
       const id = created.asset.id;
       // Only genuinely custom draft rows are posted here; catalog rows are cloned server-side
       // from `selected_cost_keys` and must NOT be double-posted.
@@ -383,9 +443,27 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
           });
         }
       }
+      if (safetyId !== "none") {
+        await api.updateManualExtra(id, chosenPreset.amount);
+      }
+      if (logFirstCheckin === true && checkinExpenses.length > 0) {
+        await api.postCheckIn(id, {
+          period_end: todayIso(),
+          usage_end: type.kind === "car" ? Number(odometer.replace(/[^\d]/g, "")) || 0 : null,
+          expenses: checkinExpenses.map((e) => ({ kind: "other", amount: e.amount, comment: e.name || null })),
+        });
+      }
       onCreated(id);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("newBucket.create_error"));
+      // A failure after the asset already exists is a partial-success state — the asset was
+      // created but the safety buffer and/or first check-in didn't get applied. Surface that
+      // distinctly rather than implying nothing was created; no automatic rollback (no
+      // delete-asset endpoint exists) — the user finishes the rest from CostsScreen/CheckInScreen.
+      if (assetCreated) {
+        setError(t("newBucket.create_partial_error"));
+      } else {
+        setError(err instanceof ApiError ? err.message : t("newBucket.create_error"));
+      }
       setSubmitting(false);
     }
   };
@@ -405,22 +483,19 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
           </button>
         </div>
 
-        <WizardSteps
-          step={step}
-          steps={[t("newBucket.step_type"), t("newBucket.step_details"), t("newBucket.step_costs"), t("newBucket.step_review")]}
-        />
+        <WizardProgress step={step} />
 
-        {step === 1 && (
-          <Step1
+        {step === "type" && (
+          <StepType
             selected={type}
-            onSelect={(t) => {
-              setType(t);
-              setStep(2);
+            onSelect={(picked) => {
+              setType(picked);
+              goTo("details");
             }}
           />
         )}
-        {step === 2 && (
-          <Step2
+        {step === "details" && (
+          <StepDetails
             type={type!}
             name={name}
             setName={setName}
@@ -430,8 +505,8 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
             setOdometer={setOdometer}
           />
         )}
-        {step === 3 && (
-          <Step3
+        {step === "costs" && (
+          <StepCosts
             type={type!}
             costs={costs}
             onAdd={addCost}
@@ -446,13 +521,32 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
             onSetGroup={setGroup}
             catalogOverrides={catalogOverrides}
             onUpdateCatalogOverride={updateCatalogOverride}
-            manualExtraInput={manualExtraInput}
-            onManualExtraChange={setManualExtraInput}
-            manualExtraValid={manualExtraValid}
           />
         )}
-        {step === 4 && (
-          <Step4
+        {step === "safety" && <StepSafety presets={presets} safetyId={safetyId} onSelect={setSafetyId} />}
+        {step === "ask-checkin" && (
+          <StepAskCheckin
+            value={logFirstCheckin}
+            onYes={() => {
+              setLogFirstCheckin(true);
+              goTo("first-checkin");
+            }}
+            onNo={() => {
+              setLogFirstCheckin(false);
+              goTo("review");
+            }}
+          />
+        )}
+        {step === "first-checkin" && (
+          <StepFirstCheckin
+            expenses={checkinExpenses}
+            onAdd={addCheckinExpense}
+            onRemove={removeCheckinExpense}
+            onUpdate={updateCheckinExpense}
+          />
+        )}
+        {step === "review" && (
+          <StepReview
             type={type!}
             name={name}
             timeLines={reviewTimeLines}
@@ -461,6 +555,11 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
             estimateLoading={estimateLoading}
             estimateError={estimateError}
             onRetryEstimate={() => setEstimateRetry((value) => value + 1)}
+            displayedMonthlyTotal={displayedMonthlyTotal}
+            safetyId={safetyId}
+            safetyAmount={chosenPreset.amount}
+            logFirstCheckin={logFirstCheckin}
+            checkinExpensesCount={checkinExpenses.length}
           />
         )}
 
@@ -471,17 +570,17 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
         )}
 
         <div className="wizard-footer">
-          <button className="btn btn-outline" onClick={() => (step > 1 ? setStep(step - 1) : onCancel())}>
-            ← {step > 1 ? t("newBucket.back") : t("newBucket.cancel")}
+          <button className="btn btn-outline" onClick={back}>
+            ← {history.length > 1 ? t("newBucket.back") : t("newBucket.cancel")}
           </button>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            {step >= 3 && (
+            {showRunningTotal && (
               <div style={{ textAlign: "right" }}>
                 <div className="muted" style={{ fontSize: 11.5 }}>
                   {t("newBucket.estimated_allocation")}
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 600, fontFeatureSettings: '"tnum"' }}>
-                  {estimate ? fmt(estimate.monthly_total, { decimals: 0 }) : "—"}
+                  {estimate ? fmt(displayedMonthlyTotal, { decimals: 0 }) : "—"}
                   <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>
                     {t("newBucket.per_mo")}
                   </span>
@@ -493,16 +592,12 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
                 )}
               </div>
             )}
-            {step === 1 ? null : step < 4 ? (
-              <button className="btn btn-primary" disabled={!canNext} onClick={() => canNext && setStep(step + 1)}>
+            {step === "type" || step === "ask-checkin" ? null : step !== "review" ? (
+              <button className="btn btn-primary" disabled={!canNext} onClick={() => canNext && goTo(NEXT_STEP[step]!)}>
                 {t("newBucket.continue")} <Icon name="arrowRight" size={13} />
               </button>
             ) : (
-              <button
-                className="btn btn-primary"
-                disabled={submitting || !templateReady || !manualExtraValid}
-                onClick={submit}
-              >
+              <button className="btn btn-primary" disabled={submitting || !templateReady} onClick={submit}>
                 <Icon name="check" size={14} /> {submitting ? t("newBucket.creating") : t("newBucket.create")}
               </button>
             )}
@@ -518,7 +613,6 @@ function buildEstimateRequest(
   selectedKeys: Set<string>,
   catalogOverrides: Record<string, CatalogOverride>,
   costs: DraftCost[],
-  manualExtra: number | null,
 ): AllocationEstimateRequest {
   const costOverrides: TemplateCostOverride[] = templateKey
     ? Array.from(selectedKeys)
@@ -539,7 +633,6 @@ function buildEstimateRequest(
     template: templateKey,
     selected_cost_keys: templateKey ? Array.from(selectedKeys) : [],
     cost_overrides: costOverrides,
-    ...(templateKey ? { manual_extra_monthly: manualExtra } : {}),
     custom_time_based_costs: costs
       .filter((cost) => cost.period !== "usage")
       .map((cost) => ({
@@ -559,7 +652,6 @@ function buildCreateRequest(
   odometer: string,
   selectedKeys: Set<string>,
   catalogOverrides: Record<string, { amount: number; interval_value?: number; interval_unit?: IntervalUnit }>,
-  manualExtra: number | null,
 ): CreateAssetRequest {
   if (type.templateKey) {
     const costOverrides: TemplateCostOverride[] = Array.from(selectedKeys)
@@ -575,7 +667,6 @@ function buildCreateRequest(
       template: type.templateKey,
       selected_cost_keys: Array.from(selectedKeys),
       cost_overrides: costOverrides,
-      manual_extra_monthly: manualExtra,
     };
     if (type.templateKey === "vehicle") {
       const trimmedManufactureYear = manufactureYear.trim();
@@ -602,27 +693,19 @@ function isValidManufactureYear(value: string): boolean {
   return Number.isInteger(year) && year >= 1886 && year <= new Date().getFullYear();
 }
 
-function WizardSteps({ step, steps }: { step: number; steps: string[] }) {
+// Single horizontal progress bar (replaces the old numbered step-dot rendering, which doesn't
+// represent a branching path well). Fill width is the current step's weight over the longest
+// possible path, so Back/Continue always moves it monotonically along the path actually taken.
+function WizardProgress({ step }: { step: WizardStep }) {
+  const pct = (STEP_WEIGHT[step] / TOTAL_WEIGHT) * 100;
   return (
-    <div className="wizard-steps">
-      {steps.map((label, i) => {
-        const n = i + 1;
-        const cls = n < step ? "done" : n === step ? "active" : "";
-        return (
-          <Fragment key={i}>
-            <div className={`wizard-step ${cls}`}>
-              <span className="wizard-step-num">{n < step ? "✓" : n}</span>
-              {label}
-            </div>
-            {i < steps.length - 1 && <span className="wizard-step-bar" />}
-          </Fragment>
-        );
-      })}
+    <div className="wizard-progress">
+      <div className="wizard-progress-fill" style={{ width: `${pct}%` }} />
     </div>
   );
 }
 
-function Step1({ selected, onSelect }: { selected: TypeOption | null; onSelect: (t: TypeOption) => void }) {
+function StepType({ selected, onSelect }: { selected: TypeOption | null; onSelect: (t: TypeOption) => void }) {
   const { t } = useTranslation();
   return (
     <div className="card card-pad">
@@ -649,7 +732,7 @@ function Step1({ selected, onSelect }: { selected: TypeOption | null; onSelect: 
   );
 }
 
-function Step2({
+function StepDetails({
   type,
   name,
   setName,
@@ -688,7 +771,7 @@ function Step2({
             id="bucket-name"
             className="input"
             data-testid="bucket-name-input"
-            placeholder={type.kind === "car" ? "Honda Civic" : type.kind === "house" ? "Cedar St." : "Maya"}
+            placeholder={type.kind === "car" ? "Honda Civic" : "Cedar St."}
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoFocus
@@ -741,7 +824,7 @@ function Step2({
   );
 }
 
-interface Step3Props {
+interface StepCostsProps {
   type: TypeOption;
   costs: DraftCost[];
   onAdd: (c: DraftCost) => void;
@@ -756,57 +839,16 @@ interface Step3Props {
   onSetGroup: (keys: string[], on: boolean) => void;
   catalogOverrides: Record<string, CatalogOverride>;
   onUpdateCatalogOverride: (key: string, patch: Partial<CatalogOverride>) => void;
-  manualExtraInput: string;
-  onManualExtraChange: (value: string) => void;
-  manualExtraValid: boolean;
 }
 
-function Step3(props: Step3Props) {
+function StepCosts(props: StepCostsProps) {
   const { t } = useTranslation();
-  const {
-    type,
-    costs,
-    onAdd,
-    onRemove,
-    onUpdate,
-    manualExtraInput,
-    onManualExtraChange,
-    manualExtraValid,
-  } = props;
+  const { type, costs, onAdd, onRemove, onUpdate } = props;
   const hasTemplate = type.templateKey != null;
 
   return (
     <>
       {hasTemplate && <TemplateCatalogPicker {...props} />}
-
-      {hasTemplate && props.catalog && (
-        <div className="card card-pad" style={{ marginBottom: 16 }}>
-          <div className="field">
-            <label className="field-label" htmlFor="manual-extra-monthly">
-              {t("newBucket.safety_buffer_label")}
-            </label>
-            <div className="card-sub" style={{ marginBottom: 10 }}>
-              {t("newBucket.safety_buffer_desc")}
-            </div>
-            <input
-              id="manual-extra-monthly"
-              className="input mono"
-              data-testid="manual-extra-monthly"
-              type="number"
-              min={0}
-              value={manualExtraInput}
-              onChange={(event) => onManualExtraChange(event.target.value)}
-              aria-invalid={!manualExtraValid}
-              aria-describedby={!manualExtraValid ? "manual-extra-monthly-error" : undefined}
-            />
-            {!manualExtraValid && (
-              <div id="manual-extra-monthly-error" className="field-error">
-                {t("newBucket.safety_buffer_invalid")}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ padding: "20px var(--pad) 14px" }}>
@@ -845,7 +887,7 @@ function TemplateCatalogPicker({
   onSetGroup,
   catalogOverrides,
   onUpdateCatalogOverride,
-}: Step3Props) {
+}: StepCostsProps) {
   const { t } = useTranslation();
   const currencyCode = useCurrencyCode();
   if (catalogLoading) {
@@ -1104,7 +1146,140 @@ function CostRow({ cost, onUpdate, onRemove }: { cost: DraftCost; onUpdate: (p: 
   );
 }
 
-function Step4({
+function StepSafety({
+  presets,
+  safetyId,
+  onSelect,
+}: {
+  presets: SafetyPreset[];
+  safetyId: SafetyPresetId;
+  onSelect: (id: SafetyPresetId) => void;
+}) {
+  const { t } = useTranslation();
+  const fmt = useCurrency();
+  const copy: Record<SafetyPresetId, { label: string; desc: string }> = {
+    none: { label: t("newBucket.safety_none_label"), desc: t("newBucket.safety_none_desc") },
+    light: { label: t("newBucket.safety_light_label"), desc: t("newBucket.safety_light_desc") },
+    recommended: { label: t("newBucket.safety_recommended_label"), desc: t("newBucket.safety_recommended_desc") },
+    extra: { label: t("newBucket.safety_extra_label"), desc: t("newBucket.safety_extra_desc") },
+  };
+  return (
+    <div className="card card-pad">
+      <div className="card-title" style={{ marginBottom: 4 }}>
+        {t("newBucket.safety_step_title")}
+      </div>
+      <div className="card-sub" style={{ marginBottom: 18 }}>
+        {t("newBucket.safety_step_sub")}
+      </div>
+      <div className="safety-grid">
+        {presets.map((p) => (
+          <button key={p.id} className="safety-card" aria-pressed={safetyId === p.id} onClick={() => onSelect(p.id)}>
+            <div className="safety-card-label">{copy[p.id].label}</div>
+            <div className="safety-card-desc">{copy[p.id].desc}</div>
+            <div className="safety-card-amount">
+              +{fmt(p.amount, { decimals: 0 })}
+              {t("newBucket.per_mo")}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StepAskCheckin({ value, onYes, onNo }: { value: boolean | null; onYes: () => void; onNo: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="card card-pad">
+      <div className="card-title" style={{ marginBottom: 4 }}>
+        {t("newBucket.ask_checkin_title")}
+      </div>
+      <div className="card-sub" style={{ marginBottom: 18 }}>
+        {t("newBucket.ask_checkin_sub")}
+      </div>
+      <div className="yesno-row">
+        <button className="yesno-btn" aria-pressed={value === true} onClick={onYes}>
+          {t("newBucket.yes")}
+        </button>
+        <button className="yesno-btn" aria-pressed={value === false} onClick={onNo}>
+          {t("newBucket.no")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StepFirstCheckin({
+  expenses,
+  onAdd,
+  onRemove,
+  onUpdate,
+}: {
+  expenses: CheckinExpenseDraft[];
+  onAdd: () => void;
+  onRemove: (id: string) => void;
+  onUpdate: (id: string, patch: Partial<CheckinExpenseDraft>) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <div style={{ padding: "20px var(--pad) 14px" }}>
+        <div className="card-title">{t("newBucket.first_checkin_title")}</div>
+        <div className="card-sub">{t("newBucket.first_checkin_sub")}</div>
+      </div>
+
+      {expenses.length === 0 ? (
+        <div style={{ padding: "14px var(--pad) 18px", borderTop: "1px solid var(--line-soft)" }}>
+          <div className="muted" style={{ fontSize: 13 }}>
+            {t("newBucket.first_checkin_empty")}
+          </div>
+        </div>
+      ) : (
+        expenses.map((e) => (
+          <div
+            key={e.id}
+            className="cost-row"
+            style={{ gridTemplateColumns: "1fr 130px 32px", alignItems: "end" }}
+          >
+            <div className="field">
+              <label className="field-label" htmlFor={`checkin-expense-name-${e.id}`}>
+                {t("newBucket.first_checkin_name_label")}
+              </label>
+              <input
+                id={`checkin-expense-name-${e.id}`}
+                className="input"
+                placeholder={t("newBucket.first_checkin_name_ph")}
+                value={e.name}
+                onChange={(ev) => onUpdate(e.id, { name: ev.target.value })}
+              />
+            </div>
+            <div className="field">
+              <label className="field-label" htmlFor={`checkin-expense-amount-${e.id}`}>
+                {t("newBucket.first_checkin_amount_label")}
+              </label>
+              <input
+                id={`checkin-expense-amount-${e.id}`}
+                className="input mono"
+                type="number"
+                value={e.amount}
+                onChange={(ev) => onUpdate(e.id, { amount: Number(ev.target.value) })}
+              />
+            </div>
+            <button className="cost-row-x" aria-label={t("newBucket.remove")} onClick={() => onRemove(e.id)}>
+              ×
+            </button>
+          </div>
+        ))
+      )}
+
+      <div className="add-row" onClick={onAdd}>
+        <Icon name="plus" size={14} /> {t("newBucket.first_checkin_add")}
+      </div>
+    </div>
+  );
+}
+
+function StepReview({
   type,
   name,
   timeLines,
@@ -1113,6 +1288,11 @@ function Step4({
   estimateLoading,
   estimateError,
   onRetryEstimate,
+  displayedMonthlyTotal,
+  safetyId,
+  safetyAmount,
+  logFirstCheckin,
+  checkinExpensesCount,
 }: {
   type: TypeOption;
   name: string;
@@ -1122,6 +1302,11 @@ function Step4({
   estimateLoading: boolean;
   estimateError: string | null;
   onRetryEstimate: () => void;
+  displayedMonthlyTotal: number;
+  safetyId: SafetyPresetId;
+  safetyAmount: number;
+  logFirstCheckin: boolean | null;
+  checkinExpensesCount: number;
 }) {
   const { t } = useTranslation();
   const fmt = useCurrency();
@@ -1130,7 +1315,7 @@ function Step4({
       <div className="allocation-callout">
         <div>
           <div className="label">{t("newBucket.estimated_monthly")}</div>
-          <div className="num">{estimate ? fmt(estimate.monthly_total, { decimals: 0 }) : "—"}</div>
+          <div className="num">{estimate ? fmt(displayedMonthlyTotal, { decimals: 0 }) : "—"}</div>
           {estimate && (
             <div className="sub">
               {t("newBucket.est_sub", {
@@ -1210,6 +1395,31 @@ function Step4({
               </div>
             ))}
           </>
+        )}
+
+        <div className="review-row">
+          <div>{t("newBucket.review_safety_buffer_label")}</div>
+          <div className="review-row-amt">
+            {safetyId === "none" ? (
+              t("newBucket.review_safety_none")
+            ) : (
+              <>
+                +{fmt(safetyAmount, { decimals: 0 })}
+                <span className="muted" style={{ fontSize: 11.5, fontWeight: 400 }}>
+                  {t("newBucket.per_mo")}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {logFirstCheckin === true && checkinExpensesCount > 0 && (
+          <div className="review-row">
+            <div>{t("newBucket.review_first_checkin_label")}</div>
+            <div className="review-row-amt">
+              {t("newBucket.review_first_checkin_count", { count: checkinExpensesCount })}
+            </div>
+          </div>
         )}
       </div>
 

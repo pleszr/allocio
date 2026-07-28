@@ -5237,128 +5237,140 @@
           "functions": [
             {
               "name": "CatalogGroup",
-              "line_start": 945,
-              "line_end": 979,
+              "line_start": 987,
+              "line_end": 1021,
               "hash": "afaf5514e0286cb3"
             },
             {
               "name": "CatalogRow",
-              "line_start": 981,
-              "line_end": 993,
+              "line_start": 1023,
+              "line_end": 1035,
               "hash": "cb732551ac051385"
             },
             {
               "name": "CostRow",
-              "line_start": 1071,
-              "line_end": 1105,
+              "line_start": 1113,
+              "line_end": 1147,
               "hash": "945615c280622273"
             },
             {
               "name": "EditableCatalogRow",
-              "line_start": 999,
-              "line_end": 1069,
+              "line_start": 1041,
+              "line_end": 1111,
               "hash": "c00433b1dd41a392"
             },
             {
               "name": "NewBucketScreen",
-              "line_start": 128,
-              "line_end": 514,
-              "hash": "08833a077418bd38"
+              "line_start": 166,
+              "line_end": 609,
+              "hash": "2fb8a68592fe8391"
             },
             {
-              "name": "Step1",
-              "line_start": 625,
-              "line_end": 650,
-              "hash": "5c75c5c2931798c4"
+              "name": "StepAskCheckin",
+              "line_start": 1190,
+              "line_end": 1210,
+              "hash": "00d4940260a9484c"
             },
             {
-              "name": "Step2",
-              "line_start": 652,
-              "line_end": 742,
-              "hash": "6e8eb78483b73e9f"
+              "name": "StepCosts",
+              "line_start": 844,
+              "line_end": 877,
+              "hash": "ebdc34f213918d5a"
             },
             {
-              "name": "Step3",
-              "line_start": 764,
-              "line_end": 835,
-              "hash": "f4d5a76882712335"
+              "name": "StepDetails",
+              "line_start": 735,
+              "line_end": 825,
+              "hash": "bf49b737f3efd7b0"
             },
             {
-              "name": "Step4",
-              "line_start": 1107,
-              "line_end": 1246,
-              "hash": "b5b82753af6a20db"
+              "name": "StepFirstCheckin",
+              "line_start": 1212,
+              "line_end": 1280,
+              "hash": "58976a066b0f0732"
+            },
+            {
+              "name": "StepReview",
+              "line_start": 1282,
+              "line_end": 1456,
+              "hash": "0b62bd8397d40e63"
+            },
+            {
+              "name": "StepSafety",
+              "line_start": 1149,
+              "line_end": 1188,
+              "hash": "4b1598dad41c6241"
+            },
+            {
+              "name": "StepType",
+              "line_start": 708,
+              "line_end": 733,
+              "hash": "8252b8ee27a4d782"
             },
             {
               "name": "TemplateCatalogPicker",
-              "line_start": 837,
-              "line_end": 943,
-              "hash": "945450f9a7736124"
+              "line_start": 879,
+              "line_end": 985,
+              "hash": "b8830907d2c05e0b"
             },
             {
-              "name": "WizardSteps",
-              "line_start": 605,
-              "line_end": 623,
-              "hash": "6f243b2ca17d5fd9"
+              "name": "WizardProgress",
+              "line_start": 699,
+              "line_end": 706,
+              "hash": "4fc9e9d1241fde84"
             },
             {
               "name": "allCatalogKeys",
-              "line_start": 77,
-              "line_end": 83,
+              "line_start": 121,
+              "line_end": 127,
               "hash": "4fb39deab4f58f38"
             },
             {
               "name": "buildCreateRequest",
-              "line_start": 555,
-              "line_end": 595,
-              "hash": "6c448a32a5d73983"
+              "line_start": 648,
+              "line_end": 686,
+              "hash": "2537c9858898084d"
             },
             {
               "name": "buildEstimateRequest",
-              "line_start": 516,
-              "line_end": 553,
-              "hash": "b03d70e2ae091652"
+              "line_start": 611,
+              "line_end": 646,
+              "hash": "d5013704fe0c8b0f"
             },
             {
               "name": "catalogSupportsCurrency",
-              "line_start": 113,
-              "line_end": 120,
+              "line_start": 151,
+              "line_end": 158,
               "hash": "f69ede9eb502140a"
             },
             {
               "name": "draft",
-              "line_start": 73,
-              "line_end": 75,
+              "line_start": 117,
+              "line_end": 119,
               "hash": "deedf4693bb5e619"
             },
             {
               "name": "intervalLabel",
-              "line_start": 86,
-              "line_end": 91,
+              "line_start": 130,
+              "line_end": 135,
               "hash": "80a0ea50adb5981d"
             },
             {
               "name": "isValidManufactureYear",
-              "line_start": 597,
-              "line_end": 603,
+              "line_start": 688,
+              "line_end": 694,
               "hash": "a31d76fbf2322a47"
             },
             {
               "name": "maintenanceDetail",
-              "line_start": 94,
-              "line_end": 99,
+              "line_start": 138,
+              "line_end": 143,
               "hash": "2418ff75e0e35d9b"
             },
             {
-              "name": "parseManualExtra",
-              "line_start": 107,
-              "line_end": 111,
-              "hash": "68ddd14bef6aa348"
-            },
-            {
               "name": "templateLabel",
-              "line_start": 103,
-              "line_end": 105,
+              "line_start": 147,
+              "line_end": 149,
               "hash": "b8b64c87d16c7f20"
             }
           ],
@@ -5366,79 +5378,100 @@
           "components": [
             {
               "name": "CatalogGroup",
-              "line_start": 945,
-              "line_end": 979,
+              "line_start": 987,
+              "line_end": 1021,
               "hash": "afaf5514e0286cb3",
               "kind": "function"
             },
             {
               "name": "CatalogRow",
-              "line_start": 981,
-              "line_end": 993,
+              "line_start": 1023,
+              "line_end": 1035,
               "hash": "cb732551ac051385",
               "kind": "function"
             },
             {
               "name": "CostRow",
-              "line_start": 1071,
-              "line_end": 1105,
+              "line_start": 1113,
+              "line_end": 1147,
               "hash": "945615c280622273",
               "kind": "function"
             },
             {
               "name": "EditableCatalogRow",
-              "line_start": 999,
-              "line_end": 1069,
+              "line_start": 1041,
+              "line_end": 1111,
               "hash": "c00433b1dd41a392",
               "kind": "function"
             },
             {
               "name": "NewBucketScreen",
-              "line_start": 128,
-              "line_end": 514,
-              "hash": "08833a077418bd38",
+              "line_start": 166,
+              "line_end": 609,
+              "hash": "2fb8a68592fe8391",
               "kind": "function"
             },
             {
-              "name": "Step1",
-              "line_start": 625,
-              "line_end": 650,
-              "hash": "5c75c5c2931798c4",
+              "name": "StepAskCheckin",
+              "line_start": 1190,
+              "line_end": 1210,
+              "hash": "00d4940260a9484c",
               "kind": "function"
             },
             {
-              "name": "Step2",
-              "line_start": 652,
-              "line_end": 742,
-              "hash": "6e8eb78483b73e9f",
+              "name": "StepCosts",
+              "line_start": 844,
+              "line_end": 877,
+              "hash": "ebdc34f213918d5a",
               "kind": "function"
             },
             {
-              "name": "Step3",
-              "line_start": 764,
-              "line_end": 835,
-              "hash": "f4d5a76882712335",
+              "name": "StepDetails",
+              "line_start": 735,
+              "line_end": 825,
+              "hash": "bf49b737f3efd7b0",
               "kind": "function"
             },
             {
-              "name": "Step4",
-              "line_start": 1107,
-              "line_end": 1246,
-              "hash": "b5b82753af6a20db",
+              "name": "StepFirstCheckin",
+              "line_start": 1212,
+              "line_end": 1280,
+              "hash": "58976a066b0f0732",
+              "kind": "function"
+            },
+            {
+              "name": "StepReview",
+              "line_start": 1282,
+              "line_end": 1456,
+              "hash": "0b62bd8397d40e63",
+              "kind": "function"
+            },
+            {
+              "name": "StepSafety",
+              "line_start": 1149,
+              "line_end": 1188,
+              "hash": "4b1598dad41c6241",
+              "kind": "function"
+            },
+            {
+              "name": "StepType",
+              "line_start": 708,
+              "line_end": 733,
+              "hash": "8252b8ee27a4d782",
               "kind": "function"
             },
             {
               "name": "TemplateCatalogPicker",
-              "line_start": 837,
-              "line_end": 943,
-              "hash": "945450f9a7736124",
+              "line_start": 879,
+              "line_end": 985,
+              "hash": "b8830907d2c05e0b",
               "kind": "function"
             },
             {
-              "name": "WizardSteps",
-              "line_start": 605,
-              "line_end": 623,
-              "hash": "6f243b2ca17d5fd9",
+              "name": "WizardProgress",
+              "line_start": 699,
+              "line_end": 706,
+              "hash": "4fc9e9d1241fde84",
               "kind": "function"
             }
           ]

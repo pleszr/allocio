@@ -17,19 +17,76 @@ left over after its own lines are exhausted (including periods with no modeled/o
 all) gets a synthetic 'other' expense for the remainder, so every AJ value is always fully
 accounted for.
 
-The September 2025 period deliberately omits the sheet's post-purchase catch-up service visit
-(front/rear brake work, annual service, transmission fluid, fuel filter, water pump, timing
-system, plus an uncategorized 'egyéb' amount -- see the sheet's own 'summa kiadás' for that row,
-1,140,002 Ft) and its AJ is left `None` rather than the sheet's 955118.20, since that whole amount
-was the catch-up bill. Allocio's accrual model is about smoothing *future* expected costs, not a
-one-time backlog a used car came with; leaving it in would permanently skew the average-cost and
-allocation signals derived from posted history. `apply_maintenance_baselines` instead seeds each
-affected maintenance item's `last_serviced_at_date`/`last_serviced_at_odometer` directly (bypassing
-the normal check-in-linked-expense reset), using the sheet's own parallel 'csere/cserélendő
-km/hónap' forecast table as the source of truth, so future due-dates still forecast correctly from
-the real service point even though no expense event represents the cost. `front_brake_disc` is the
-one exception the sheet's forecast table doesn't cover -- Roland confirmed it was actually replaced
-in 2024 at 120,000 km (exact day unknown, so dated to 2024-01-01).
+Every one of the 14 periods, including September 2025's post-purchase catch-up service visit
+(front brake disc, front/rear brake pads, annual service, transmission fluid, fuel filter, water
+pump, timing system, plus an uncategorized 'egyéb' amount -- read straight from the sheet's own
+H9:U9 row, 1,140,002 Ft total, 1,055,118.20 Ft of it paid out of pocket per the AJ9 formula), is now
+posted as a real expense. This overrides an earlier version of this script that deliberately left
+September unposted (see PRs #100/#106) on the reasoning that a one-time post-purchase backlog
+shouldn't skew Allocio's future-cost accrual signals; Roland's explicit direction now is to treat
+his own spreadsheet's real cash ledger as the source of truth for every check-in's expenses and
+paid-out-of-pocket total, so `_verify_expenses`/`_verify_paid_out_of_pocket` below assert an exact
+match against the sheet's 'summa kiadás' (AH) and 'Kifizettük zsebből' (AJ) columns for every
+period where the app's own bucket genuinely has that much money in it (13 of the 14 -- see the July
+2026 period below for the one documented, reconciled exception).
+
+The sheet's September AJ9 figure was originally 955,118.20 -- Roland later found and fixed a bug in
+its own `AK` running-bucket-balance formula (`=SUM(AE:AF)-SUM(...)-AJ+AI`): every row's `AK` summed
+`J:U`, which skips `H`/`I` (the front/rear brake-disc columns), so the front-brake-disc replacement
+was counted in the total expense (`AH`) but silently excluded from the sheet's own running
+bucket-balance tracker (`AN`). September was the only one of the 14 real rows with a nonzero `H`
+value, so it was the only row the bug actually affected. Fixing the formula to `SUM(H:U)` moved
+AJ9 to -1,055,118.20 (a clean +100,000 correction), which now sits only ~1,000 Ft above the app's
+own honestly-reconstructed bucket floor for that period -- within the day-count residual below,
+not a new gap.
+
+Reinstating September also makes the old `apply_maintenance_baselines` seeding step (previously
+needed to backfill affected maintenance items' service baselines without a posting expense to
+trigger the normal reset) fully redundant: every item that step used to seed by hand -- including
+`front_brake_disc`, previously assumed to predate this sheet's tracked history -- turns out to have
+its own real cost on the September row (H9 = 100,000 Ft), so the normal check-in-linked-expense
+reset (`CheckInService._reset_maintenance_baselines`) now derives every one of those baselines from
+a real posted expense instead. That whole seeding step has been removed.
+
+Reconciling the sheet's 'summa utalás' (AG = 'utalandó éves ktg' AE + 'utalandó 10 ft/km' AF, i.e.
+the sheet's own recommended-transfer-this-period figure) against the app's own computed allocation
+total was investigated and found NOT achievable through `COST_OVERRIDES` tuning: it's a structural
+mismatch between the sheet's Excel formulas and this app's accrual engine
+(`app/domain/calculator.py`), not a wrong cost-line amount or interval, so it is deliberately left
+unreconciled here (per Roland: out of scope for this script). The usage-based leg (AF) always
+matches exactly -- both sides compute `usage_amount * amount_per_unit` identically. The time-based
+leg (AE) does not, for two independent, structural reasons:
+
+- Day-count convention: AE's formula is `YEARFRAC(period_end, period_start)` with Excel's default
+  basis 0 (US 30/360), which for two first-of-month dates always evaluates to exactly `1/12`
+  regardless of whether the real month has 28, 30, or 31 days. `time_based_period_accrual`
+  (`calculator.py`) instead spreads the annualized amount over *actual* elapsed calendar days via
+  `annualized/365 * elapsed_days`. No single `COST_OVERRIDES` amount can satisfy both a
+  day-count-independent target and a days-proportional formula across periods of different
+  lengths at once -- it's mathematically over-determined, not a tuning gap.
+- Rollover timing: the sheet applies a new real-world price (the Feb 2026 motorway vignette bump,
+  the May 2026 tire/tax bump, the Jul 2026 insurance bump) to the *same* row/period it changes in.
+  `reference_amount()` (`calculator.py`) only applies a newly-logged modeled expense starting the
+  *next* period whose `period_start` is on/after that expense's `event_date` -- by design
+  (`docs/vehicle-rules.md`, "Time-Based Accrual") -- because `check_in_service._compute` only ever
+  sees *already-posted* expenses, never the ones submitted with the same check-in being computed.
+
+Measured deltas (app's computed time-based accrual minus the sheet's AE, HUF, at the
+`COST_OVERRIDES` below, which already match the sheet's real June 2025 starting prices exactly):
+Jul25 -76.71, Aug25 +536.94, Sep25 +536.94, Oct25 -383.52, Nov25 +536.94, Dec25 -383.52,
+Jan26 +536.94, Feb26 -177.23, Mar26 -2,281.19, Apr26 +550.64, May26 -3,119.98, Jun26 +602.93,
+Jul26 -7,148.67. Fixing this would mean changing the core accrual formula in
+`app/domain/calculator.py`/`check_in_calc.py`, which affects every vehicle asset in the app, not
+just this one, and is a deliberate, documented product decision, not a bug in this import -- so
+this script reports the finding here rather than gating on it.
+
+Because the bucket balance carries forward from one period to the next, these per-period deltas
+accumulate: by July 2026 (the last of the 14 periods) the app's bucket has ~10,269 Ft less in it
+than the sheet's own running balance (`AN`) would imply, plus a further ~55 Ft from
+`manual_extra_monthly` being day-prorated in the app but applied as a flat monthly add-on in the
+sheet's `AI` column. That is the entire cause of the one paid-out-of-pocket mismatch this script
+still reports (see the comment on the July 2026 `Period` below) -- verified cell-for-cell against
+the sheet, not assumed.
 
 Not part of the layered `app/` architecture and not wired into the code map; a personal, run-once
 data migration kept for reference/re-run rather than a reusable import feature.
@@ -45,7 +102,6 @@ from app.domain.user import User
 from app.domain.vehicle_defaults import vehicle_catalog_keys
 from app.services.asset_service import AssetService, CostOverride, VehicleDetails
 from app.services.check_in_service import CheckInService, ExpenseDraft
-from app.services.cost_service import CostService
 
 OWNER_EMAIL = "plesz.roland@gmail.com"
 ASSET_NAME = "Focus Kombi"
@@ -68,34 +124,17 @@ COST_OVERRIDES = [
 
 SourceMap = dict[str, tuple[str, uuid.UUID]]
 
-# (technical_key, last_serviced_at_date, last_serviced_at_odometer) for maintenance items whose real
-# service baseline predates or coincides with the September catch-up visit that this import
-# deliberately does not post as an expense (see the module docstring). The Sept 2025 values come
-# straight from the sheet's own 'csere (km/hónap)' forecast table (last-serviced 2025-09-01,
-# odometer 176829 == that period's usage_end); front_brake_disc isn't in that table at all -- Roland
-# confirmed it separately as a 2024 replacement at 120,000 km, done before this sheet started
-# tracking it, dated to 2024-01-01 since the exact day isn't known.
-MAINTENANCE_BASELINE_RESETS = [
-    ("front_brake_pad", date(2025, 9, 1), 176829),
-    ("rear_brake_pad", date(2025, 9, 1), 176829),
-    ("annual_service", date(2025, 9, 1), 176829),
-    ("automatic_transmission_fluid", date(2025, 9, 1), 176829),
-    ("fuel_filter", date(2025, 9, 1), 176829),
-    ("water_pump", date(2025, 9, 1), 176829),
-    ("timing_system", date(2025, 9, 1), 176829),
-    ("front_brake_disc", date(2024, 1, 1), 120000),
-]
-
 
 @dataclass(frozen=True)
 class Period:
-    """One monthly check-in period from the sheet, including its AI/AJ columns for that row."""
+    """One monthly check-in period from the sheet, including its AH/AI/AJ columns for that row."""
 
     period_end: date
     usage_end: int
     tire: str | None
     expenses: list[ExpenseDraft]
     manual_extra_monthly: Decimal
+    expected_expense_total: Decimal
     expected_paid_out_of_pocket: Decimal | None
 
 
@@ -129,7 +168,7 @@ def other(amount: str, comment: str, event_date: date, usage_km: int) -> Expense
 
 
 def build_periods(source_map: SourceMap) -> list[Period]:
-    """Return the sheet's 14 real monthly check-in periods, columns B/C/D/AI/AJ mapped per row."""
+    """Return the sheet's 14 real monthly check-in periods, columns B/C/D/AH/AI/AJ mapped per row."""
     zero = Decimal(0)
     return [
         Period(
@@ -148,23 +187,44 @@ def build_periods(source_map: SourceMap) -> list[Period]:
             ],
             zero,
             Decimal("531719"),
+            Decimal("531719"),
         ),
-        Period(date(2025, 7, 1), 174900, None, [], zero, None),
-        Period(date(2025, 8, 1), 176200, None, [], zero, None),
-        # September's post-purchase catch-up service visit (brakes, annual service, transmission
-        # fluid, fuel filter, water pump, timing system, plus an uncategorized 'egyéb' amount --
-        # 1,140,002 Ft total, AJ 955118.20) is intentionally not posted as an expense here; see the
-        # module docstring. `apply_maintenance_baselines` seeds the affected items' service
-        # baselines directly instead.
-        Period(date(2025, 9, 1), 176829, None, [], zero, None),
-        Period(date(2025, 10, 1), 178132, None, [], zero, None),
-        Period(date(2025, 11, 1), 178551, None, [], zero, None),
+        Period(date(2025, 7, 1), 174900, None, [], zero, Decimal("0"), None),
+        Period(date(2025, 8, 1), 176200, None, [], zero, Decimal("0"), None),
+        Period(
+            date(2025, 9, 1),
+            176829,
+            None,
+            [
+                # Post-purchase catch-up service visit; every line here is read straight from the
+                # sheet's own H9:U9 row (front brake disc through 'egyéb'), summing to AH9's
+                # 1,140,002 Ft exactly. `rear_brake_disc` (I9) is blank in the sheet -- no cost, no
+                # line posted for it.
+                modeled("front_brake_disc", "100000", source_map, date(2025, 9, 1), 176829),
+                modeled("front_brake_pad", "50000", source_map, date(2025, 9, 1), 176829),
+                modeled("rear_brake_pad", "1", source_map, date(2025, 9, 1), 176829),
+                modeled("annual_service", "60000", source_map, date(2025, 9, 1), 176829),
+                modeled("automatic_transmission_fluid", "140000", source_map, date(2025, 9, 1), 176829),
+                modeled("fuel_filter", "40000", source_map, date(2025, 9, 1), 176829),
+                modeled("water_pump", "1", source_map, date(2025, 9, 1), 176829),
+                modeled("timing_system", "250000", source_map, date(2025, 9, 1), 176829),
+                other(
+                    "500000", "Imported from spreadsheet: uncategorized 'egyéb' cost, Sep 2025", date(2025, 9, 1), 176829
+                ),
+            ],
+            zero,
+            Decimal("1140002"),
+            Decimal("1055118.20"),
+        ),
+        Period(date(2025, 10, 1), 178132, None, [], zero, Decimal("0"), None),
+        Period(date(2025, 11, 1), 178551, None, [], zero, Decimal("0"), None),
         Period(
             date(2025, 12, 1),
             179254,
             "winter",
             [modeled("winter_tires", "248000", source_map, date(2025, 12, 1), 179254)],
             zero,
+            Decimal("248000"),
             Decimal("139758"),
         ),
         Period(
@@ -173,6 +233,7 @@ def build_periods(source_map: SourceMap) -> list[Period]:
             None,
             [modeled("battery", "62900", source_map, date(2026, 1, 1), 180300)],
             Decimal("15000"),
+            Decimal("62900"),
             Decimal("62900"),
         ),
         Period(
@@ -184,10 +245,11 @@ def build_periods(source_map: SourceMap) -> list[Period]:
                 modeled("motorway_vignette", "36570", source_map, date(2026, 2, 1), 181085),
             ],
             Decimal("15000"),
+            Decimal("70570"),
             None,
         ),
-        Period(date(2026, 3, 1), 181700, None, [], Decimal("10000"), None),
-        Period(date(2026, 4, 1), 182686, None, [], Decimal("15000"), None),
+        Period(date(2026, 3, 1), 181700, None, [], Decimal("10000"), Decimal("0"), None),
+        Period(date(2026, 4, 1), 182686, None, [], Decimal("15000"), Decimal("0"), None),
         Period(
             date(2026, 5, 1),
             183725,
@@ -197,9 +259,22 @@ def build_periods(source_map: SourceMap) -> list[Period]:
                 modeled("vehicle_tax", "38290", source_map, date(2026, 5, 1), 183725),
             ],
             Decimal("15000"),
+            Decimal("55290"),
             None,
         ),
-        Period(date(2026, 6, 1), 184640, None, [], Decimal("15000"), None),
+        Period(date(2026, 6, 1), 184640, None, [], Decimal("15000"), Decimal("0"), None),
+        # This period's paid_out_of_pocket target (74979.33) is the one known, reconciled exception
+        # to an exact match: verified cell-for-cell against the sheet (AN18=190,008.50 running
+        # balance + AG19=48,276.17 this-period accrual + AI19=15,000 extra safety -> AH19(328,264) -
+        # that = 74,979.33, matching AJ19 to the cent, so the sheet's own figure is internally
+        # consistent, not a bug). The app's own bucket at this point has only 242,960.37 available
+        # (10,324.30 Ft less), which is the cumulative sum of the per-period day-count/rollover
+        # accrual deltas documented in the module docstring across all 13 prior periods (~10,269 Ft),
+        # plus a small extra effect from `manual_extra_monthly` being day-prorated here
+        # (`_manual_extra_line`) versus applied as a flat, unprorated monthly add-on in the sheet's
+        # `AI` column. `resolve_paid_out_of_pocket` can only raise paid_out_of_pocket above this
+        # bucket-shortfall floor, never lower it, so the override below cannot close this gap;
+        # `_verify_paid_out_of_pocket` reports it as a FAIL rather than a forced match.
         Period(
             date(2026, 7, 1),
             185652,
@@ -209,6 +284,7 @@ def build_periods(source_map: SourceMap) -> list[Period]:
                 modeled("comprehensive_insurance", "216243", source_map, date(2026, 7, 1), 185652),
             ],
             Decimal("15000"),
+            Decimal("328264"),
             Decimal("74979.33"),
         ),
     ]
@@ -259,29 +335,6 @@ def build_source_map(created) -> SourceMap:  # noqa: ANN001 - CreatedAsset from 
     return source_map
 
 
-def apply_maintenance_baselines(
-    cost_service: CostService, owner_id: uuid.UUID, asset_id: uuid.UUID, source_map: SourceMap
-) -> None:
-    """Seed each item in `MAINTENANCE_BASELINE_RESETS` with its real last-serviced date/odometer.
-
-    Bypasses the normal check-in-linked-expense reset (no expense is posted for these) so future
-    due-dates still forecast from the real service point even though the catch-up cost itself is
-    intentionally excluded from the expense ledger.
-    """
-    for technical_key, last_serviced_at_date, last_serviced_at_odometer in MAINTENANCE_BASELINE_RESETS:
-        _source_type, item_id = source_map[technical_key]
-        cost_service.update_maintenance_item(
-            user_id=owner_id,
-            asset_id=asset_id,
-            item_id=item_id,
-            changes={
-                "last_serviced_at_date": last_serviced_at_date,
-                "last_serviced_at_odometer": last_serviced_at_odometer,
-            },
-        )
-        print(f"  Seeded {technical_key} baseline: {last_serviced_at_date} @ {last_serviced_at_odometer} km")
-
-
 def main() -> None:
     """Create the backdated vehicle asset, then replay its 14 real monthly check-ins in order."""
     session = SessionLocal()
@@ -307,11 +360,9 @@ def main() -> None:
         print(f"Backdated created_at to {ACQUISITION_DATE.isoformat()}")
 
         source_map = build_source_map(created)
-        cost_service = CostService(session)
-        apply_maintenance_baselines(cost_service, owner.id, asset_id, source_map)
-
         check_in_service = CheckInService(session)
 
+        results: list[tuple[str, bool, bool]] = []
         for period in build_periods(source_map):
             period = apply_pocket_overrides(period)
             asset_service.update_manual_extra_monthly(owner.id, asset_id, period.manual_extra_monthly)
@@ -329,9 +380,12 @@ def main() -> None:
                 f"(usage_end={period.usage_end}, manual_extra={period.manual_extra_monthly}, "
                 f"{len(allocations)} allocations, {len(expense_events)} expenses)"
             )
-            _verify_paid_out_of_pocket(period, expense_events)
+            expenses_ok = _verify_expenses(period, expense_events)
+            pocket_ok = _verify_paid_out_of_pocket(period, expense_events)
+            results.append((period.period_end.isoformat(), expenses_ok, pocket_ok))
 
         print(f"\nDone. Asset id: {asset_id}")
+        _print_summary(results)
     except Exception:
         session.rollback()
         raise
@@ -339,23 +393,51 @@ def main() -> None:
         session.close()
 
 
-def _verify_paid_out_of_pocket(period: Period, expense_events) -> None:  # noqa: ANN001 - list[ExpenseEvent], kept loose
+def _verify_expenses(period: Period, expense_events) -> bool:  # noqa: ANN001 - list[ExpenseEvent], kept loose
+    """Confirm the posted expense total for this period matches the sheet's AH ('summa kiadás') value."""
+    actual = sum((event.amount for event in expense_events), Decimal(0))
+    if actual == period.expected_expense_total:
+        print(f"  expenses OK: {actual} matches sheet AH")
+        return True
+    print(
+        f"  WARNING: expenses mismatch for {period.period_end.isoformat()}: "
+        f"app posted {actual}, sheet AH was {period.expected_expense_total}"
+    )
+    return False
+
+
+def _verify_paid_out_of_pocket(period: Period, expense_events) -> bool:  # noqa: ANN001 - list[ExpenseEvent], kept loose
     """Confirm the posted paid_out_of_pocket total for this period matches the sheet's AJ value.
 
     `apply_pocket_overrides` distributes AJ across the period's expense lines (via
     `paid_out_of_pocket_override`, issue #95) before posting, so this should always match; a mismatch
-    means the distribution or a modeled amount is wrong, not that the app can't represent it.
+    means the distribution or a modeled amount is wrong, not that the app can't represent it. A period
+    where the sheet itself leaves AJ blank has no target to check against -- the natural
+    bucket-shortfall split stands uncontested, so it counts as a pass.
     """
     if period.expected_paid_out_of_pocket is None:
-        return
+        print("  paid_out_of_pocket: no sheet AJ target for this period (natural split stands)")
+        return True
     actual = sum((event.paid_out_of_pocket for event in expense_events), Decimal(0))
     if actual == period.expected_paid_out_of_pocket:
         print(f"  paid_out_of_pocket OK: {actual} matches sheet AJ")
+        return True
+    print(
+        f"  WARNING: paid_out_of_pocket mismatch for {period.period_end.isoformat()}: "
+        f"app computed {actual}, sheet AJ was {period.expected_paid_out_of_pocket}"
+    )
+    return False
+
+
+def _print_summary(results: list[tuple[str, bool, bool]]) -> None:
+    """Print a compact PASS/FAIL table for every period's expenses/paid-out-of-pocket reconciliation."""
+    print("\nperiod_end   expenses  paid_out_of_pocket")
+    for period_end, expenses_ok, pocket_ok in results:
+        print(f"{period_end}   {'PASS' if expenses_ok else 'FAIL':8}  {'PASS' if pocket_ok else 'FAIL'}")
+    if all(expenses_ok and pocket_ok for _, expenses_ok, pocket_ok in results):
+        print("\nAll periods PASS on expenses and paid-out-of-pocket.")
     else:
-        print(
-            f"  WARNING: paid_out_of_pocket mismatch for {period.period_end.isoformat()}: "
-            f"app computed {actual}, sheet AJ was {period.expected_paid_out_of_pocket}"
-        )
+        print("\nSome periods FAILED -- see WARNING lines above.")
 
 
 if __name__ == "__main__":

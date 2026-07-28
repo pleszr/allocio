@@ -21,10 +21,12 @@ async function createVehicleBucket(page: import("@playwright/test").Page, name: 
 
   await page.getByTestId("bucket-name-input").fill(name);
   await page.getByLabel("Current odometer").fill("120000");
-  await page.getByRole("button", { name: /Continue/ }).click();
-  // Step 3 — cost picker defaults to every catalog row selected, so the vehicle gets tire and
+  await page.getByRole("button", { name: /Continue/ }).click(); // details -> costs
+  // Costs step — cost picker defaults to every catalog row selected, so the vehicle gets tire and
   // non-tire maintenance items without any extra clicks.
-  await page.getByRole("button", { name: /Continue/ }).click();
+  await page.getByRole("button", { name: /Continue/ }).click(); // costs -> safety
+  await page.getByRole("button", { name: /Continue/ }).click(); // safety -> ask-checkin
+  await page.getByRole("button", { name: "No", exact: true }).click(); // ask-checkin -> review
 
   const created = page.waitForResponse((r) => r.url().endsWith("/api/assets") && r.request().method() === "POST");
   await page.getByRole("button", { name: /Create bucket/ }).click();
