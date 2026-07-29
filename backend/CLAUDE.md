@@ -23,6 +23,8 @@ uv run uvicorn app.main:app --reload
 uv run pytest
 ```
 
+- The full backend pytest suite runs in CI on every push and PR (`.github/workflows/backend-tests.yml`), against a real Postgres service container. Frontend Playwright e2e (`frontend/e2e/`) does not run in CI.
+
 ### Workflow smoke test
 
 - `tests/test_workflow_e2e.py` replays the browser's full create-bucket -> add-cost -> check-in request sequence in-process (via `TestClient`, against real Postgres using the transactional-rollback fixture in `conftest.py`). It guards the frontend/backend contract that isolated per-endpoint tests miss.
