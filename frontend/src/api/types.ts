@@ -351,7 +351,7 @@ export interface TemplateCostOverride {
 export interface CreateAssetRequest {
   name: string;
   type?: string | null;
-  template?: "vehicle" | "house" | null;
+  template?: "vehicle" | "house" | "pet" | null;
   vehicle?: VehicleDetailsInput | null;
   selected_cost_keys?: string[] | null;
   cost_overrides?: TemplateCostOverride[] | null;

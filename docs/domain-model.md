@@ -1,7 +1,7 @@
 # Allocio Domain Model
 
 Status: Draft v1
-Last updated: 2026-07-26
+Last updated: 2026-07-28
 
 ## Purpose
 
@@ -20,8 +20,8 @@ This document is intentionally product-oriented. It is not yet the SQL schema.
 ## MVP Scope
 
 - `asset.type` is type-agnostic: any asset (e.g. a house, an appliance) can be tracked
-- `vehicle` and `house` are built-in creation templates, not hardcoded first-class types
-- the Vehicle template prefills a vehicle profile and default cost rows; House prefills only default cost rows and a manual safety buffer
+- `vehicle`, `house`, and `pet` are built-in creation templates, not hardcoded first-class types
+- the Vehicle template prefills a vehicle profile and default cost rows; House and Pet prefill only default cost rows and a template-specific manual safety-buffer fallback
 - a bare asset gets only a bucket; it has no profile and no default rows until the user adds them
 - the model should stay extensible for future built-in templates
 - the bucket is virtual
@@ -127,7 +127,7 @@ Fields:
 Rules:
 
 - `type` is the product term, not `kind`
-- `type` is free-form; `vehicle` is the type set by the built-in vehicle template, not the only allowed value
+- `type` is free-form; `vehicle`, `house`, and `pet` are types supplied by built-in creation templates, not the only allowed values
 - `name` is the sole asset and bucket-facing identifier
 - one asset has one bucket in MVP
 - `manual_extra_monthly` defaults to `0` and is user-adjustable; it is added to the recommended
@@ -429,7 +429,7 @@ Clients format and label that result but do not recalculate the window or amount
 
 ## Built-In Templates
 
-Vehicle and House are built-in templates. More may be added later, each as its own registry entry
+Vehicle, House, and Pet are built-in templates. More may be added later, each as its own registry entry
 with its own catalog and editable per-currency monthly safety-buffer default. A catalog groups
 pickable creation defaults across:
 
@@ -441,8 +441,8 @@ Creation rule:
 
 - the template's full catalog is readable up front so a client can build a selection UI
 - selecting a template clones only the caller-selected catalog rows (by `technical_key`) into asset-owned rows; selecting none clones no rows (there is no implicit clone-all)
-- every template creates the asset and bucket; only Vehicle creates a vehicle profile
-- House creates no profile, usage-based defaults, or maintenance defaults
+- every template creates the asset and bucket; only Vehicle creates a vehicle profile and enables usage-counter behavior
+- House and Pet create no profile, usage-based defaults, or maintenance defaults
 - after creation, the asset owns those rows
 - the user may deactivate or remove them
 - the user may add custom rows
@@ -454,16 +454,15 @@ Creation rule:
   `templates.<templateKey>.<technical_key>.label`, falling back to the backend label when no
   translation exists for the active language
 
-The defaults are code-backed seed definitions today (`app/domain/vehicle_defaults.py` and
-`app/domain/house_defaults.py`), selected through the template registry
+The defaults are code-backed seed definitions today (`app/domain/vehicle_defaults.py`,
+`app/domain/house_defaults.py`, and `app/domain/pet_defaults.py`), selected through the template registry
 (`app/domain/asset_templates.py`). That implementation choice is separate from the domain model.
 
 The creation review uses a non-persisting backend allocation estimate. It resolves selected
 template rows and overrides from these same definitions, combines them with unsaved custom
 time-based rows, and returns canonical per-row and aggregate daily/monthly/yearly values. Usage
 and maintenance selections do not contribute to that steady estimate without usage input. Calling
-the estimate creates no asset, cost, check-in, allocation, or expense records. Pet remains the
-template-less creation example.
+the estimate creates no asset, cost, check-in, allocation, or expense records.
 
 ## Default Time-Based Cost Templates For Houses
 
@@ -490,6 +489,30 @@ are created atomically.
 House adds no profile, usage-based rows, or maintenance rows. Template defaults are copied only at
 creation, so existing House assets are never retroactively seeded or changed when code-backed
 defaults evolve.
+
+## Default Time-Based Cost Templates For Pets
+
+Pet supplies these two annual time-based defaults in catalog order:
+
+| Technical key | Persisted English label | HUF | EUR | USD | Interval |
+| --- | --- | ---: | ---: | ---: | --- |
+| `pet_insurance` | Pet insurance | 30,000 | 75 | 83 | 12 months |
+| `annual_vaccinations` | Annual vaccinations | 20,000 | 50 | 56 | 12 months |
+
+The HUF figures are authoritative user-supplied defaults. The editable EUR and USD placeholders
+were curated once using the repository convention of approximately `400 HUF/EUR` and `360 HUF/USD`,
+rounded to whole units. Estimate and creation select the owner's stored currency amount directly;
+they do not calculate FX or call an exchange-rate service.
+
+Pet's template-specific monthly safety-buffer fallback is zero in HUF, EUR, and USD. With both HUF
+rows selected and no explicit buffer, its recurring baseline is `50,000 HUF/year`,
+`4,166.67 HUF/month`, and `136.99 HUF/day`. The asset, bucket, selected Pet rows, and resolved
+zero buffer are created atomically.
+
+Pet is a creation template, not a hardcoded first-class type or profile capability. It adds no
+profile, usage-based rows, maintenance rows, vaccination schedule, or reminders. Only the
+Vehicle template creates the profile that enables usage-counter behavior. Template defaults are
+copied only at creation, so existing Pet assets are never retroactively seeded or changed.
 
 ## Default Time-Based Cost Templates For Vehicles
 
@@ -569,7 +592,7 @@ This allows check-ins to update the correct tire-specific maintenance progress.
 - no fuel purchase tracking
 - no real-money account integration
 - no support for miles in MVP
-- template-less assets such as Pet remain creatable with a free-form type and no seeded rows
+- bare assets remain creatable with a free-form type and no seeded rows
 - no retroactive mutation of posted history through normal editing flows
 
 ## Deferred Concepts From The Workbook

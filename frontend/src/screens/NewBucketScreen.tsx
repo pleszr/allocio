@@ -39,7 +39,7 @@ interface TypeOption {
   templateKey?: TemplateKey;
 }
 
-type TemplateKey = "vehicle" | "house";
+type TemplateKey = "vehicle" | "house" | "pet";
 
 // One review line for the review step / the running estimate. `monthly` is null for usage-based
 // (variable) rows, which are excluded from the steady monthly figure.
@@ -73,6 +73,14 @@ const TYPES: TypeOption[] = [
     bg: "#F8E5E2",
     assetType: "house",
     templateKey: "house",
+  },
+  {
+    kind: "pet",
+    nameKey: "newBucket.type_pet_name",
+    descKey: "newBucket.type_pet_desc",
+    bg: "#F8EBD8",
+    assetType: "pet",
+    templateKey: "pet",
   },
 ];
 
@@ -771,7 +779,13 @@ function StepDetails({
             id="bucket-name"
             className="input"
             data-testid="bucket-name-input"
-            placeholder={type.kind === "car" ? "Honda Civic" : "Cedar St."}
+            placeholder={
+              type.kind === "car"
+                ? "Honda Civic"
+                : type.kind === "pet"
+                  ? t("newBucket.type_pet_name_placeholder")
+                  : "Cedar St."
+            }
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoFocus
