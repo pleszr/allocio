@@ -1,7 +1,7 @@
 name: backend-tests
 on:
-  push:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
 jobs:
   test:
     runs-on: ubuntu-latest
