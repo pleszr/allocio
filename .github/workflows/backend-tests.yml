@@ -1,0 +1,37 @@
+name: backend-tests
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: allocio
+          POSTGRES_PASSWORD: allocio
+          POSTGRES_DB: allocio
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U allocio -d allocio"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://allocio:allocio@localhost:5432/allocio
+      AUTH_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install backend dependencies
+        run: cd backend && uv sync --python 3.14
+
+      - name: Apply database migrations
+        run: cd backend && uv run --python 3.14 alembic upgrade head
+
+      - name: Run backend unit tests
+        run: cd backend && uv run --python 3.14 pytest -q
