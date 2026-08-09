@@ -46,6 +46,19 @@ function isDraftExpenseInvalid(draft: DraftExpense): boolean {
   return false;
 }
 
+// True when at least one row's paid-out-of-pocket amount was floored by the bucket shortfall
+// rather than reflecting the user's own choice — i.e. the row's pocketOverride was left blank
+// (backend derived the whole amount from the shortfall) or the backend raised a typed override
+// above what was entered because the bucket couldn't cover the rest.
+function pocketOverrideWasClamped(drafts: DraftExpense[], preview: AnyPreview): boolean {
+  return drafts.some((draft, index) => {
+    const line = preview.expense_lines[index];
+    if (!line) return false;
+    if (draft.pocketOverride === "") return line.paid_out_of_pocket > 0;
+    return line.paid_out_of_pocket > Number(draft.pocketOverride);
+  });
+}
+
 function toExpenseDrafts(drafts: DraftExpense[]): ExpenseDraft[] {
   return drafts
     .filter((d) => d.amount !== "")
@@ -694,7 +707,7 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
                 editIsInvalid
               }
               onClick={() => {
-                if (preview && previewIsCurrent && preview.paid_out_of_pocket > 0) {
+                if (preview && previewIsCurrent && pocketOverrideWasClamped(draftExpenses, preview)) {
                   setShowOutOfPocketDialog(true);
                 } else {
                   void post();
