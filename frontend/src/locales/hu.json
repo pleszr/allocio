@@ -235,6 +235,7 @@
     "expense_kind_label": "Típus",
     "expense_kind_other": "Egyéb",
     "expense_kind_maintenance": "Karbantartási tétel",
+    "expense_kind_time_based": "Rendszeres költség",
     "expense_comment": "Megjegyzés",
     "expense_amount": "Összeg",
     "expense_pocket_label": "Zsebből fizetve",

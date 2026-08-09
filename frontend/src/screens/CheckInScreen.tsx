@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError } from "../api/client";
-import type { CheckInPreview, EditCheckInPreview, ExpenseDraft, ExpenseLine, MaintenanceItem, TireType } from "../api/types";
+import type {
+  CheckInPreview,
+  EditCheckInPreview,
+  ExpenseDraft,
+  ExpenseLine,
+  ExpenseSourceType,
+  MaintenanceItem,
+  TimeBasedCost,
+  TireType,
+} from "../api/types";
 import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { useCurrency } from "../utils/currency";
@@ -22,13 +31,14 @@ interface DraftExpense {
   amount: string;
   pocketOverride: string;
   comment: string;
-  maintenanceItemId: string;
+  sourceType: ExpenseSourceType | null;
+  sourceId: string;
 }
 
 function isDraftExpenseInvalid(draft: DraftExpense): boolean {
   const amount = Number(draft.amount);
   if (draft.amount === "" || !Number.isFinite(amount) || amount <= 0) return true;
-  if (draft.kind === "modeled" && draft.maintenanceItemId === "") return true;
+  if (draft.kind === "modeled" && (draft.sourceType === null || draft.sourceId === "")) return true;
   if (draft.pocketOverride !== "") {
     const override = Number(draft.pocketOverride);
     if (!Number.isFinite(override) || override < 0 || override > amount) return true;
@@ -44,8 +54,8 @@ function toExpenseDrafts(drafts: DraftExpense[]): ExpenseDraft[] {
       amount: Number(d.amount),
       paid_out_of_pocket_override: d.pocketOverride === "" ? null : Number(d.pocketOverride),
       comment: d.kind === "other" ? d.comment || null : null,
-      source_type: d.kind === "modeled" ? "maintenance_item" : null,
-      source_id: d.kind === "modeled" ? d.maintenanceItemId || null : null,
+      source_type: d.kind === "modeled" ? d.sourceType : null,
+      source_id: d.kind === "modeled" ? d.sourceId || null : null,
     }));
 }
 
@@ -59,7 +69,8 @@ function draftsFromExpenseLines(lines: ExpenseLine[]): DraftExpense[] {
     amount: String(line.amount),
     pocketOverride: String(line.paid_out_of_pocket),
     comment: line.comment ?? "",
-    maintenanceItemId: line.source_type === "maintenance_item" && line.source_id ? line.source_id : "",
+    sourceType: line.source_type as ExpenseSourceType | null,
+    sourceId: line.source_type && line.source_id ? line.source_id : "",
   }));
 }
 
@@ -75,6 +86,7 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
   const fmt = useCurrency();
   const isEdit = editCheckInId !== undefined;
   const detail = useAsync(() => api.getAsset(assetId), [assetId]);
+  const timeBasedCosts = useAsync(() => api.listTimeBasedCosts(assetId), [assetId]);
   const editTarget = useAsync(
     () => (editCheckInId ? api.getCheckIn(assetId, editCheckInId) : Promise.resolve(null)),
     [assetId, editCheckInId],
@@ -263,9 +275,12 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
       return <ErrorState message={editTarget.error ?? t("checkin.edit_not_found")} onRetry={editTarget.reload} />;
     }
   }
-  if (detail.loading) return <LoadingState label={t("checkin.loading")} />;
+  if (detail.loading || timeBasedCosts.loading) return <LoadingState label={t("checkin.loading")} />;
   if (detail.error || !detail.data) {
     return <ErrorState message={detail.error ?? t("checkin.not_found")} onRetry={detail.reload} />;
+  }
+  if (timeBasedCosts.error || !timeBasedCosts.data) {
+    return <ErrorState message={timeBasedCosts.error ?? t("checkin.not_found")} onRetry={timeBasedCosts.reload} />;
   }
 
   const e = detail.data;
@@ -275,6 +290,7 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
   const flags = e.maintenance_items.filter((m) => m.status && m.status !== "ok");
   const hasTireItems = e.maintenance_items.some((m) => m.tire_type);
   const activeMaintenanceItems = e.maintenance_items.filter((m) => m.is_active);
+  const activeTimeBasedCosts = timeBasedCosts.data.filter((c) => c.is_active);
 
   const invalidatePreview = () => {
     previewRequestId.current += 1;
@@ -290,7 +306,7 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
     invalidatePreview();
     setDraftExpenses((rows) => [
       ...rows,
-      { key: nextExpenseKey.current++, kind: "other", amount: "", pocketOverride: "", comment: "", maintenanceItemId: "" },
+      { key: nextExpenseKey.current++, kind: "other", amount: "", pocketOverride: "", comment: "", sourceType: null, sourceId: "" },
     ]);
   };
 
@@ -495,6 +511,7 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
                     index={index}
                     preview={preview}
                     maintenanceItems={activeMaintenanceItems}
+                    timeBasedCosts={activeTimeBasedCosts}
                     onChange={(changes) => updateExpense(row.key, changes)}
                     onRemove={() => removeExpense(row.key)}
                   />
@@ -740,6 +757,7 @@ function ExpenseRow({
   index,
   preview,
   maintenanceItems,
+  timeBasedCosts,
   onChange,
   onRemove,
 }: {
@@ -747,6 +765,7 @@ function ExpenseRow({
   index: number;
   preview: AnyPreview | null;
   maintenanceItems: MaintenanceItem[];
+  timeBasedCosts: TimeBasedCost[];
   onChange: (changes: Partial<DraftExpense>) => void;
   onRemove: () => void;
 }) {
@@ -757,7 +776,7 @@ function ExpenseRow({
   const amountId = `checkin-expense-amount-${row.key}`;
   const pocketId = `checkin-expense-pocket-${row.key}`;
   const isOther = row.kind === "other";
-  const selectedValue = isOther ? "other" : row.maintenanceItemId;
+  const selectedValue = isOther ? "other" : row.sourceType && row.sourceId ? `${row.sourceType}:${row.sourceId}` : "";
   const previewLine = preview?.expense_lines[index] ?? null;
   const adjustedAmount =
     row.pocketOverride !== "" && previewLine && previewLine.paid_out_of_pocket > Number(row.pocketOverride)
@@ -766,9 +785,10 @@ function ExpenseRow({
 
   const handleKindChange = (value: string) => {
     if (value === "other") {
-      onChange({ kind: "other", maintenanceItemId: "" });
+      onChange({ kind: "other", sourceType: null, sourceId: "" });
     } else {
-      onChange({ kind: "modeled", maintenanceItemId: value, comment: "" });
+      const [sourceType, sourceId] = value.split(":", 2) as [ExpenseSourceType, string];
+      onChange({ kind: "modeled", sourceType, sourceId, comment: "" });
     }
   };
 
@@ -784,8 +804,17 @@ function ExpenseRow({
             {maintenanceItems.length > 0 && (
               <optgroup label={t("checkin.expense_kind_maintenance")}>
                 {maintenanceItems.map((item) => (
-                  <option key={item.id} value={item.id}>
+                  <option key={item.id} value={`maintenance_item:${item.id}`}>
                     {item.label}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {timeBasedCosts.length > 0 && (
+              <optgroup label={t("checkin.expense_kind_time_based")}>
+                {timeBasedCosts.map((cost) => (
+                  <option key={cost.id} value={`time_based_cost:${cost.id}`}>
+                    {cost.label}
                   </option>
                 ))}
               </optgroup>

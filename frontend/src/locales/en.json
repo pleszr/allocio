@@ -235,6 +235,7 @@
     "expense_kind_label": "Type",
     "expense_kind_other": "Other",
     "expense_kind_maintenance": "Maintenance item",
+    "expense_kind_time_based": "Recurring cost",
     "expense_comment": "Comment",
     "expense_amount": "Amount",
     "expense_pocket_label": "Paid out of pocket",
