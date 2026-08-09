@@ -7,9 +7,12 @@ Run once, from `backend/`, as a module so both `app.*` and this package resolve:
 Backdates the new asset's `created_at` directly in the DB (mirroring
 `tests/conftest.py::backdate_asset_creation` and `import_focus_kombi.py`) so the first check-in's
 period_start lands on 2018-08-22 (sheet row 6, starting odometer 242429), then replays the
-remaining 98 real rows through 2026-07-01 as check-ins in chronological order, irregularly spaced
-exactly as recorded (not monthly -- unlike `import_focus_kombi.py`, whose 14 rows happened to all
-be ~monthly). Also replays the sheet's 'Extra safety' (AJ) column as `manual_extra_monthly`
+remaining 98 real sheet rows through 2026-07-01 as check-ins in chronological order, irregularly
+spaced exactly as recorded (not monthly -- unlike `import_focus_kombi.py`, whose 14 rows happened
+to all be ~monthly), plus one further real check-in (2026-08-01, mandatory_liability_insurance
+renewal) posted live through the app on 2026-08-09 -- not sourced from the spreadsheet, read
+directly from Postgres instead (see the last `Period` in `build_periods`). Also replays the sheet's
+'Extra safety' (AJ) column as `manual_extra_monthly`
 (resetting to 0 on every row that leaves AJ blank -- confirmed against the sheet's own `AL`/`AO`
 formulas, which treat a blank AJ as exactly 0, not "same as the last non-blank value") and, via
 `apply_pocket_overrides`, distributes each period's 'Kifizettuk zsebbol' (AK) total across that
@@ -729,6 +732,16 @@ def build_periods(source_map: SourceMap) -> list[Period]:
             ],
             zero,
             None,
+        ),
+        # Real check-in posted live through the app on 2026-08-09 (not from the spreadsheet --
+        # read directly from Postgres). Renewed mandatory_liability_insurance.
+        Period(
+            date(2026, 8, 1),
+            346480,
+            None,
+            [modeled("mandatory_liability_insurance", "104498", source_map, date(2026, 8, 9), 346480)],
+            zero,
+            Decimal("41880.92"),
         ),
     ]
 

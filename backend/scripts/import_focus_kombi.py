@@ -8,7 +8,10 @@ Backdates the new asset's `created_at` directly in the DB (mirroring
 `tests/conftest.py::backdate_asset_creation`) so the first check-in's period_start lands on the
 real 2025-06-25 acquisition date, then replays the sheet's 14 real monthly check-ins in order
 through the normal service layer so balances/maintenance timers reconstruct exactly like the
-spreadsheet. Also replays the sheet's 'Extra safety' (AI) column as `manual_extra_monthly` and,
+spreadsheet, plus one further real check-in (2026-08-01, casco own-risk payout for a rear door
+repair) posted live through the app on 2026-08-09 -- not sourced from the spreadsheet, read
+directly from Postgres instead (see the last `Period` in `build_periods`). Also replays the sheet's
+'Extra safety' (AI) column as `manual_extra_monthly` and,
 via `apply_pocket_overrides`, distributes each period's 'Kifizettük zsebből' (AJ) total across
 that period's expense lines as a `paid_out_of_pocket_override` (see issue #95) -- filling lines in
 submission order, the same way the bucket-depletion split itself works, since which specific line
@@ -286,6 +289,18 @@ def build_periods(source_map: SourceMap) -> list[Period]:
             Decimal("15000"),
             Decimal("328264"),
             Decimal("74979.33"),
+        ),
+        # Real check-in posted live through the app on 2026-08-09 (not from the spreadsheet --
+        # read directly from Postgres). Casco own-risk payout for a rear door repair, fully paid
+        # out of pocket.
+        Period(
+            date(2026, 8, 1),
+            186266,
+            None,
+            [other("143000", "jobb hatso ajto tores casco onresz", date(2026, 8, 9), 186266)],
+            Decimal("15000"),
+            Decimal("143000"),
+            Decimal("143000"),
         ),
     ]
 
