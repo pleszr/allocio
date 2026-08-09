@@ -4729,74 +4729,74 @@
           "functions": [
             {
               "name": "CheckInScreen",
-              "line_start": 73,
-              "line_end": 736,
-              "hash": "68405ad794b612bf"
+              "line_start": 84,
+              "line_end": 753,
+              "hash": "11ecf91d9ba12103"
             },
             {
               "name": "ExpenseRow",
-              "line_start": 738,
-              "line_end": 845,
-              "hash": "50612195b782d278"
+              "line_start": 755,
+              "line_end": 874,
+              "hash": "5b9364b40ba76373"
             },
             {
               "name": "FlagRow",
-              "line_start": 847,
-              "line_end": 882,
+              "line_start": 876,
+              "line_end": 911,
               "hash": "04697ac8287eb9e9"
             },
             {
               "name": "RowKV",
-              "line_start": 884,
-              "line_end": 895,
+              "line_start": 913,
+              "line_end": 924,
               "hash": "5b2cd9af20e61b05"
             },
             {
               "name": "draftsFromExpenseLines",
-              "line_start": 55,
-              "line_end": 64,
-              "hash": "595020676396bf80"
+              "line_start": 65,
+              "line_end": 75,
+              "hash": "1fb8e82caa0c1522"
             },
             {
               "name": "isDraftExpenseInvalid",
-              "line_start": 28,
-              "line_end": 37,
-              "hash": "a401823feb47ad20"
+              "line_start": 38,
+              "line_end": 47,
+              "hash": "0f08200b407b963f"
             },
             {
               "name": "toExpenseDrafts",
-              "line_start": 39,
-              "line_end": 50,
-              "hash": "a81f723c14d9070c"
+              "line_start": 49,
+              "line_end": 60,
+              "hash": "ee4751a599659300"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "CheckInScreen",
-              "line_start": 73,
-              "line_end": 736,
-              "hash": "68405ad794b612bf",
+              "line_start": 84,
+              "line_end": 753,
+              "hash": "11ecf91d9ba12103",
               "kind": "function"
             },
             {
               "name": "ExpenseRow",
-              "line_start": 738,
-              "line_end": 845,
-              "hash": "50612195b782d278",
+              "line_start": 755,
+              "line_end": 874,
+              "hash": "5b9364b40ba76373",
               "kind": "function"
             },
             {
               "name": "FlagRow",
-              "line_start": 847,
-              "line_end": 882,
+              "line_start": 876,
+              "line_end": 911,
               "hash": "04697ac8287eb9e9",
               "kind": "function"
             },
             {
               "name": "RowKV",
-              "line_start": 884,
-              "line_end": 895,
+              "line_start": 913,
+              "line_end": 924,
               "hash": "5b2cd9af20e61b05",
               "kind": "function"
             }
