@@ -193,6 +193,11 @@ function HistoryRow({
               {row.expenses.map((line, index) => (
                 <li key={index} className="history-expense-line">
                   <span className="history-expense-comment">{line.label}</span>
+                  {line.excluded_from_average && (
+                    <span className="pill pill-accent" style={{ fontSize: 11 }}>
+                      {t("history.excluded_from_average_badge")}
+                    </span>
+                  )}
                   <span className="history-expense-amount">{fmt(-line.amount, { decimals: 2 })}</span>
                   {line.paid_out_of_pocket > 0 && (
                     <span className="history-expense-split">

@@ -150,7 +150,11 @@ class AssetDetailService:
         )
 
     def _average_monthly_cost(self, asset_id: uuid.UUID, as_of: date) -> Decimal:
-        """Average trailing annual allocations plus out-of-pocket expense funding over 12 months."""
+        """Average trailing annual allocations plus out-of-pocket expense funding over 12 months.
+
+        Skips any expense flagged `excluded_from_average` (a known one-time cost, e.g. a post-purchase
+        catch-up service) so it doesn't inflate this forward-looking guidance figure.
+        """
         bucket = expense_repository.get_bucket_for_asset(self._session, asset_id)
         if bucket is None:
             return Decimal("0.00")
@@ -165,14 +169,17 @@ class AssetDetailService:
             (
                 expense.paid_out_of_pocket
                 for expense in expenses
-                if window_start <= expense.event_date <= as_of
+                if not expense.excluded_from_average and window_start <= expense.event_date <= as_of
             ),
             Decimal(0),
         )
         return calculator.quantize_currency((allocated + out_of_pocket) / Decimal(12))
 
     def _avg_monthly_paid_out_of_pocket(self, asset_id: uuid.UUID, as_of: date) -> Decimal:
-        """Average trailing 12-month out-of-pocket expense funding, excluding bucket-covered allocations."""
+        """Average trailing 12-month out-of-pocket expense funding, excluding bucket-covered allocations.
+
+        Skips any expense flagged `excluded_from_average`, same as `_average_monthly_cost`.
+        """
         bucket = expense_repository.get_bucket_for_asset(self._session, asset_id)
         if bucket is None:
             return Decimal("0.00")
@@ -182,7 +189,7 @@ class AssetDetailService:
             (
                 expense.paid_out_of_pocket
                 for expense in expenses
-                if window_start <= expense.event_date <= as_of
+                if not expense.excluded_from_average and window_start <= expense.event_date <= as_of
             ),
             Decimal(0),
         )
@@ -245,7 +252,8 @@ class AssetDetailService:
         `elapsed_months` — the asset's whole calendar months since creation, capped at 12 — rather
         than a flat /12, so an asset younger than a year isn't understated by a mostly-empty
         window. Derived guidance only, per docs/domain-model.md — never overwrites the stored
-        `manual_extra_monthly` value on its own.
+        `manual_extra_monthly` value on its own. Skips any expense flagged `excluded_from_average`,
+        same as `_average_monthly_cost`.
         """
         bucket = expense_repository.get_bucket_for_asset(self._session, asset_id)
         if bucket is None:
@@ -254,7 +262,14 @@ class AssetDetailService:
         allocations = check_in_repository.list_posted_allocation_events(self._session, bucket.id)
         expenses = expense_repository.list_expenses_for_bucket(self._session, bucket.id)
         total_allocated = sum((amount for event_date, amount in allocations if event_date >= window_start), Decimal(0))
-        total_expense = sum((expense.amount for expense in expenses if expense.event_date >= window_start), Decimal(0))
+        total_expense = sum(
+            (
+                expense.amount
+                for expense in expenses
+                if not expense.excluded_from_average and expense.event_date >= window_start
+            ),
+            Decimal(0),
+        )
         shortfall = max(Decimal(0), total_expense - total_allocated)
         return calculator.quantize_currency(shortfall / Decimal(elapsed_months))
 

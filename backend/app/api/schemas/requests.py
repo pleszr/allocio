@@ -311,6 +311,14 @@ class LogExpenseRequest(BaseModel):
         "Omit or null to keep today's fully-derived behavior.",
         examples=[200000],
     )
+    excluded_from_average: bool = Field(
+        default=False,
+        description="When true, this expense is left out of the dashboard's trailing-average KPIs "
+        "(average monthly cost, average paid-out-of-pocket, recommended extra buffer) — for a known "
+        "one-time cost that shouldn't inflate ongoing-cost guidance. Never affects the bucket balance, "
+        "check-in totals, or History.",
+        examples=[False],
+    )
 
     @model_validator(mode="after")
     def _check_source_matches_kind(self) -> "LogExpenseRequest":

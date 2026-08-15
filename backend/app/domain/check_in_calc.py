@@ -56,6 +56,7 @@ class ExpenseDraftInput:
     source_id: uuid.UUID | None
     usage_counter_at_event: int | None
     paid_out_of_pocket_override: Decimal | None
+    excluded_from_average: bool
 
 
 @dataclass(frozen=True)
@@ -81,6 +82,7 @@ class ExpenseLine:
     source_type: str | None
     source_id: uuid.UUID | None
     usage_counter_at_event: int | None
+    excluded_from_average: bool
 
 
 @dataclass(frozen=True)
@@ -334,6 +336,7 @@ def _expense_lines(drafts: Sequence[ExpenseDraftInput], available: Decimal) -> l
                 source_type=draft.source_type,
                 source_id=draft.source_id,
                 usage_counter_at_event=draft.usage_counter_at_event,
+                excluded_from_average=draft.excluded_from_average,
             )
         )
         remaining -= bucket_amount

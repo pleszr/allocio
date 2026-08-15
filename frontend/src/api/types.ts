@@ -217,6 +217,7 @@ export interface ExpenseLine {
   amount: number;
   bucket_amount: number;
   paid_out_of_pocket: number;
+  excluded_from_average: boolean;
   event_date: string;
   comment: string | null;
   source_type: string | null;
@@ -229,6 +230,7 @@ export interface CheckInExpenseLine {
   amount: number;
   bucket_amount: number;
   paid_out_of_pocket: number;
+  excluded_from_average: boolean;
   event_date: string;
   comment: string | null;
   source_type: string | null;
@@ -431,6 +433,7 @@ export interface ExpenseDraft {
   comment?: string | null;
   source_type?: ExpenseSourceType | null;
   source_id?: string | null;
+  excluded_from_average?: boolean;
 }
 
 export interface CheckInBody {

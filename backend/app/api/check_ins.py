@@ -202,6 +202,7 @@ def _to_drafts(expenses: list[LogExpenseRequest]) -> list[ExpenseDraft]:
             source_type=item.source_type,
             source_id=item.source_id,
             paid_out_of_pocket_override=item.paid_out_of_pocket_override,
+            excluded_from_average=item.excluded_from_average,
         )
         for item in expenses
     ]
@@ -231,6 +232,7 @@ def _to_preview_response(preview: CheckInPreview) -> CheckInPreviewResponse:
                 amount=line.amount,
                 bucket_amount=line.bucket_amount,
                 paid_out_of_pocket=line.paid_out_of_pocket,
+                excluded_from_average=line.excluded_from_average,
                 event_date=line.event_date,
                 comment=line.comment,
                 source_type=line.source_type,
@@ -270,6 +272,7 @@ def _to_detail_response(detail: CheckInDetail) -> CheckInDetailResponse:
                 amount=line.amount,
                 bucket_amount=line.bucket_amount,
                 paid_out_of_pocket=line.paid_out_of_pocket,
+                excluded_from_average=line.excluded_from_average,
                 event_date=line.event_date,
                 comment=line.comment,
                 source_type=line.source_type,
@@ -303,6 +306,7 @@ def _to_edit_preview_response(preview: CheckInEditPreview) -> EditCheckInPreview
                 amount=line.amount,
                 bucket_amount=line.bucket_amount,
                 paid_out_of_pocket=line.paid_out_of_pocket,
+                excluded_from_average=line.excluded_from_average,
                 event_date=line.event_date,
                 comment=line.comment,
                 source_type=line.source_type,

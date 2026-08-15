@@ -33,6 +33,7 @@ interface DraftExpense {
   comment: string;
   sourceType: ExpenseSourceType | null;
   sourceId: string;
+  excludedFromAverage: boolean;
 }
 
 function isDraftExpenseInvalid(draft: DraftExpense): boolean {
@@ -69,6 +70,7 @@ function toExpenseDrafts(drafts: DraftExpense[]): ExpenseDraft[] {
       comment: d.kind === "other" ? d.comment || null : null,
       source_type: d.kind === "modeled" ? d.sourceType : null,
       source_id: d.kind === "modeled" ? d.sourceId || null : null,
+      excluded_from_average: d.excludedFromAverage,
     }));
 }
 
@@ -84,6 +86,7 @@ function draftsFromExpenseLines(lines: ExpenseLine[]): DraftExpense[] {
     comment: line.comment ?? "",
     sourceType: line.source_type as ExpenseSourceType | null,
     sourceId: line.source_type && line.source_id ? line.source_id : "",
+    excludedFromAverage: line.excluded_from_average,
   }));
 }
 
@@ -319,7 +322,16 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
     invalidatePreview();
     setDraftExpenses((rows) => [
       ...rows,
-      { key: nextExpenseKey.current++, kind: "other", amount: "", pocketOverride: "", comment: "", sourceType: null, sourceId: "" },
+      {
+        key: nextExpenseKey.current++,
+        kind: "other",
+        amount: "",
+        pocketOverride: "",
+        comment: "",
+        sourceType: null,
+        sourceId: "",
+        excludedFromAverage: false,
+      },
     ]);
   };
 
@@ -882,6 +894,14 @@ function ExpenseRow({
           <div className="row-meta">{t("checkin.expense_pocket_adjusted", { amount: fmt(adjustedAmount, { decimals: 2 }) })}</div>
         )}
       </div>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+        <input
+          type="checkbox"
+          checked={row.excludedFromAverage}
+          onChange={(ev) => onChange({ excludedFromAverage: ev.target.checked })}
+        />
+        <span className="row-meta">{t("checkin.expense_excluded_from_average_label")}</span>
+      </label>
     </div>
   );
 }

@@ -37,6 +37,7 @@ class ExpenseService:
         source_id: uuid.UUID | None,
         check_in_id: uuid.UUID | None = None,
         paid_out_of_pocket_override: Decimal | None = None,
+        excluded_from_average: bool = False,
     ) -> ExpenseEvent:
         """Post an expense event against an owned asset's bucket and commit.
 
@@ -68,6 +69,7 @@ class ExpenseService:
             kind=kind,
             amount=amount,
             paid_out_of_pocket=paid_out_of_pocket,
+            excluded_from_average=excluded_from_average,
             comment=comment,
             source_type=source_type,
             source_id=source_id,
