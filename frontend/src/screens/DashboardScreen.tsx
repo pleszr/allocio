@@ -2,11 +2,12 @@ import { useState } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
-import type { ActivityItem, MaintenanceItem, UpcomingExpense } from "../api/types";
+import type { ActivityItem, MaintenanceItem } from "../api/types";
 import type { CostsTab } from "../routes";
 import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
 import { Sparkline } from "../components/Sparkline";
+import { TimeCostPanel } from "../components/TimeCostPanel";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { illoBg, illoKind } from "../utils/assetType";
 import { useCurrency } from "../utils/currency";
@@ -29,6 +30,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const { t } = useTranslation();
   const fmt = useCurrency();
   const detail = useAsync(() => api.getAsset(assetId), [assetId]);
+  const timeBased = useAsync(() => api.listTimeBasedCosts(assetId), [assetId]);
   const [months, setMonths] = useState(12);
   const history = useAsync(() => api.getBalanceHistory(assetId, months), [assetId, months]);
 
@@ -48,7 +50,8 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
     ? undefined
     : activeMaintenance.find((m) => m.technical_key === "annual_service");
   const averageAllocation = e.average_allocation;
-  const upcomingTotal = e.upcoming_expenses.reduce((sum, item) => sum + item.amount, 0);
+  const timeCosts = timeBased.data ?? [];
+  const hasTimeCosts = timeCosts.some((c) => c.is_active && c.next_due_date);
   const costCount = e.maintenance_items.length;
 
   return (
@@ -202,7 +205,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
         )}
       </div>
 
-      {/* Maintenance + upcoming expenses + recent activity + balance history */}
+      {/* Maintenance + time-based costs + recent activity + balance history */}
       <div className="col-2">
         <div className="card">
           <div className="card-hd">
@@ -237,20 +240,22 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           <div className="card">
             <div className="card-hd">
               <div>
-                <div className="card-title">{t("dashboard.upcoming_title")}</div>
-                <div className="card-sub">{t("dashboard.upcoming_sub")}</div>
+                <div className="card-title">{t("dashboard.time_based_title")}</div>
+                <div className="card-sub">{t("dashboard.time_based_sub")}</div>
               </div>
-              {upcomingTotal > 0 && <span className="pill pill-accent">{fmt(upcomingTotal, { decimals: 0 })}</span>}
+              <button className="btn btn-ghost btn-sm" onClick={() => onTab("costs", "time")}>
+                {t("dashboard.manage")} <Icon name="chevronRight" size={12} />
+              </button>
             </div>
-            <div style={{ marginTop: 10, paddingBottom: 6 }}>
-              {e.upcoming_expenses.length === 0 ? (
-                <div className="row-meta" style={{ padding: "10px var(--pad) 14px" }}>
-                  {t("dashboard.upcoming_empty")}
-                </div>
-              ) : (
-                e.upcoming_expenses.map((item, i) => <UpcomingRow key={i} item={item} />)
-              )}
-            </div>
+            {timeBased.loading ? (
+              <div className="row-meta" style={{ padding: "12px var(--pad)" }}>{t("common.loading")}</div>
+            ) : hasTimeCosts ? (
+              <div style={{ padding: "4px 0 4px" }}>
+                <TimeCostPanel costs={timeCosts} compact />
+              </div>
+            ) : (
+              <div className="row-meta" style={{ padding: "12px var(--pad)" }}>{t("dashboard.time_based_empty")}</div>
+            )}
           </div>
 
           <div className="card">
@@ -355,37 +360,6 @@ function MaintCompactRow({ item }: { item: MaintenanceItem }) {
       <div className="bar-track">
         <div className={`bar-fill ${pill.fill}`} style={{ ["--pct" as string]: `${progress * 100}%` }} />
       </div>
-    </div>
-  );
-}
-
-function UpcomingRow({ item }: { item: UpcomingExpense }) {
-  const { t } = useTranslation();
-  const fmt = useCurrency();
-  const dueText = item.overdue
-    ? t("dashboard.due_overdue")
-    : item.days_until === 0
-      ? t("dashboard.due_now")
-      : t("dashboard.due_in_days", { days: item.days_until });
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr auto",
-        gap: 12,
-        padding: "9px var(--pad)",
-        borderTop: "1px solid var(--line-soft)",
-        alignItems: "center",
-      }}
-    >
-      <div>
-        <div style={{ fontSize: 13.5, fontWeight: 500 }}>{item.name}</div>
-        <div className="row-meta" style={{ marginTop: 2 }}>
-          {item.category === "time_based" ? t("dashboard.category_time_based") : t("dashboard.category_maintenance")} ·{" "}
-          {item.overdue ? <span style={{ color: "var(--bad)", fontWeight: 600 }}>{dueText}</span> : dueText}
-        </div>
-      </div>
-      <div style={{ fontSize: 14, fontWeight: 600, fontFeatureSettings: '"tnum"' }}>{fmt(item.amount, { decimals: 0 })}</div>
     </div>
   );
 }
