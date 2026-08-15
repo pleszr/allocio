@@ -1289,3 +1289,12 @@ select.input {
 .spatial-item-name { font-size: 13.5px; font-weight: 500; }
 .spatial-item-sub { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
 @media (max-width: 860px) { .spatial-map { grid-template-columns: 1fr; } }
+
+/* ── Check-in posted confirmation ──────────────────────────────────── */
+.ci-posted-check {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--good-soft); color: var(--good);
+  display: grid; place-items: center; margin: 0 auto;
+  animation: ciPop 0.4s cubic-bezier(.2,.9,.3,1.3) both;
+}
+@keyframes ciPop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }

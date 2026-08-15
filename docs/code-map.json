@@ -4831,50 +4831,50 @@
           "functions": [
             {
               "name": "CheckInScreen",
-              "line_start": 100,
-              "line_end": 778,
-              "hash": "0ebd0f0637c230c2"
+              "line_start": 103,
+              "line_end": 788,
+              "hash": "6914466116e7516b"
             },
             {
               "name": "ExpenseRow",
-              "line_start": 780,
-              "line_end": 907,
+              "line_start": 829,
+              "line_end": 956,
               "hash": "58391f510b5b995c"
             },
             {
               "name": "FlagRow",
-              "line_start": 909,
-              "line_end": 944,
+              "line_start": 958,
+              "line_end": 993,
               "hash": "04697ac8287eb9e9"
             },
             {
-              "name": "RowKV",
-              "line_start": 946,
-              "line_end": 957,
-              "hash": "5b2cd9af20e61b05"
+              "name": "PostedState",
+              "line_start": 790,
+              "line_end": 827,
+              "hash": "48fc708995dcfe61"
             },
             {
               "name": "draftsFromExpenseLines",
-              "line_start": 80,
-              "line_end": 91,
+              "line_start": 83,
+              "line_end": 94,
               "hash": "6a701cfd45f10d76"
             },
             {
               "name": "isDraftExpenseInvalid",
-              "line_start": 39,
-              "line_end": 48,
+              "line_start": 42,
+              "line_end": 51,
               "hash": "0f08200b407b963f"
             },
             {
               "name": "pocketOverrideWasClamped",
-              "line_start": 54,
-              "line_end": 61,
+              "line_start": 57,
+              "line_end": 64,
               "hash": "a03a0f701f0aaa30"
             },
             {
               "name": "toExpenseDrafts",
-              "line_start": 63,
-              "line_end": 75,
+              "line_start": 66,
+              "line_end": 78,
               "hash": "1339f7bd24f3f762"
             }
           ],
@@ -4882,30 +4882,30 @@
           "components": [
             {
               "name": "CheckInScreen",
-              "line_start": 100,
-              "line_end": 778,
-              "hash": "0ebd0f0637c230c2",
+              "line_start": 103,
+              "line_end": 788,
+              "hash": "6914466116e7516b",
               "kind": "function"
             },
             {
               "name": "ExpenseRow",
-              "line_start": 780,
-              "line_end": 907,
+              "line_start": 829,
+              "line_end": 956,
               "hash": "58391f510b5b995c",
               "kind": "function"
             },
             {
               "name": "FlagRow",
-              "line_start": 909,
-              "line_end": 944,
+              "line_start": 958,
+              "line_end": 993,
               "hash": "04697ac8287eb9e9",
               "kind": "function"
             },
             {
-              "name": "RowKV",
-              "line_start": 946,
-              "line_end": 957,
-              "hash": "5b2cd9af20e61b05",
+              "name": "PostedState",
+              "line_start": 790,
+              "line_end": 827,
+              "hash": "48fc708995dcfe61",
               "kind": "function"
             }
           ]

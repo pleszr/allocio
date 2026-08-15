@@ -18,12 +18,15 @@ import { daysBetween, fmtDate, fmtNumber, todayIso } from "../utils/format";
 import { maintenancePill } from "../utils/maintenanceStatus";
 import { useAsync } from "../utils/useAsync";
 
-// Either preview shape renders through the same Step 2 card and confirm panel below; only the
+// Either preview shape renders through the same review step and confirm button below; only the
 // extra edit-only validity fields (is_valid/first_invalid_*) are edit-mode-specific.
 type AnyPreview = CheckInPreview | EditCheckInPreview;
 
 const TIRE_TYPES: TireType[] = ["summer", "winter", "all_season"];
 const PREVIEW_DEBOUNCE_MS = 300;
+// Guided-wizard steps. The live preview effect runs independent of the visible step, so by the time
+// the user reaches "review" the preview reflects everything entered on the earlier steps.
+const STEP_KEYS = ["period", "expenses", "review"] as const;
 
 interface DraftExpense {
   key: number;
@@ -124,12 +127,14 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
   const [posting, setPosting] = useState(false);
   const [posted, setPosted] = useState(false);
   const [showOutOfPocketDialog, setShowOutOfPocketDialog] = useState(false);
+  // Which wizard step is visible: 0 = period, 1 = expenses, 2 = review. The live preview effect
+  // below runs independent of the step, so the review step always reads an up-to-date preview.
+  const [stepIdx, setStepIdx] = useState(0);
 
   const usageTracked = detail.data?.tracks_usage ?? false;
   const hasInvalidExpense = draftExpenses.some(isDraftExpenseInvalid);
   const usageValue = Number(usageEnd);
-  const hasValidUsage =
-    !usageTracked || (usageEnd.trim() !== "" && Number.isFinite(usageValue));
+  const hasValidUsage = !usageTracked || (usageEnd.trim() !== "" && Number.isFinite(usageValue));
   const formIsPreviewable =
     formInitialized && periodEnd.trim() !== "" && hasValidUsage && !hasInvalidExpense;
 
@@ -214,6 +219,7 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
     setPostingError(null);
     setPosted(false);
     setShowOutOfPocketDialog(false);
+    setStepIdx(0);
     setFormInitialized(true);
   }, [isEdit, detail.data]);
 
@@ -240,6 +246,7 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
     setPostingError(null);
     setPosted(false);
     setShowOutOfPocketDialog(false);
+    setStepIdx(0);
     setFormInitialized(true);
   }, [isEdit, editTarget.data]);
 
@@ -392,8 +399,55 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
 
   const editValidity: EditCheckInPreview | null = preview && "is_valid" in preview ? preview : null;
   const editIsInvalid = editValidity !== null && editValidity.is_valid === false;
-  const calculatingPreview =
-    formIsPreviewable && !previewIsCurrent && previewError === null;
+  const calculatingPreview = formIsPreviewable && !previewIsCurrent && previewError === null;
+
+  // Wizard navigation. A step can only advance once its own inputs are valid; the confirm button on
+  // the review step keeps the existing full disabled/guard logic.
+  const step = STEP_KEYS[stepIdx];
+  const progressPct = ((stepIdx + 1) / STEP_KEYS.length) * 100;
+  const canContinueFromPeriod = periodEnd.trim() !== "" && hasValidUsage;
+  const canContinue = step === "period" ? canContinueFromPeriod : step === "expenses" ? !hasInvalidExpense : true;
+  const goNext = () => {
+    if (canContinue) setStepIdx((i) => Math.min(STEP_KEYS.length - 1, i + 1));
+  };
+  const goBack = () => setStepIdx((i) => Math.max(0, i - 1));
+  const confirmDisabled =
+    !preview ||
+    !previewIsCurrent ||
+    calculatingPreview ||
+    loadingPreview ||
+    previewError !== null ||
+    posting ||
+    posted ||
+    !formIsPreviewable ||
+    editIsInvalid;
+  const onConfirmClick = () => {
+    if (preview && previewIsCurrent && pocketOverrideWasClamped(draftExpenses, preview)) {
+      setShowOutOfPocketDialog(true);
+    } else {
+      void post();
+    }
+  };
+
+  // Posted confirmation. Edit mode navigates away via onEditSaved, so this only shows for a new
+  // check-in; "Done" reloads the asset so a follow-up check-in starts from the fresh balance.
+  if (posted && !isEdit && preview) {
+    return (
+      <PostedState
+        name={e.name}
+        netChange={preview.net_bucket_change}
+        balanceAfter={preview.balance_after}
+        onDone={() => detail.reload()}
+      />
+    );
+  }
+
+  const periodColumns =
+    [usageTracked, hasTireItems].filter(Boolean).length === 2
+      ? "1fr 1fr 1fr"
+      : usageTracked || hasTireItems
+        ? "1fr 1fr"
+        : "1fr";
 
   return (
     <div className="content fade-in">
@@ -417,320 +471,279 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
         </span>
       </div>
 
-      <div className="col-3-2">
-        {/* Left — steps */}
-        <div className="stack">
-          {/* Step 1: period + usage */}
-          <div className="card">
-            <div className="card-hd">
-              <div>
-                <span className="card-title">{t("checkin.step1")}</span>{" "}
-                <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}>{t("checkin.step1_title")}</span>
+      <div className="wizard">
+        <div className="wizard-progress">
+          <div className="wizard-progress-fill" style={{ width: `${progressPct}%` }} />
+        </div>
+
+        <div key={step} className="fade-in">
+          {/* Step 1 — period, usage, tire type, maintenance flags */}
+          {step === "period" && (
+            <div className="card">
+              <div className="card-hd">
+                <div>
+                  <span className="card-title">{t("checkin.step1_title")}</span>
+                </div>
+                <span className="pill pill-accent">{t("checkin.required")}</span>
               </div>
-              <span className="pill pill-accent">{t("checkin.required")}</span>
-            </div>
-            <div style={{ padding: "16px var(--pad) 20px" }}>
-              {isEdit && (
-                <div className="error-banner" style={{ marginBottom: 14, background: "var(--warn-bg, #fff7e6)" }}>
-                  {t("checkin.editing_past_period", { date: fmtDate(periodEnd) })}
-                </div>
-              )}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: [usageTracked, hasTireItems].filter(Boolean).length === 2 ? "1fr 1fr 1fr" : usageTracked || hasTireItems ? "1fr 1fr" : "1fr",
-                  gap: 16,
-                }}
-              >
-                <div className="field">
-                  <label className="field-label" htmlFor="checkin-period-end">
-                    {t("checkin.period_end")}
-                  </label>
-                  {isEdit ? (
-                    <div className="input" id="checkin-period-end">
-                      {fmtDate(periodEnd)}
-                    </div>
-                  ) : (
-                    <input
-                      id="checkin-period-end"
-                      className="input"
-                      type="date"
-                      max={todayIso()}
-                      value={periodEnd}
-                      onChange={(ev) => {
-                        invalidatePreview();
-                        setPeriodEnd(ev.target.value);
-                      }}
-                    />
-                  )}
-                </div>
-                {usageTracked && (
-                  <div className="field">
-                    <label className="field-label" htmlFor="checkin-usage-end">
-                      {t("checkin.current_usage")}
-                    </label>
-                    {isEdit ? (
-                      <div className="input mono" id="checkin-usage-end">
-                        {fmtNumber(Number(usageEnd || 0))} km
-                      </div>
-                    ) : (
-                      <div className="input-prefix-wrap">
-                        <input
-                          id="checkin-usage-end"
-                          className="input mono"
-                          type="number"
-                          value={usageEnd}
-                          onChange={(ev) => {
-                            invalidatePreview();
-                            setUsageEnd(ev.target.value);
-                          }}
-                        />
-                        <span className="input-suffix">km</span>
-                      </div>
-                    )}
+              <div style={{ padding: "16px var(--pad) 20px" }}>
+                {isEdit && (
+                  <div className="error-banner" style={{ marginBottom: 14, background: "var(--warn-bg, #fff7e6)" }}>
+                    {t("checkin.editing_past_period", { date: fmtDate(periodEnd) })}
                   </div>
                 )}
-                {hasTireItems && (
+                <div style={{ display: "grid", gridTemplateColumns: periodColumns, gap: 16 }}>
                   <div className="field">
-                    <label className="field-label" htmlFor="checkin-tire-type">
-                      {t("checkin.tire_type_label")}
+                    <label className="field-label" htmlFor="checkin-period-end">
+                      {t("checkin.period_end")}
                     </label>
                     {isEdit ? (
-                      <div className="input" id="checkin-tire-type">
-                        {activeTireType ? t(`checkin.tire_${activeTireType}`) : t("checkin.tire_type_placeholder")}
+                      <div className="input" id="checkin-period-end">
+                        {fmtDate(periodEnd)}
                       </div>
                     ) : (
-                      <select
-                        id="checkin-tire-type"
+                      <input
+                        id="checkin-period-end"
                         className="input"
-                        value={activeTireType ?? ""}
+                        type="date"
+                        max={todayIso()}
+                        value={periodEnd}
                         onChange={(ev) => {
                           invalidatePreview();
-                          setActiveTireType((ev.target.value || null) as TireType | null);
+                          setPeriodEnd(ev.target.value);
                         }}
-                      >
-                        <option value="">{t("checkin.tire_type_placeholder")}</option>
-                        {TIRE_TYPES.map((tire) => (
-                          <option key={tire} value={tire}>
-                            {t(`checkin.tire_${tire}`)}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     )}
                   </div>
+                  {usageTracked && (
+                    <div className="field">
+                      <label className="field-label" htmlFor="checkin-usage-end">
+                        {t("checkin.current_usage")}
+                      </label>
+                      {isEdit ? (
+                        <div className="input mono" id="checkin-usage-end">
+                          {fmtNumber(Number(usageEnd || 0))} km
+                        </div>
+                      ) : (
+                        <div className="input-prefix-wrap">
+                          <input
+                            id="checkin-usage-end"
+                            className="input mono"
+                            type="number"
+                            value={usageEnd}
+                            onChange={(ev) => {
+                              invalidatePreview();
+                              setUsageEnd(ev.target.value);
+                            }}
+                          />
+                          <span className="input-suffix">km</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {hasTireItems && (
+                    <div className="field">
+                      <label className="field-label" htmlFor="checkin-tire-type">
+                        {t("checkin.tire_type_label")}
+                      </label>
+                      {isEdit ? (
+                        <div className="input" id="checkin-tire-type">
+                          {activeTireType ? t(`checkin.tire_${activeTireType}`) : t("checkin.tire_type_placeholder")}
+                        </div>
+                      ) : (
+                        <select
+                          id="checkin-tire-type"
+                          className="input"
+                          value={activeTireType ?? ""}
+                          onChange={(ev) => {
+                            invalidatePreview();
+                            setActiveTireType((ev.target.value || null) as TireType | null);
+                          }}
+                        >
+                          <option value="">{t("checkin.tire_type_placeholder")}</option>
+                          {TIRE_TYPES.map((tire) => (
+                            <option key={tire} value={tire}>
+                              {t(`checkin.tire_${tire}`)}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {!isEdit && (
+                  <div className="row-meta" style={{ marginTop: 8 }}>
+                    {t("checkin.period_end_hint")}
+                  </div>
+                )}
+                {usageTracked && e.current_usage !== null && (
+                  <div className="row-meta" style={{ marginTop: 14 }}>
+                    {t("checkin.last_recorded", { usage: fmtNumber(e.current_usage) })}
+                  </div>
+                )}
+                {flags.length > 0 && (
+                  <>
+                    <hr className="hr" style={{ margin: "16px 0" }} />
+                    <div style={{ fontSize: 13.5, fontWeight: 500, marginBottom: 10 }}>
+                      {t("checkin.step3_title")}{" "}
+                      <span className="pill pill-warn" style={{ marginLeft: 6 }}>
+                        {t("checkin.attention", { n: flags.length })}
+                      </span>
+                    </div>
+                    {flags.map((m, i) => (
+                      <FlagRow key={m.id} item={m} last={i === flags.length - 1} />
+                    ))}
+                  </>
                 )}
               </div>
-              {!isEdit && (
-                <div className="row-meta" style={{ marginTop: 8 }}>
-                  {t("checkin.period_end_hint")}
-                </div>
-              )}
-
-              <hr className="hr" style={{ margin: "16px 0" }} />
-              <div style={{ fontSize: 13.5, fontWeight: 500, marginBottom: 10 }}>{t("checkin.expenses_step_title")}</div>
-              <div className="stack" style={{ gap: 10 }}>
-                {draftExpenses.map((row, index) => (
-                  <ExpenseRow
-                    key={row.key}
-                    row={row}
-                    index={index}
-                    preview={preview}
-                    maintenanceItems={activeMaintenanceItems}
-                    timeBasedCosts={activeTimeBasedCosts}
-                    onChange={(changes) => updateExpense(row.key, changes)}
-                    onRemove={() => removeExpense(row.key)}
-                  />
-                ))}
-              </div>
-              <button className="btn btn-ghost btn-sm" style={{ marginTop: draftExpenses.length > 0 ? 10 : 0 }} onClick={addExpense}>
-                <Icon name="plus" size={12} /> {t("checkin.add_expense")}
-              </button>
-              {hasInvalidExpense && <div className="row-meta" style={{ color: "var(--bad)", marginTop: 8 }}>{t("checkin.expense_invalid")}</div>}
-
-              {usageTracked && e.current_usage !== null && (
-                <div className="row-meta" style={{ marginTop: 14 }}>
-                  {t("checkin.last_recorded", { usage: fmtNumber(e.current_usage) })}
-                </div>
-              )}
             </div>
-          </div>
+          )}
 
-          {/* Step 2: review */}
-          <div className="card" aria-busy={calculatingPreview}>
-            <div className="card-hd">
-              <div>
-                <span className="card-title">{t("checkin.step2")}</span>{" "}
-                <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}>{t("checkin.step2_title")}</span>
+          {/* Step 2 — expenses this period */}
+          {step === "expenses" && (
+            <div className="card">
+              <div className="card-hd">
+                <div>
+                  <span className="card-title">{t("checkin.expenses_step_title")}</span>
+                </div>
               </div>
-              <span className="checkin-calculation-status row-meta" role="status" aria-live="polite">
-                {calculatingPreview ? t("checkin.calculating") : ""}
-              </span>
-            </div>
-            {previewError ? (
-              <div className="checkin-preview-error" style={{ padding: "16px var(--pad)" }}>
-                <div className="error-banner">{previewError}</div>
-                <button className="btn btn-outline btn-sm" onClick={retryPreview}>
-                  {t("checkin.retry_preview")}
+              <div style={{ padding: "16px var(--pad) 20px" }}>
+                <div className="stack" style={{ gap: 10 }}>
+                  {draftExpenses.map((row, index) => (
+                    <ExpenseRow
+                      key={row.key}
+                      row={row}
+                      index={index}
+                      preview={preview}
+                      maintenanceItems={activeMaintenanceItems}
+                      timeBasedCosts={activeTimeBasedCosts}
+                      onChange={(changes) => updateExpense(row.key, changes)}
+                      onRemove={() => removeExpense(row.key)}
+                    />
+                  ))}
+                </div>
+                {draftExpenses.length === 0 && (
+                  <div className="row-meta" style={{ marginBottom: 4 }}>{t("checkin.expenses_empty")}</div>
+                )}
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ marginTop: draftExpenses.length > 0 ? 10 : 4 }}
+                  onClick={addExpense}
+                >
+                  <Icon name="plus" size={12} /> {t("checkin.add_expense")}
                 </button>
+                {hasInvalidExpense && (
+                  <div className="row-meta" style={{ color: "var(--bad)", marginTop: 8 }}>
+                    {t("checkin.expense_invalid")}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 3 — review & confirm */}
+          {step === "review" &&
+            (previewError ? (
+              <div className="card">
+                <div className="checkin-preview-error" style={{ padding: "16px var(--pad)" }}>
+                  <div className="error-banner">{previewError}</div>
+                  <button className="btn btn-outline btn-sm" onClick={retryPreview}>
+                    {t("checkin.retry_preview")}
+                  </button>
+                </div>
               </div>
             ) : !preview ? (
-              <div style={{ padding: "16px var(--pad)" }} className="row-meta">
-                {t("checkin.review_hint")}
+              <div className="card">
+                <div style={{ padding: "16px var(--pad)" }} className="row-meta">
+                  {calculatingPreview ? t("checkin.calculating") : t("checkin.review_hint")}
+                </div>
               </div>
             ) : (
-              <div style={{ marginTop: 8 }}>
-                {preview.elapsed_days === 0 && !e.last_check_in_date && (
-                  <div className="row-meta" style={{ padding: "0 var(--pad) 12px" }}>
-                    {t("checkin.baseline_note")}
-                  </div>
-                )}
-                <div className="checkin-line">
-                  <div>
-                    <div>{t("checkin.allocations")}</div>
-                    <div className="checkin-line-detail">
-                      {t("checkin.allocations_detail", {
-                        days: preview.elapsed_days,
-                        count: preview.allocation_lines.length,
-                      })}
-                    </div>
-                  </div>
-                  <span></span>
-                  <span className="checkin-line-amt" style={{ color: "var(--good)" }}>
-                    {fmt(preview.total_allocation, { decimals: 2, sign: true })}
-                  </span>
-                </div>
-                <div className="checkin-line">
-                  <div>
-                    <div>{t("checkin.expenses")}</div>
-                    <div className="checkin-line-detail">
-                      {t("checkin.expenses_detail", { count: preview.expense_lines.length })}
-                    </div>
-                  </div>
-                  <span></span>
-                  <span className="checkin-line-amt" style={{ color: "var(--bad)" }}>
-                    {fmt(-preview.total_expense, { decimals: 2 })}
-                  </span>
-                </div>
-                <div className="checkin-line">
-                  <div>{t("checkin.covered_by_bucket")}</div>
-                  <span></span>
-                  <span className="checkin-line-amt">
-                    {fmt(-preview.total_bucket_expense, { decimals: 2 })}
-                  </span>
-                </div>
-                <div className="checkin-line">
-                  <div>{t("checkin.paid_out_of_pocket")}</div>
-                  <span></span>
-                  <span className="checkin-line-amt">
-                    {fmt(preview.paid_out_of_pocket, { decimals: 2 })}
-                  </span>
-                </div>
-                <div className="totals-row">
+              <>
+                <div className="allocation-callout" style={{ marginBottom: 16 }}>
                   <div>
                     <div className="label">{t("checkin.net_change")}</div>
-                    <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
+                    <div className="num">{fmt(preview.net_bucket_change, { decimals: 2, sign: true })}</div>
+                    <div className="sub">
                       {t("checkin.from_to", {
                         from: fmt(preview.balance_before, { decimals: 2 }),
                         to: fmt(preview.balance_after, { decimals: 2 }),
                       })}
                     </div>
                   </div>
-                  <div className="num-lg" style={{ color: preview.net_bucket_change >= 0 ? "var(--good)" : "var(--bad)" }}>
-                    {fmt(preview.net_bucket_change, { decimals: 2, sign: true })}
+                </div>
+                <div className="card">
+                  {preview.elapsed_days === 0 && !e.last_check_in_date && (
+                    <div className="row-meta" style={{ padding: "16px var(--pad) 0" }}>
+                      {t("checkin.baseline_note")}
+                    </div>
+                  )}
+                  <div className="checkin-line">
+                    <div>
+                      <div>{t("checkin.allocations")}</div>
+                      <div className="checkin-line-detail">
+                        {t("checkin.allocations_detail", {
+                          days: preview.elapsed_days,
+                          count: preview.allocation_lines.length,
+                        })}
+                      </div>
+                    </div>
+                    <span></span>
+                    <span className="checkin-line-amt" style={{ color: "var(--good)" }}>
+                      {fmt(preview.total_allocation, { decimals: 2, sign: true })}
+                    </span>
+                  </div>
+                  <div className="checkin-line">
+                    <div>
+                      <div>{t("checkin.expenses")}</div>
+                      <div className="checkin-line-detail">
+                        {t("checkin.expenses_detail", { count: preview.expense_lines.length })}
+                      </div>
+                    </div>
+                    <span></span>
+                    <span className="checkin-line-amt" style={{ color: "var(--bad)" }}>
+                      {fmt(-preview.total_expense, { decimals: 2 })}
+                    </span>
+                  </div>
+                  <div className="checkin-line">
+                    <div>{t("checkin.covered_by_bucket")}</div>
+                    <span></span>
+                    <span className="checkin-line-amt">{fmt(-preview.total_bucket_expense, { decimals: 2 })}</span>
+                  </div>
+                  <div className="checkin-line">
+                    <div>{t("checkin.paid_out_of_pocket")}</div>
+                    <span></span>
+                    <span className="checkin-line-amt">{fmt(preview.paid_out_of_pocket, { decimals: 2 })}</span>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* Step 3: maintenance flags */}
-          <div className="card">
-            <div className="card-hd">
-              <div>
-                <span className="card-title">{t("checkin.step3")}</span>{" "}
-                <span style={{ fontSize: 14, fontWeight: 500, color: "var(--ink)" }}>{t("checkin.step3_title")}</span>
-              </div>
-              {flags.length > 0 && <span className="pill pill-warn">{t("checkin.attention", { n: flags.length })}</span>}
-            </div>
-            <div style={{ padding: "14px var(--pad) 18px" }}>
-              {flags.length === 0 ? (
-                <div className="row-meta">{t("checkin.nothing_flagged")}</div>
-              ) : (
-                flags.map((m, i) => <FlagRow key={m.id} item={m} last={i === flags.length - 1} />)
-              )}
-            </div>
-          </div>
+                {editIsInvalid && editValidity?.first_invalid_period_end && (
+                  <div className="error-banner" style={{ marginTop: 12 }}>
+                    {t("checkin.edit_would_break_balance", { date: fmtDate(editValidity.first_invalid_period_end) })}
+                  </div>
+                )}
+                {postingError && (
+                  <div className="error-banner" style={{ marginTop: 12 }}>
+                    {postingError}
+                  </div>
+                )}
+                <div className="muted" style={{ fontSize: 12, lineHeight: 1.5, marginTop: 14 }}>
+                  {t("checkin.confirm_desc", { name: e.name })}
+                </div>
+              </>
+            ))}
         </div>
 
-        {/* Right — confirm panel */}
-        <div className="card" style={{ position: "sticky", top: 120, alignSelf: "start" }}>
-          <div className="card-pad">
-            <div className="eyebrow">{t("checkin.confirm_allocation")}</div>
-            <div
-              className="num-xl"
-              style={{ marginTop: 12, color: preview && preview.net_bucket_change < 0 ? "var(--bad)" : "var(--good)" }}
-            >
-              {preview ? fmt(preview.net_bucket_change, { decimals: 2, sign: true }) : "—"}
-            </div>
-            <div className="muted" style={{ fontSize: 13, marginTop: 8 }}>
-              {t("checkin.net_change_desc")}
-            </div>
-            <hr className="hr" />
-            <div className="stack" style={{ gap: 8 }}>
-              <RowKV k={t("checkin.allocations")} v={preview ? fmt(preview.total_allocation, { decimals: 2, sign: true }) : "—"} />
-              <RowKV k={t("checkin.expenses")} v={preview ? fmt(-preview.total_expense, { decimals: 2 }) : "—"} />
-              <RowKV
-                k={t("checkin.covered_by_bucket")}
-                v={preview ? fmt(-preview.total_bucket_expense, { decimals: 2 }) : "—"}
-              />
-              <RowKV
-                k={t("checkin.paid_out_of_pocket")}
-                v={preview ? fmt(preview.paid_out_of_pocket, { decimals: 2 }) : "—"}
-              />
-              <RowKV k={t("checkin.bucket_before")} v={preview ? fmt(preview.balance_before, { decimals: 2 }) : "—"} />
-              <RowKV k={t("checkin.bucket_after")} v={preview ? fmt(preview.balance_after, { decimals: 2 }) : "—"} bold />
-            </div>
-            <hr className="hr" />
-            <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-              {t("checkin.confirm_desc", { name: e.name })}
-            </div>
-            {editIsInvalid && editValidity?.first_invalid_period_end && (
-              <div className="error-banner" style={{ marginTop: 12 }}>
-                {t("checkin.edit_would_break_balance", { date: fmtDate(editValidity.first_invalid_period_end) })}
-              </div>
-            )}
-            {postingError && (
-              <div className="error-banner" style={{ marginTop: 12 }}>
-                {postingError}
-              </div>
-            )}
-            <button
-              className="btn btn-primary"
-              style={{ width: "100%", marginTop: 14, height: 38, justifyContent: "center" }}
-              disabled={
-                !preview ||
-                !previewIsCurrent ||
-                calculatingPreview ||
-                loadingPreview ||
-                previewError !== null ||
-                posting ||
-                posted ||
-                !formIsPreviewable ||
-                editIsInvalid
-              }
-              onClick={() => {
-                if (preview && previewIsCurrent && pocketOverrideWasClamped(draftExpenses, preview)) {
-                  setShowOutOfPocketDialog(true);
-                } else {
-                  void post();
-                }
-              }}
-            >
-              {posted ? (
-                <>
-                  <Icon name="check" size={14} /> {t("checkin.posted")}
-                </>
-              ) : posting ? (
+        <div className="wizard-footer">
+          <button className="btn btn-outline" onClick={goBack} disabled={stepIdx === 0}>
+            ← {t("checkin.back")}
+          </button>
+          {step !== "review" ? (
+            <button className="btn btn-primary" disabled={!canContinue} onClick={goNext}>
+              {t("checkin.continue")} <Icon name="arrowRight" size={13} />
+            </button>
+          ) : (
+            <button className="btn btn-primary" disabled={confirmDisabled} onClick={onConfirmClick}>
+              {posting ? (
                 t("checkin.posting")
               ) : (
                 <>
@@ -738,9 +751,10 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
                 </>
               )}
             </button>
-          </div>
+          )}
         </div>
       </div>
+
       {showOutOfPocketDialog && preview && previewIsCurrent && (
         <div className="modal-backdrop">
           <div
@@ -759,11 +773,7 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
               })}
             </p>
             <div className="modal-actions">
-              <button
-                className="btn btn-outline"
-                disabled={posting}
-                onClick={() => setShowOutOfPocketDialog(false)}
-              >
+              <button className="btn btn-outline" disabled={posting} onClick={() => setShowOutOfPocketDialog(false)}>
                 {t("checkin.out_of_pocket_back")}
               </button>
               <button className="btn btn-primary" disabled={posting} autoFocus onClick={() => void post()}>
@@ -773,6 +783,45 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function PostedState({
+  name,
+  netChange,
+  balanceAfter,
+  onDone,
+}: {
+  name: string;
+  netChange: number;
+  balanceAfter: number;
+  onDone: () => void;
+}) {
+  const { t } = useTranslation();
+  const fmt = useCurrency();
+  return (
+    <div className="content fade-in" style={{ display: "flex", justifyContent: "center" }}>
+      <div className="card card-pad ci-posted" style={{ maxWidth: 440, width: "100%", textAlign: "center" }}>
+        <div className="ci-posted-check">
+          <Icon name="check" size={26} />
+        </div>
+        <div className="h2" style={{ marginTop: 16 }}>
+          {t("checkin.posted_title")}
+        </div>
+        <div className="muted" style={{ fontSize: 13.5, marginTop: 6 }}>
+          {t("checkin.posted_sub", { name })}
+        </div>
+        <div className="num-xl" style={{ marginTop: 18, color: netChange >= 0 ? "var(--good)" : "var(--bad)" }}>
+          {fmt(netChange, { decimals: 2, sign: true })}
+        </div>
+        <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
+          {t("checkin.posted_new_balance", { amount: fmt(balanceAfter, { decimals: 2 }) })}
+        </div>
+        <button className="btn btn-primary" style={{ marginTop: 22 }} onClick={onDone}>
+          {t("checkin.posted_done")}
+        </button>
+      </div>
     </div>
   );
 }
@@ -939,19 +988,6 @@ function FlagRow({ item, last }: { item: MaintenanceItem; last: boolean }) {
         </div>
       </div>
       <span className={`pill ${pill.cls}`}>{pill.label}</span>
-    </div>
-  );
-}
-
-function RowKV({ k, v, bold }: { k: string; v: string; bold?: boolean }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-      <span className="muted" style={{ fontSize: 12.5 }}>
-        {k}
-      </span>
-      <span className="num" style={{ fontSize: bold ? 15 : 13, fontWeight: bold ? 500 : 400 }}>
-        {v}
-      </span>
     </div>
   );
 }

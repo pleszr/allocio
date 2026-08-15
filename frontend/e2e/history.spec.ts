@@ -34,11 +34,19 @@ test("History tab shows the empty state before any check-in is posted", async ({
 
 test("History tab lists a posted baseline check-in as a ledger row", async ({ page }) => {
   await createVehicleBucket(page, "E2E History Car");
+  const initialPreviewed = page.waitForResponse(
+    (r) => r.url().endsWith("/check-ins/preview") && r.request().method() === "POST",
+  );
   await page.getByRole("tab", { name: "Check-in" }).click();
+  await initialPreviewed;
 
-  // A freshly created asset's first check-in may post same-day as a zero-length baseline period
-  // (see docs/vehicle-rules.md, "First check-in"); the usage field is pre-seeded with the vehicle's
-  // starting odometer, so posting it unedited records a baseline row with no usage delta.
+  // The check-in screen is a guided wizard (period -> expenses -> review); advance to the review
+  // step, where the confirm button lives. A freshly created asset's first check-in may post same-day
+  // as a zero-length baseline period (see docs/vehicle-rules.md, "First check-in"); the usage field
+  // is pre-seeded with the vehicle's starting odometer, so posting it unedited records a baseline
+  // row with no usage delta.
+  await page.getByRole("button", { name: "Continue" }).click(); // period -> expenses
+  await page.getByRole("button", { name: "Continue" }).click(); // expenses -> review
   const posted = page.waitForResponse(
     (r) => r.url().includes("/check-ins") && !r.url().includes("/preview") && r.request().method() === "POST",
   );
