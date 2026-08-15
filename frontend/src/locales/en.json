@@ -123,6 +123,8 @@
     "time_based_title": "Time-based costs",
     "time_based_sub": "Recurring costs by when they're next due",
     "time_based_empty": "No time-based costs configured.",
+    "maint_map_title": "Maintenance map",
+    "maint_map_sub": "Hover an item to see where it lives",
     "category_time_based": "Time-based",
     "category_maintenance": "Maintenance",
     "due_overdue": "overdue now",
@@ -416,6 +418,12 @@
     "review_first_checkin_label": "First check-in expenses",
     "review_first_checkin_count_one": "{{count}} expense",
     "review_first_checkin_count_other": "{{count}} expenses"
+  },
+  "spatialMap": {
+    "focus_hint": "Hover an item to locate it",
+    "overdue": "overdue",
+    "km_left": "{{km}} km left",
+    "months_left": "{{months}} mo left"
   },
   "timeCostPanel": {
     "next_12_months": "Next 12 months",

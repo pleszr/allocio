@@ -5,6 +5,7 @@ import type { IntervalUnit, MaintenanceItem, TimeBasedCost, UsageBasedCost } fro
 import { CostDistributionChart } from "../components/CostDistributionChart";
 import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
+import { SpatialMap, spatialItems } from "../components/SpatialMap";
 import { TimeCostPanel } from "../components/TimeCostPanel";
 import { useCurrency } from "../utils/currency";
 import { fmtDate, fmtNumber } from "../utils/format";
@@ -166,7 +167,17 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
         </>
       )}
       {tab === "usage" && <UsageTable assetId={assetId} rows={usageRows} avgMonthlyUsage={avgMonthlyUsage} onChanged={reloadAll} />}
-      {tab === "maint" && <MaintTable assetId={assetId} rows={maintRows} onChanged={reloadAll} />}
+      {tab === "maint" && (
+        <>
+          {spatialItems(maintRows).length > 0 && (
+            <>
+              <SpatialMap maintenanceItems={maintRows} />
+              <div style={{ height: 20 }} />
+            </>
+          )}
+          <MaintTable assetId={assetId} rows={maintRows} onChanged={reloadAll} />
+        </>
+      )}
 
       <div className="card" style={{ marginTop: 24 }}>
         <div className="card-hd">

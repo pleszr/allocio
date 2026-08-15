@@ -123,6 +123,8 @@
     "time_based_title": "Idő alapú költségek",
     "time_based_sub": "Ismétlődő költségek a következő esedékesség szerint",
     "time_based_empty": "Nincs beállított idő alapú költség.",
+    "maint_map_title": "Karbantartási térkép",
+    "maint_map_sub": "Vigye rá az egérrel, hogy lássa, hol található",
     "category_time_based": "Idő alapú",
     "category_maintenance": "Karbantartás",
     "due_overdue": "már lejárt",
@@ -416,6 +418,12 @@
     "review_first_checkin_label": "Első elszámolás költségei",
     "review_first_checkin_count_one": "{{count}} költség",
     "review_first_checkin_count_other": "{{count}} költség"
+  },
+  "spatialMap": {
+    "focus_hint": "Vigye rá egy elemre a helyének megtekintéséhez",
+    "overdue": "lejárt",
+    "km_left": "{{km}} km van hátra",
+    "months_left": "{{months}} hó van hátra"
   },
   "timeCostPanel": {
     "next_12_months": "Következő 12 hónap",
