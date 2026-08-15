@@ -25,6 +25,7 @@ class CheckInExpenseLine:
     amount: Decimal
     bucket_amount: Decimal
     paid_out_of_pocket: Decimal
+    excluded_from_average: bool
     event_date: date
     comment: str | None
     source_type: str | None
@@ -112,6 +113,7 @@ class CheckInHistoryService:
                     amount=expense.amount,
                     bucket_amount=expense.bucket_amount,
                     paid_out_of_pocket=expense.paid_out_of_pocket,
+                    excluded_from_average=expense.excluded_from_average,
                     event_date=expense.event_date,
                     comment=expense.comment,
                     source_type=expense.source_type,

@@ -182,6 +182,10 @@ class ExpenseEventResponse(BaseModel):
     amount: Decimal = Field(description="Full real-world expense amount; stored positive.")
     bucket_amount: Decimal = Field(description="Portion of the expense covered by the virtual bucket.")
     paid_out_of_pocket: Decimal = Field(description="Derived remainder paid outside the virtual bucket.")
+    excluded_from_average: bool = Field(
+        description="When true, left out of the dashboard's trailing-average KPIs; never affects the bucket "
+        "balance or check-in totals."
+    )
     comment: str | None = Field(description="Free-text note describing the expense, if any.")
     source_type: str | None = Field(description="Source table for a modeled expense, else null.")
     source_id: uuid.UUID | None = Field(description="Id of the linked source row for a modeled expense, else null.")
@@ -206,6 +210,10 @@ class ExpenseLineResponse(BaseModel):
     amount: Decimal = Field(description="Full real-world expense amount; stored positive.")
     bucket_amount: Decimal = Field(description="Portion covered by the virtual bucket.")
     paid_out_of_pocket: Decimal = Field(description="Derived remainder paid outside the virtual bucket.")
+    excluded_from_average: bool = Field(
+        description="When true, left out of the dashboard's trailing-average KPIs; never affects the bucket "
+        "balance or check-in totals."
+    )
     event_date: date = Field(description="Date the expense occurred; resolved to today when the draft omitted it.")
     comment: str | None = Field(description="Free-text note describing the expense, if any.")
     source_type: str | None = Field(description="Source table for a modeled expense, else null.")
@@ -220,6 +228,10 @@ class CheckInExpenseLineResponse(BaseModel):
     amount: Decimal = Field(description="Full real-world expense amount; stored positive.")
     bucket_amount: Decimal = Field(description="Portion covered by the virtual bucket.")
     paid_out_of_pocket: Decimal = Field(description="Derived remainder paid outside the virtual bucket.")
+    excluded_from_average: bool = Field(
+        description="When true, left out of the dashboard's trailing-average KPIs; never affects the bucket "
+        "balance or check-in totals."
+    )
     event_date: date = Field(description="Date the expense occurred; resolved to today when the draft omitted it.")
     comment: str | None = Field(description="Free-text note describing the expense, if any.")
     source_type: str | None = Field(description="Source table for a modeled expense, else null.")

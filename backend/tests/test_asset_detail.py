@@ -684,6 +684,7 @@ def _add_expense(
     amount: str,
     event_date: date,
     paid_out_of_pocket: str = "0.00",
+    excluded_from_average: bool = False,
 ) -> None:
     session.add(
         ExpenseEvent(
@@ -693,6 +694,7 @@ def _add_expense(
             kind="other",
             amount=Decimal(amount),
             paid_out_of_pocket=Decimal(paid_out_of_pocket),
+            excluded_from_average=excluded_from_average,
         )
     )
     session.flush()
@@ -784,6 +786,32 @@ def test_average_monthly_cost_uses_inclusive_clamped_window_and_excludes_outside
     detail = _service_detail(db_session, asset_id, as_of)
 
     assert detail.average_monthly_cost == Decimal("30.00")
+    assert detail.avg_monthly_paid_out_of_pocket == Decimal("10.00")
+
+
+def test_average_monthly_cost_skips_expenses_excluded_from_average(
+    client: TestClient, db_session: Session
+) -> None:
+    asset_id = client.post("/api/assets", json={"name": "Catch-up signal", "type": "house"}).json()["asset"]["id"]
+    asset_uuid = uuid.UUID(asset_id)
+    as_of = date(2026, 7, 25)
+    check_in = _add_posted_check_in(db_session, asset_uuid, date(2026, 5, 1), as_of)
+    bucket_id = _bucket_id(db_session, asset_id)
+    _add_allocation(db_session, bucket_id, check_in.id, "120.00", date(2026, 6, 1))
+    _add_expense(db_session, bucket_id, "1000.00", date(2026, 7, 2), paid_out_of_pocket="120.00")
+    # A known one-time cost, flagged out of the trailing-average KPIs entirely.
+    _add_expense(
+        db_session,
+        bucket_id,
+        "500000.00",
+        date(2026, 7, 3),
+        paid_out_of_pocket="500000.00",
+        excluded_from_average=True,
+    )
+
+    detail = _service_detail(db_session, asset_id, as_of)
+
+    assert detail.average_monthly_cost == Decimal("20.00")
     assert detail.avg_monthly_paid_out_of_pocket == Decimal("10.00")
 
 
@@ -1132,6 +1160,35 @@ def test_manual_extra_recommendation_excludes_events_older_than_12_months(
     body = client.get(f"/api/assets/{asset_id}").json()
 
     assert Decimal(body["manual_extra_recommended"]) == Decimal("0")
+
+
+def test_manual_extra_recommendation_skips_expenses_excluded_from_average(
+    client: TestClient, db_session: Session
+) -> None:
+    """Mirrors the 3-whole-months-old fixture above, plus a flagged catch-up cost that must not count."""
+    asset_id = client.post("/api/assets", json={"name": "Catch-up gap", "type": "house"}).json()["asset"]["id"]
+    asset_uuid = uuid.UUID(asset_id)
+    as_of = date(2026, 7, 25)
+    asset = db_session.get(Asset, asset_uuid)
+    assert asset is not None
+    asset.created_at = datetime(2026, 4, 25, tzinfo=UTC)  # exactly 3 whole months before as_of
+    db_session.flush()
+    bucket_id = _bucket_id(db_session, asset_id)
+    _add_expense(db_session, bucket_id, "1500.00", as_of - timedelta(days=10))
+    # A known one-time catch-up cost, excluded from the shortfall gap that drives this recommendation.
+    _add_expense(
+        db_session,
+        bucket_id,
+        "500000.00",
+        as_of - timedelta(days=5),
+        paid_out_of_pocket="500000.00",
+        excluded_from_average=True,
+    )
+
+    detail = _service_detail(db_session, asset_id, as_of)
+
+    assert detail.manual_extra_recommended_months == 3
+    assert detail.manual_extra_recommended == Decimal("500.00")
 
 
 def test_update_manual_extra_persists_and_folds_into_recommended_allocation(

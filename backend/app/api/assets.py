@@ -379,6 +379,7 @@ def _to_check_in_history_response(history: CheckInHistory) -> CheckInHistoryResp
                         amount=line.amount,
                         bucket_amount=line.bucket_amount,
                         paid_out_of_pocket=line.paid_out_of_pocket,
+                        excluded_from_average=line.excluded_from_average,
                         event_date=line.event_date,
                         comment=line.comment,
                         source_type=line.source_type,

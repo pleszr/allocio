@@ -91,6 +91,14 @@ sheet's `AI` column. That is the entire cause of the one paid-out-of-pocket mism
 still reports (see the comment on the July 2026 `Period` below) -- verified cell-for-cell against
 the sheet, not assumed.
 
+Every expense line in the June 2025 (acquisition-date setup: insurance, tires, tax, inspection) and
+September 2025 (post-purchase catch-up service) periods is posted with `excluded_from_average=True`
+(issue: dashboard KPIs skewed by anticipated one-time purchase costs). Roland knew both outlays were
+coming when he bought the car, so they should not inflate `average_monthly_cost`,
+`avg_monthly_paid_out_of_pocket`, or `manual_extra_recommended` (`docs/vehicle-rules.md`, "Vehicle
+Dashboard Signals") the way a raw trailing-12-month average otherwise would. They still count in
+full everywhere else -- bucket balance, check-in totals, and History.
+
 Not part of the layered `app/` architecture and not wired into the code map; a personal, run-once
 data migration kept for reference/re-run rather than a reusable import feature.
 """
@@ -141,7 +149,14 @@ class Period:
     expected_paid_out_of_pocket: Decimal | None
 
 
-def modeled(technical_key: str, amount: str, source_map: SourceMap, event_date: date, usage_km: int) -> ExpenseDraft:
+def modeled(
+    technical_key: str,
+    amount: str,
+    source_map: SourceMap,
+    event_date: date,
+    usage_km: int,
+    excluded_from_average: bool = False,
+) -> ExpenseDraft:
     """Build a 'modeled' expense draft linked to a cost/maintenance row by its technical_key."""
     source_type, source_id = source_map[technical_key]
     return ExpenseDraft(
@@ -153,10 +168,13 @@ def modeled(technical_key: str, amount: str, source_map: SourceMap, event_date: 
         source_type=source_type,
         source_id=source_id,
         paid_out_of_pocket_override=None,
+        excluded_from_average=excluded_from_average,
     )
 
 
-def other(amount: str, comment: str, event_date: date, usage_km: int) -> ExpenseDraft:
+def other(
+    amount: str, comment: str, event_date: date, usage_km: int, excluded_from_average: bool = False
+) -> ExpenseDraft:
     """Build an 'other' (uncategorized, no source) expense draft."""
     return ExpenseDraft(
         kind="other",
@@ -167,6 +185,7 @@ def other(amount: str, comment: str, event_date: date, usage_km: int) -> Expense
         source_type=None,
         source_id=None,
         paid_out_of_pocket_override=None,
+        excluded_from_average=excluded_from_average,
     )
 
 
@@ -179,14 +198,14 @@ def build_periods(source_map: SourceMap) -> list[Period]:
             174500,
             "summer",
             [
-                modeled("mandatory_liability_insurance", "53000", source_map, date(2025, 6, 25), 174500),
-                modeled("comprehensive_insurance", "194648", source_map, date(2025, 6, 25), 174500),
-                modeled("vehicle_tax", "9570", source_map, date(2025, 6, 25), 174500),
-                modeled("motorway_vignette", "28000", source_map, date(2025, 6, 25), 174500),
-                modeled("vehicle_inspection", "41500", source_map, date(2025, 6, 25), 174500),
-                modeled("seasonal_tire_change", "15000", source_map, date(2025, 6, 25), 174500),
-                modeled("summer_tires", "190000", source_map, date(2025, 6, 25), 174500),
-                modeled("battery", "1", source_map, date(2025, 6, 25), 174500),
+                modeled("mandatory_liability_insurance", "53000", source_map, date(2025, 6, 25), 174500, True),
+                modeled("comprehensive_insurance", "194648", source_map, date(2025, 6, 25), 174500, True),
+                modeled("vehicle_tax", "9570", source_map, date(2025, 6, 25), 174500, True),
+                modeled("motorway_vignette", "28000", source_map, date(2025, 6, 25), 174500, True),
+                modeled("vehicle_inspection", "41500", source_map, date(2025, 6, 25), 174500, True),
+                modeled("seasonal_tire_change", "15000", source_map, date(2025, 6, 25), 174500, True),
+                modeled("summer_tires", "190000", source_map, date(2025, 6, 25), 174500, True),
+                modeled("battery", "1", source_map, date(2025, 6, 25), 174500, True),
             ],
             zero,
             Decimal("531719"),
@@ -203,16 +222,20 @@ def build_periods(source_map: SourceMap) -> list[Period]:
                 # sheet's own H9:U9 row (front brake disc through 'egyéb'), summing to AH9's
                 # 1,140,002 Ft exactly. `rear_brake_disc` (I9) is blank in the sheet -- no cost, no
                 # line posted for it.
-                modeled("front_brake_disc", "100000", source_map, date(2025, 9, 1), 176829),
-                modeled("front_brake_pad", "50000", source_map, date(2025, 9, 1), 176829),
-                modeled("rear_brake_pad", "1", source_map, date(2025, 9, 1), 176829),
-                modeled("annual_service", "60000", source_map, date(2025, 9, 1), 176829),
-                modeled("automatic_transmission_fluid", "140000", source_map, date(2025, 9, 1), 176829),
-                modeled("fuel_filter", "40000", source_map, date(2025, 9, 1), 176829),
-                modeled("water_pump", "1", source_map, date(2025, 9, 1), 176829),
-                modeled("timing_system", "250000", source_map, date(2025, 9, 1), 176829),
+                modeled("front_brake_disc", "100000", source_map, date(2025, 9, 1), 176829, True),
+                modeled("front_brake_pad", "50000", source_map, date(2025, 9, 1), 176829, True),
+                modeled("rear_brake_pad", "1", source_map, date(2025, 9, 1), 176829, True),
+                modeled("annual_service", "60000", source_map, date(2025, 9, 1), 176829, True),
+                modeled("automatic_transmission_fluid", "140000", source_map, date(2025, 9, 1), 176829, True),
+                modeled("fuel_filter", "40000", source_map, date(2025, 9, 1), 176829, True),
+                modeled("water_pump", "1", source_map, date(2025, 9, 1), 176829, True),
+                modeled("timing_system", "250000", source_map, date(2025, 9, 1), 176829, True),
                 other(
-                    "500000", "Imported from spreadsheet: uncategorized 'egyéb' cost, Sep 2025", date(2025, 9, 1), 176829
+                    "500000",
+                    "Imported from spreadsheet: uncategorized 'egyéb' cost, Sep 2025",
+                    date(2025, 9, 1),
+                    176829,
+                    True,
                 ),
             ],
             zero,

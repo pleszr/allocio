@@ -44,6 +44,7 @@ class ExpenseDraft:
     source_type: str | None
     source_id: uuid.UUID | None
     paid_out_of_pocket_override: Decimal | None
+    excluded_from_average: bool = False
 
 
 @dataclass(frozen=True)
@@ -277,6 +278,7 @@ class CheckInService:
                 amount=event.amount,
                 bucket_amount=event.bucket_amount,
                 paid_out_of_pocket=event.paid_out_of_pocket,
+                excluded_from_average=event.excluded_from_average,
                 event_date=event.event_date,
                 comment=event.comment,
                 source_type=event.source_type,
@@ -456,6 +458,7 @@ class CheckInService:
                 source_id=draft.source_id,
                 usage_counter_at_event=draft.usage_counter_at_event,
                 paid_out_of_pocket_override=draft.paid_out_of_pocket_override,
+                excluded_from_average=draft.excluded_from_average,
             )
             for draft in expenses
         ]
@@ -610,6 +613,7 @@ class CheckInService:
                 kind=line.kind,
                 amount=line.amount,
                 paid_out_of_pocket=line.paid_out_of_pocket,
+                excluded_from_average=line.excluded_from_average,
                 comment=line.comment,
                 source_type=line.source_type,
                 source_id=line.source_id,

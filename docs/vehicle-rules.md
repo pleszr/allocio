@@ -543,7 +543,8 @@ A user may correct a posted check-in's expenses from the History tab. This is a 
 exception to the future-only rule above, not a general reopen of posted history:
 
 - editable: only that check-in's `expense_event` rows (add/remove/edit `amount`, `comment`,
-  `source_type`/`source_id`, and the `paid_out_of_pocket` split) and its `notes`
+  `source_type`/`source_id`, the `paid_out_of_pocket` split, and `excluded_from_average`) and its
+  `notes`
 - immutable even on this path: `period_end`, `usage_start`/`usage_end`, `active_tire_type`, and every
   `allocation_event` row — the period's derived accrual is never recomputed and never recomputed from
   a since-changed cost rate, since the edit reuses the check-in's own already-posted allocation total
@@ -656,10 +657,20 @@ If the user-configured rate is:
   `paid_out_of_pocket` portions of expense events inside the inclusive trailing 12-calendar-month
   window. The cutoff is `as_of` shifted back 12 calendar months with day clamping. All allocation
   source types are included, including `manual_extra`; older and future-dated events are excluded.
-  The result is currency-quantized and is zero when the window has no qualifying history.
-- **Avg. monthly paid out of pocket** is the same trailing 12-calendar-month window and cutoff as
-  average monthly cost, but sums only expense events' `paid_out_of_pocket` portions (no allocation
-  amounts) before dividing by 12. Currency-quantized; zero when the window has no qualifying history.
+  Any expense with `excluded_from_average = true` is skipped entirely (its `paid_out_of_pocket`
+  never enters the sum) — for a known one-time cost the user has flagged as not representative of
+  ongoing spend. The result is currency-quantized and is zero when the window has no qualifying
+  history.
+- **Avg. monthly paid out of pocket** is the same trailing 12-calendar-month window, cutoff, and
+  `excluded_from_average` skip as average monthly cost, but sums only expense events'
+  `paid_out_of_pocket` portions (no allocation amounts) before dividing by 12. Currency-quantized;
+  zero when the window has no qualifying history.
+- **Recommended extra (manual-extra recommendation)** sums the trailing 365 days' expense `amount`
+  (skipping any `excluded_from_average` expense, same as above) minus the trailing 365 days'
+  allocation amounts, floors the gap at zero, then divides by the asset's whole calendar months
+  since creation, clamped to `[1, 12]` — a shorter divisor for an asset under a year old, capped at
+  12 for an older one. Derived guidance only; it never overwrites the stored `manual_extra_monthly`
+  value on its own.
 - **Next maintenance** is the active maintenance view with the smallest non-null `remaining_km`.
   This excludes month-only rows and kilometer rows without a comparable current-usage/service
   baseline. Overdue distance remains clamped to zero. Equal distances sort by case-insensitive

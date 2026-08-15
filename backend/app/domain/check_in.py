@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, text
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -76,6 +76,9 @@ class ExpenseEvent(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     paid_out_of_pocket: Mapped[Decimal] = mapped_column(
         Numeric(14, 2), nullable=False, server_default=text("0"), default=Decimal(0)
+    )
+    excluded_from_average: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false"), default=False
     )
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     source_type: Mapped[str | None] = mapped_column(String, nullable=True)
