@@ -120,6 +120,9 @@
     "upcoming_title": "Upcoming expenses",
     "upcoming_sub": "Forecasted over the next 3 months",
     "upcoming_empty": "Nothing forecasted in this window.",
+    "time_based_title": "Time-based costs",
+    "time_based_sub": "Recurring costs by when they're next due",
+    "time_based_empty": "No time-based costs configured.",
     "category_time_based": "Time-based",
     "category_maintenance": "Maintenance",
     "due_overdue": "overdue now",
@@ -413,6 +416,17 @@
     "review_first_checkin_label": "First check-in expenses",
     "review_first_checkin_count_one": "{{count}} expense",
     "review_first_checkin_count_other": "{{count}} expenses"
+  },
+  "timeCostPanel": {
+    "next_12_months": "Next 12 months",
+    "hover_hint": "hover a cost",
+    "focus": "{{label}} · {{amount}} · {{due}}",
+    "in_days": "in {{days}}d",
+    "overdue": "overdue",
+    "due_date": "due {{date}}",
+    "no_due_date": "no date set",
+    "no_dates_hint": "No due dates set yet — add one to a cost to place it on the timeline.",
+    "annual_total": "Annual total"
   },
   "templates": {
     "vehicle": {

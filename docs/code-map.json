@@ -4614,6 +4614,38 @@
           ]
         },
         {
+          "path": "frontend/src/components/TimeCostPanel.tsx",
+          "language": "typescript",
+          "imports": [
+            "../api/types",
+            "../utils/currency",
+            "../utils/format",
+            "react",
+            "react-i18next"
+          ],
+          "exports": [
+            "TimeCostPanel"
+          ],
+          "functions": [
+            {
+              "name": "TimeCostPanel",
+              "line_start": 29,
+              "line_end": 207,
+              "hash": "8697f924c9413eec"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "TimeCostPanel",
+              "line_start": 29,
+              "line_end": 207,
+              "hash": "8697f924c9413eec",
+              "kind": "function"
+            }
+          ]
+        },
+        {
           "path": "frontend/src/components/TopBar.tsx",
           "language": "typescript",
           "imports": [
@@ -4842,6 +4874,7 @@
             "../components/CostDistributionChart",
             "../components/Icon",
             "../components/StateView",
+            "../components/TimeCostPanel",
             "../utils/currency",
             "../utils/format",
             "../utils/maintenanceStatus",
@@ -4855,98 +4888,98 @@
           "functions": [
             {
               "name": "ActiveToggle",
-              "line_start": 783,
-              "line_end": 791,
+              "line_start": 790,
+              "line_end": 798,
               "hash": "ef34fd4f7587900c"
             },
             {
               "name": "CostsScreen",
-              "line_start": 21,
-              "line_end": 187,
-              "hash": "f3d05341169d880f"
+              "line_start": 22,
+              "line_end": 194,
+              "hash": "2553da4c85fbfdea"
             },
             {
               "name": "EditActions",
-              "line_start": 757,
-              "line_end": 781,
+              "line_start": 764,
+              "line_end": 788,
               "hash": "2aca5443da9c1705"
             },
             {
               "name": "LabeledInput",
-              "line_start": 724,
-              "line_end": 743,
+              "line_start": 731,
+              "line_end": 750,
               "hash": "7f8fe7d5b0379745"
             },
             {
               "name": "LabeledMoney",
-              "line_start": 745,
-              "line_end": 755,
+              "line_start": 752,
+              "line_end": 762,
               "hash": "2fd6ac9280c6f385"
             },
             {
               "name": "MaintCreateRow",
-              "line_start": 684,
-              "line_end": 721,
+              "line_start": 691,
+              "line_end": 728,
               "hash": "0427f560dfaac8d6"
             },
             {
               "name": "MaintEditRow",
-              "line_start": 642,
-              "line_end": 682,
+              "line_start": 649,
+              "line_end": 689,
               "hash": "788f6fe0b73d3e9b"
             },
             {
               "name": "MaintTable",
-              "line_start": 569,
-              "line_end": 640,
+              "line_start": 576,
+              "line_end": 647,
               "hash": "38ce32d7cd6622b8"
             },
             {
               "name": "ManualExtraEditor",
-              "line_start": 190,
-              "line_end": 252,
+              "line_start": 197,
+              "line_end": 259,
               "hash": "c279e7fa0d406e1a"
             },
             {
               "name": "TimeCreateRow",
-              "line_start": 395,
-              "line_end": 438,
+              "line_start": 402,
+              "line_end": 445,
               "hash": "581cdd817ab1deb0"
             },
             {
               "name": "TimeEditRow",
-              "line_start": 337,
-              "line_end": 393,
+              "line_start": 344,
+              "line_end": 400,
               "hash": "094d860b453d0cea"
             },
             {
               "name": "TimeTable",
-              "line_start": 276,
-              "line_end": 335,
+              "line_start": 283,
+              "line_end": 342,
               "hash": "c2190d4f93d3581d"
             },
             {
               "name": "UsageCreateRow",
-              "line_start": 540,
-              "line_end": 566,
+              "line_start": 547,
+              "line_end": 573,
               "hash": "aa3946f85e7372f2"
             },
             {
               "name": "UsageEditRow",
-              "line_start": 507,
-              "line_end": 538,
+              "line_start": 514,
+              "line_end": 545,
               "hash": "48a385c2b3ecbad4"
             },
             {
               "name": "UsageTable",
-              "line_start": 441,
-              "line_end": 505,
+              "line_start": 448,
+              "line_end": 512,
               "hash": "55481e2b839cdf17"
             },
             {
               "name": "useMutation",
-              "line_start": 255,
-              "line_end": 273,
+              "line_start": 262,
+              "line_end": 280,
               "hash": "d5ef544cd4cf10e0"
             }
           ],
@@ -4954,106 +4987,106 @@
           "components": [
             {
               "name": "ActiveToggle",
-              "line_start": 783,
-              "line_end": 791,
+              "line_start": 790,
+              "line_end": 798,
               "hash": "ef34fd4f7587900c",
               "kind": "function"
             },
             {
               "name": "CostsScreen",
-              "line_start": 21,
-              "line_end": 187,
-              "hash": "f3d05341169d880f",
+              "line_start": 22,
+              "line_end": 194,
+              "hash": "2553da4c85fbfdea",
               "kind": "function"
             },
             {
               "name": "EditActions",
-              "line_start": 757,
-              "line_end": 781,
+              "line_start": 764,
+              "line_end": 788,
               "hash": "2aca5443da9c1705",
               "kind": "function"
             },
             {
               "name": "LabeledInput",
-              "line_start": 724,
-              "line_end": 743,
+              "line_start": 731,
+              "line_end": 750,
               "hash": "7f8fe7d5b0379745",
               "kind": "function"
             },
             {
               "name": "LabeledMoney",
-              "line_start": 745,
-              "line_end": 755,
+              "line_start": 752,
+              "line_end": 762,
               "hash": "2fd6ac9280c6f385",
               "kind": "function"
             },
             {
               "name": "MaintCreateRow",
-              "line_start": 684,
-              "line_end": 721,
+              "line_start": 691,
+              "line_end": 728,
               "hash": "0427f560dfaac8d6",
               "kind": "function"
             },
             {
               "name": "MaintEditRow",
-              "line_start": 642,
-              "line_end": 682,
+              "line_start": 649,
+              "line_end": 689,
               "hash": "788f6fe0b73d3e9b",
               "kind": "function"
             },
             {
               "name": "MaintTable",
-              "line_start": 569,
-              "line_end": 640,
+              "line_start": 576,
+              "line_end": 647,
               "hash": "38ce32d7cd6622b8",
               "kind": "function"
             },
             {
               "name": "ManualExtraEditor",
-              "line_start": 190,
-              "line_end": 252,
+              "line_start": 197,
+              "line_end": 259,
               "hash": "c279e7fa0d406e1a",
               "kind": "function"
             },
             {
               "name": "TimeCreateRow",
-              "line_start": 395,
-              "line_end": 438,
+              "line_start": 402,
+              "line_end": 445,
               "hash": "581cdd817ab1deb0",
               "kind": "function"
             },
             {
               "name": "TimeEditRow",
-              "line_start": 337,
-              "line_end": 393,
+              "line_start": 344,
+              "line_end": 400,
               "hash": "094d860b453d0cea",
               "kind": "function"
             },
             {
               "name": "TimeTable",
-              "line_start": 276,
-              "line_end": 335,
+              "line_start": 283,
+              "line_end": 342,
               "hash": "c2190d4f93d3581d",
               "kind": "function"
             },
             {
               "name": "UsageCreateRow",
-              "line_start": 540,
-              "line_end": 566,
+              "line_start": 547,
+              "line_end": 573,
               "hash": "aa3946f85e7372f2",
               "kind": "function"
             },
             {
               "name": "UsageEditRow",
-              "line_start": 507,
-              "line_end": 538,
+              "line_start": 514,
+              "line_end": 545,
               "hash": "48a385c2b3ecbad4",
               "kind": "function"
             },
             {
               "name": "UsageTable",
-              "line_start": 441,
-              "line_end": 505,
+              "line_start": 448,
+              "line_end": 512,
               "hash": "55481e2b839cdf17",
               "kind": "function"
             }
@@ -5069,6 +5102,7 @@
             "../components/Illustrations",
             "../components/Sparkline",
             "../components/StateView",
+            "../components/TimeCostPanel",
             "../routes",
             "../utils/assetType",
             "../utils/currency",
@@ -5085,32 +5119,26 @@
           "functions": [
             {
               "name": "DashboardScreen",
-              "line_start": 28,
-              "line_end": 321,
-              "hash": "dacf37661740025c"
+              "line_start": 29,
+              "line_end": 326,
+              "hash": "7ef5766d54da457d"
             },
             {
               "name": "MaintCompactRow",
-              "line_start": 335,
-              "line_end": 360,
+              "line_start": 340,
+              "line_end": 365,
               "hash": "bf34b2a0d41106f1"
             },
             {
               "name": "TxRow",
-              "line_start": 393,
-              "line_end": 432,
+              "line_start": 367,
+              "line_end": 406,
               "hash": "cbb1c90fe6db32dd"
             },
             {
-              "name": "UpcomingRow",
-              "line_start": 362,
-              "line_end": 391,
-              "hash": "1091459e134e8390"
-            },
-            {
               "name": "formatTrackedDuration",
-              "line_start": 323,
-              "line_end": 333,
+              "line_start": 328,
+              "line_end": 338,
               "hash": "44232a62daeeb896"
             }
           ],
@@ -5118,30 +5146,23 @@
           "components": [
             {
               "name": "DashboardScreen",
-              "line_start": 28,
-              "line_end": 321,
-              "hash": "dacf37661740025c",
+              "line_start": 29,
+              "line_end": 326,
+              "hash": "7ef5766d54da457d",
               "kind": "function"
             },
             {
               "name": "MaintCompactRow",
-              "line_start": 335,
-              "line_end": 360,
+              "line_start": 340,
+              "line_end": 365,
               "hash": "bf34b2a0d41106f1",
               "kind": "function"
             },
             {
               "name": "TxRow",
-              "line_start": 393,
-              "line_end": 432,
+              "line_start": 367,
+              "line_end": 406,
               "hash": "cbb1c90fe6db32dd",
-              "kind": "function"
-            },
-            {
-              "name": "UpcomingRow",
-              "line_start": 362,
-              "line_end": 391,
-              "hash": "1091459e134e8390",
               "kind": "function"
             }
           ]

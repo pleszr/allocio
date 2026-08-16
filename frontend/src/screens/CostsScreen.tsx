@@ -5,6 +5,7 @@ import type { IntervalUnit, MaintenanceItem, TimeBasedCost, UsageBasedCost } fro
 import { CostDistributionChart } from "../components/CostDistributionChart";
 import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
+import { TimeCostPanel } from "../components/TimeCostPanel";
 import { useCurrency } from "../utils/currency";
 import { fmtDate, fmtNumber } from "../utils/format";
 import { maintenancePill } from "../utils/maintenanceStatus";
@@ -157,7 +158,13 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
         </div>
       </div>
 
-      {tab === "time" && <TimeTable assetId={assetId} rows={timeRows} onChanged={reloadAll} />}
+      {tab === "time" && (
+        <>
+          <TimeCostPanel costs={timeRows} />
+          {timeRows.some((row) => row.is_active) && <div style={{ height: 20 }} />}
+          <TimeTable assetId={assetId} rows={timeRows} onChanged={reloadAll} />
+        </>
+      )}
       {tab === "usage" && <UsageTable assetId={assetId} rows={usageRows} avgMonthlyUsage={avgMonthlyUsage} onChanged={reloadAll} />}
       {tab === "maint" && <MaintTable assetId={assetId} rows={maintRows} onChanged={reloadAll} />}
 

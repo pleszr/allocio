@@ -1227,3 +1227,40 @@ select.input {
   font-size: 12.5px;
   margin-top: 6px;
 }
+
+/* ── Time-based cost panel (timeline + donut) ──────────────────────── */
+.tcp { display: grid; grid-template-columns: 1.5fr 1fr; background: var(--surface); border-radius: var(--radius); overflow: hidden; border: 1px solid rgba(15,23,42,.04); box-shadow: 0 1px 0 rgba(15,23,42,.04), 0 4px 14px rgba(15,23,42,.05); }
+.tcp-stage { padding: 20px 24px; display: flex; flex-direction: column; gap: 10px; justify-content: center; background: var(--surface-sunk); }
+.tcp-hd { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.tcp-title { font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); flex-shrink: 0; }
+.tcp-focus { font-family: var(--mono); font-size: 11.5px; color: var(--accent-ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tcp-svg { width: 100%; height: auto; overflow: visible; }
+.tcp-no-dates { font-size: 12.5px; color: var(--muted); line-height: 1.5; padding: 8px 0; }
+.tcp-month { font-family: var(--mono); font-size: 2.6px; fill: var(--muted-2); }
+.tcp-today { stroke: var(--line-strong); stroke-width: .4; stroke-dasharray: 1.2 1.2; }
+.tcp-track-bg { stroke: var(--line); stroke-width: 2; stroke-linecap: round; }
+.tcp-track-fill { stroke: var(--line-strong); stroke-width: 2; stroke-linecap: round; transition: stroke .2s ease; }
+.tcp-track-fill.active { stroke: var(--accent); }
+.tcp-dot { fill: var(--line-strong); transition: fill .2s ease; }
+.tcp-dot.active { fill: var(--accent); }
+.tcp-hit { fill: transparent; cursor: pointer; }
+.tcp-right { padding: 10px 14px; display: flex; flex-direction: column; min-width: 0; }
+.tcp-list { display: flex; flex-direction: column; gap: 2px; }
+.tcp-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background .15s ease; }
+.tcp-item:hover, .tcp-item.hovered { background: var(--paper-2); }
+.tcp-item.selected { background: var(--accent-soft); }
+.tcp-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tcp-item-name { font-size: 13.5px; font-weight: 500; }
+.tcp-item-sub { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+.tcp-item-amt { font-family: var(--mono); font-size: 13px; font-weight: 600; text-align: right; flex-shrink: 0; }
+.tcp-magnitude { display: block; width: 44px; height: 3px; border-radius: 99px; background: var(--line); margin-top: 6px; margin-left: auto; overflow: hidden; }
+.tcp-magnitude i { display: block; height: 100%; background: var(--muted-2); border-radius: 99px; }
+.tcp-item.selected .tcp-magnitude i, .tcp-item.hovered .tcp-magnitude i { background: var(--accent); }
+.tcp-pie-row { display: flex; align-items: center; gap: 16px; padding: 16px 12px 4px; border-top: 1px solid var(--line-soft); margin-top: 8px; }
+.tcp-pie-svg { width: 84px; height: 84px; flex-shrink: 0; transform: rotate(-90deg); }
+.tcp-pie-slice { fill: none; stroke-width: 14; transition: stroke .2s ease, opacity .2s ease; cursor: pointer; }
+.tcp-pie-slice.active { stroke: var(--accent) !important; }
+.tcp-pie-slice.dimmed { opacity: .4; }
+.tcp-pie-lbl { font-size: 11px; color: var(--muted); }
+.tcp-pie-total { font-size: 17px; font-weight: 600; margin-top: 2px; }
+@media (max-width: 860px) { .tcp { grid-template-columns: 1fr; } }

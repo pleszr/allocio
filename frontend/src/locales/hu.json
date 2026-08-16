@@ -120,6 +120,9 @@
     "upcoming_title": "Közelgő kiadások",
     "upcoming_sub": "A következő 3 hónapra előrejelezve",
     "upcoming_empty": "Ebben az időszakban nincs előrejelzett kiadás.",
+    "time_based_title": "Idő alapú költségek",
+    "time_based_sub": "Ismétlődő költségek a következő esedékesség szerint",
+    "time_based_empty": "Nincs beállított idő alapú költség.",
     "category_time_based": "Idő alapú",
     "category_maintenance": "Karbantartás",
     "due_overdue": "már lejárt",
@@ -413,6 +416,17 @@
     "review_first_checkin_label": "Első elszámolás költségei",
     "review_first_checkin_count_one": "{{count}} költség",
     "review_first_checkin_count_other": "{{count}} költség"
+  },
+  "timeCostPanel": {
+    "next_12_months": "Következő 12 hónap",
+    "hover_hint": "vigye rá egy költségre",
+    "focus": "{{label}} · {{amount}} · {{due}}",
+    "in_days": "{{days}} nap múlva",
+    "overdue": "lejárt",
+    "due_date": "esedékes: {{date}}",
+    "no_due_date": "nincs dátum",
+    "no_dates_hint": "Még nincs beállított esedékesség — adj meg egyet egy költséghez, hogy megjelenjen az idővonalon.",
+    "annual_total": "Éves összesen"
   },
   "templates": {
     "vehicle": {
