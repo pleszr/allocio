@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
 import type { ActivityItem, MaintenanceItem } from "../api/types";
 import type { CostsTab } from "../routes";
+import { CostHistoryModal, type HistoryTarget, timeCostHistoryTarget } from "../components/CostHistoryModal";
 import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
 import { Sparkline } from "../components/Sparkline";
@@ -33,6 +34,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const detail = useAsync(() => api.getAsset(assetId), [assetId]);
   const timeBased = useAsync(() => api.listTimeBasedCosts(assetId), [assetId]);
   const [months, setMonths] = useState(12);
+  const [historyTarget, setHistoryTarget] = useState<HistoryTarget | null>(null);
   const history = useAsync(() => api.getBalanceHistory(assetId, months), [assetId, months]);
 
   if (detail.loading) return <LoadingState label={t("dashboard.loading")} />;
@@ -269,7 +271,11 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
               <div className="row-meta" style={{ padding: "12px var(--pad)" }}>{t("common.loading")}</div>
             ) : hasTimeCosts ? (
               <div style={{ padding: "4px 0 4px" }}>
-                <TimeCostPanel costs={timeCosts} compact />
+                <TimeCostPanel
+                  costs={timeCosts}
+                  compact
+                  onOpenHistory={(cost) => setHistoryTarget(timeCostHistoryTarget(cost, t, fmt))}
+                />
               </div>
             ) : (
               <div className="row-meta" style={{ padding: "12px var(--pad)" }}>{t("dashboard.time_based_empty")}</div>
@@ -339,6 +345,16 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           </div>
         </div>
       </div>
+      {historyTarget && (
+        <CostHistoryModal
+          assetId={assetId}
+          kind={historyTarget.kind}
+          costId={historyTarget.costId}
+          label={historyTarget.label}
+          meta={historyTarget.meta}
+          onClose={() => setHistoryTarget(null)}
+        />
+      )}
     </div>
   );
 }

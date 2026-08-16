@@ -207,7 +207,7 @@ Rules:
 - `first_due_date` is a nullable anchor date of a known occurrence
 - `created_at` is the row's creation timestamp, used as the fallback cycle start when no explicit anchor is set
 - when `first_due_date` is set, a next-due date is derived by rolling the interval forward to the first occurrence on or after today
-- when `first_due_date` is null the anchor is the earliest linked payment's `event_date` (the first month the cost occurred, recorded as a modeled expense), rolled forward; with no linked payment it falls back to `created_at` (one interval past creation)
+- when `first_due_date` is null the anchor is the latest linked payment's `event_date` (the most recent month the cost occurred, recorded as a modeled expense), rolled forward; with no linked payment it falls back to `created_at` (one interval past creation)
 - template rows are seeded with a null anchor but still resolve a next-due date (from a linked payment when one exists, otherwise creation-derived)
 - the anchor and its derived next-due date are informational only and do not affect accrual
 - recurring-cost API reads derive the current rollover-aware `reference_amount`, canonical

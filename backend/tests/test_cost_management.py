@@ -420,24 +420,24 @@ def test_next_due_roll_forward_correct_through_api(client: TestClient) -> None:
     assert response.json()["next_due_date"] == occurrence.isoformat()
 
 
-def test_next_due_anchors_on_earliest_linked_payment(client: TestClient, db_session: Session) -> None:
+def test_next_due_anchors_on_latest_linked_payment(client: TestClient, db_session: Session) -> None:
     created = _create_vehicle(client)
     asset_id = created["asset"]["id"]
     cost = next(c for c in created["time_based_costs"] if c["technical_key"] == "comprehensive_insurance")
 
-    # Two recorded occurrences of the cost; the earlier is the first month it occurred (the anchor).
-    first_payment = date(2025, 6, 25)
-    _seed_linked_payment(db_session, asset_id, cost["id"], date(2026, 2, 1))
-    _seed_linked_payment(db_session, asset_id, cost["id"], first_payment)
+    # Two recorded occurrences of the cost; the later is the most recent occurrence (the anchor).
+    latest_payment = date(2026, 2, 1)
+    _seed_linked_payment(db_session, asset_id, cost["id"], latest_payment)
+    _seed_linked_payment(db_session, asset_id, cost["id"], date(2025, 6, 25))
 
     listed = client.get(f"/api/assets/{asset_id}/time-based-costs").json()
     row = next(r for r in listed if r["id"] == cost["id"])
 
-    expected = calculator.next_due_date(first_payment, cost["interval_value"], cost["interval_unit"], date.today())
+    expected = calculator.next_due_date(latest_payment, cost["interval_value"], cost["interval_unit"], date.today())
     assert row["first_due_date"] is None
     assert row["next_due_date"] == expected.isoformat()
     # Anchored on the payment month rather than the creation date: the due day matches the payment.
-    assert date.fromisoformat(row["next_due_date"]).day == first_payment.day
+    assert date.fromisoformat(row["next_due_date"]).day == latest_payment.day
 
 
 def test_explicit_anchor_beats_linked_payment(client: TestClient, db_session: Session) -> None:

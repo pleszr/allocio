@@ -128,16 +128,17 @@ class CostService:
     def _resolve_next_due(self, cost: TimeBasedCost, linked_dates: list[date], as_of: date) -> date | None:
         """Resolve a cost's next-due date from the best available anchor.
 
-        Anchor priority: an explicit ``first_due_date`` wins; otherwise the earliest linked payment's
-        ``event_date`` — the first month the cost actually occurred, recorded as a modeled expense —
-        is a real occurrence rolled forward to today; failing that, the cost's ``created_at`` is
-        treated as the cycle start (next occurrence one interval past creation). Returns ``None`` only
-        for an unsaved row with no anchor, no payment, and no creation timestamp.
+        Anchor priority: an explicit ``first_due_date`` wins; otherwise the latest linked payment's
+        ``event_date`` — the most recent month the cost actually occurred, recorded as a modeled
+        expense — is a real occurrence rolled forward to today, so a fresh payment moves the next-due
+        one interval past it; failing that, the cost's ``created_at`` is treated as the cycle start
+        (next occurrence one interval past creation). Returns ``None`` only for an unsaved row with no
+        anchor, no payment, and no creation timestamp.
         """
         if cost.first_due_date is not None:
             return calculator.next_due_date(cost.first_due_date, cost.interval_value, cost.interval_unit, as_of)
         if linked_dates:
-            return calculator.next_due_date(min(linked_dates), cost.interval_value, cost.interval_unit, as_of)
+            return calculator.next_due_date(max(linked_dates), cost.interval_value, cost.interval_unit, as_of)
         if cost.created_at is None:
             return None
         return calculator.next_due_from_start(cost.created_at.date(), cost.interval_value, cost.interval_unit, as_of)
