@@ -111,6 +111,27 @@ def list_linked_time_based_event_dates(session: Session, cost_id: uuid.UUID) -> 
     return list(session.scalars(stmt).all())
 
 
+def list_expenses_for_source(
+    session: Session, bucket_id: uuid.UUID, source_type: str, source_id: uuid.UUID
+) -> list[ExpenseEvent]:
+    """Return every expense event linked to one cost/maintenance source row, ascending by `event_date`.
+
+    Scoped to the asset's bucket so it never crosses ownership, and matched on `(source_type,
+    source_id)` so it covers both check-in-posted and standalone payments for that row — the same set
+    the next-due anchor is derived from.
+    """
+    stmt = (
+        select(ExpenseEvent)
+        .where(
+            ExpenseEvent.bucket_id == bucket_id,
+            ExpenseEvent.source_type == source_type,
+            ExpenseEvent.source_id == source_id,
+        )
+        .order_by(ExpenseEvent.event_date)
+    )
+    return list(session.scalars(stmt).all())
+
+
 def list_expenses_for_bucket_since(session: Session, bucket_id: uuid.UUID, since: date) -> list[ExpenseEvent]:
     """Return expense events for the bucket with `event_date >= since`, ordered by `event_date`."""
     stmt = (

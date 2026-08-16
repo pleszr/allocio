@@ -302,3 +302,78 @@ def test_list_expenses_returns_logged_and_empty(client: TestClient) -> None:
 
     listed = client.get(f"/api/assets/{asset_id}/expenses").json()
     assert len(listed) == 2
+
+
+def test_list_time_based_cost_expenses_only_returns_that_cost(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    cost_a, cost_b = created["time_based_costs"][0], created["time_based_costs"][1]
+
+    for amount, event_date in (("40000.00", "2025-01-15"), ("42000.00", "2026-01-15")):
+        client.post(
+            f"/api/assets/{asset_id}/expenses",
+            json={
+                "kind": "modeled",
+                "amount": amount,
+                "event_date": event_date,
+                "source_type": "time_based_cost",
+                "source_id": cost_a["id"],
+            },
+        )
+    client.post(
+        f"/api/assets/{asset_id}/expenses",
+        json={"kind": "modeled", "amount": "1000.00", "source_type": "time_based_cost", "source_id": cost_b["id"]},
+    )
+
+    listed = client.get(f"/api/assets/{asset_id}/time-based-costs/{cost_a['id']}/expenses")
+    assert listed.status_code == 200
+    rows = listed.json()
+    assert [r["amount"] for r in rows] == ["40000.00", "42000.00"]  # ascending by event_date
+    assert all(r["source_id"] == cost_a["id"] for r in rows)
+
+
+def test_list_source_expenses_empty_for_unpaid_cost(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    cost = created["time_based_costs"][0]
+
+    listed = client.get(f"/api/assets/{asset_id}/time-based-costs/{cost['id']}/expenses")
+    assert listed.status_code == 200
+    assert listed.json() == []
+
+
+def test_list_usage_and_maintenance_source_expenses(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+    usage = created["usage_based_costs"][0]
+    maint = created["maintenance_items"][0]
+
+    client.post(
+        f"/api/assets/{asset_id}/expenses",
+        json={"kind": "modeled", "amount": "8000.00", "source_type": "usage_based_cost", "source_id": usage["id"]},
+    )
+    client.post(
+        f"/api/assets/{asset_id}/expenses",
+        json={"kind": "modeled", "amount": "30000.00", "source_type": "maintenance_item", "source_id": maint["id"]},
+    )
+
+    usage_rows = client.get(f"/api/assets/{asset_id}/usage-based-costs/{usage['id']}/expenses").json()
+    assert [r["source_type"] for r in usage_rows] == ["usage_based_cost"]
+    maint_rows = client.get(f"/api/assets/{asset_id}/maintenance-items/{maint['id']}/expenses").json()
+    assert [r["source_type"] for r in maint_rows] == ["maintenance_item"]
+
+
+def test_list_source_expenses_unknown_cost_is_404(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    asset_id = created["asset"]["id"]
+
+    response = client.get(f"/api/assets/{asset_id}/time-based-costs/{uuid.uuid4()}/expenses")
+    assert response.status_code == 404
+
+
+def test_list_source_expenses_unknown_asset_is_404(client: TestClient) -> None:
+    created = _create_vehicle(client)
+    cost = created["time_based_costs"][0]
+
+    response = client.get(f"/api/assets/{uuid.uuid4()}/time-based-costs/{cost['id']}/expenses")
+    assert response.status_code == 404

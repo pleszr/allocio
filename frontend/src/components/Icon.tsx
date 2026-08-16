@@ -11,6 +11,7 @@ const ICONS: Record<string, string> = {
   arrowRight: "M5 12h14m-5-5 5 5-5 5",
   plus: "M12 5v14M5 12h14",
   chevronRight: "M9 6l6 6-6 6",
+  close: "M6 6l12 12M18 6 6 18",
   alert: "M12 9v4m0 4h.01M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.4 0z",
   calendar: "M8 2v4m8-4v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z",
 };

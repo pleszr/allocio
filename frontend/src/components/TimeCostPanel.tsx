@@ -12,6 +12,9 @@ interface TimeCostPanelProps {
   // Compact mode drops the month axis and the annual-total donut, so the panel fits inside a
   // dashboard card next to other summaries. The full variant (Costs screen) shows both.
   compact?: boolean;
+  // When provided, clicking a cost (in the list or on its timeline bar) opens its history instead
+  // of just toggling the timeline highlight. The Costs screen passes this; the dashboard omits it.
+  onOpenHistory?: (cost: TimeBasedCost) => void;
 }
 
 interface TimelineItem extends TimeBasedCost {
@@ -26,7 +29,7 @@ interface TimelineItem extends TimeBasedCost {
 // passes already-fetched cost rows. Every active cost shows in the list and (full variant) the
 // annual-total donut; the timeline plots only the costs that have a resolved next_due_date, since a
 // cost with no due date has no position on the calendar.
-export function TimeCostPanel({ costs, today = new Date(), compact }: TimeCostPanelProps) {
+export function TimeCostPanel({ costs, today = new Date(), compact, onOpenHistory }: TimeCostPanelProps) {
   const { t } = useTranslation();
   const fmt = useCurrency();
   const [hovered, setHovered] = useState<string | null>(null);
@@ -104,6 +107,11 @@ export function TimeCostPanel({ costs, today = new Date(), compact }: TimeCostPa
     onMouseLeave: () => setHovered(null),
     onClick: (ev: React.MouseEvent) => {
       ev.stopPropagation();
+      if (onOpenHistory) {
+        const cost = costs.find((c) => c.id === id);
+        if (cost) onOpenHistory(cost);
+        return;
+      }
       setSelected((s) => (s === id ? null : id));
     },
   });

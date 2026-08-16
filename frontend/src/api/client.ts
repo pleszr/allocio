@@ -23,6 +23,7 @@ import type {
   CurrentUser,
   EditCheckInBody,
   EditCheckInPreview,
+  ExpenseEvent,
   MaintenanceItem,
   ManualExtraUpdate,
   TimeBasedCost,
@@ -156,6 +157,15 @@ export const api = {
   listTimeBasedCosts: (id: string) => request<TimeBasedCost[]>(`/assets/${id}/time-based-costs`),
   listUsageBasedCosts: (id: string) => request<UsageBasedCost[]>(`/assets/${id}/usage-based-costs`),
   listMaintenanceItems: (id: string) => request<MaintenanceItem[]>(`/assets/${id}/maintenance-items`),
+
+  // Posted expenses linked to one cost/maintenance row, ascending by event date — powers the
+  // per-cost history popup. One path per cost collection, mirroring the backend's nested routes.
+  listTimeBasedCostExpenses: (id: string, costId: string) =>
+    request<ExpenseEvent[]>(`/assets/${id}/time-based-costs/${costId}/expenses`),
+  listUsageBasedCostExpenses: (id: string, costId: string) =>
+    request<ExpenseEvent[]>(`/assets/${id}/usage-based-costs/${costId}/expenses`),
+  listMaintenanceItemExpenses: (id: string, itemId: string) =>
+    request<ExpenseEvent[]>(`/assets/${id}/maintenance-items/${itemId}/expenses`),
 
   createTimeBasedCost: (id: string, data: CreateTimeBasedCostRequest) =>
     request<TimeBasedCost>(`/assets/${id}/time-based-costs`, { method: "POST", ...body(data) }),
