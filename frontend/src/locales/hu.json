@@ -439,7 +439,11 @@
     "focus_hint": "Vigye rá egy elemre a helyének megtekintéséhez",
     "overdue": "lejárt",
     "km_left": "{{km}} km van hátra",
-    "months_left": "{{months}} hó van hátra"
+    "months_left": "{{months}} hó van hátra",
+    "filter_all": "Összes",
+    "filter_good": "Jó",
+    "filter_attention": "Figyelmet igényel",
+    "filter_overdue": "Lejárt"
   },
   "timeCostPanel": {
     "next_12_months": "Következő 12 hónap",

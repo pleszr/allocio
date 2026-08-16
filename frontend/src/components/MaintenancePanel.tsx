@@ -1,7 +1,15 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { MaintenanceItem } from "../api/types";
-import { CarDiagram, MaintenanceRow, maintenanceFocusText, spatialItems } from "./SpatialMap";
+import {
+  CarDiagram,
+  MaintenanceCard,
+  MaintenanceFilterTabs,
+  matchesMaintenanceFilter,
+  sortByUrgency,
+  spatialItems,
+  type MaintenanceFilter,
+} from "./SpatialMap";
 import { Icon } from "./Icon";
 
 interface MaintenancePanelProps {
@@ -20,39 +28,46 @@ interface MaintenancePanelProps {
 export function MaintenancePanel({ maintenanceItems, onManage, onOpenHistory }: MaintenancePanelProps) {
   const { t } = useTranslation();
   const mapped = useMemo(() => spatialItems(maintenanceItems), [maintenanceItems]);
-  const mappedIds = useMemo(() => new Set(mapped.map((m) => m.id)), [mapped]);
   const [hovered, setHovered] = useState<string | null>(null);
-  // Only mapped items drive the car highlight; hovering an unmapped row lights nothing.
-  const activeId = hovered !== null && mappedIds.has(hovered) ? hovered : null;
+  const [filter, setFilter] = useState<MaintenanceFilter>("all");
+  const filteredSorted = useMemo(
+    () => sortByUrgency(maintenanceItems.filter((it) => matchesMaintenanceFilter(it, filter))),
+    [maintenanceItems, filter],
+  );
 
   if (maintenanceItems.length === 0) return null;
 
   const dueSoon = maintenanceItems.filter((m) => m.status && m.status !== "ok");
-
-  const hoveredItem = maintenanceItems.find((m) => m.id === activeId);
-  const focusText = hoveredItem ? maintenanceFocusText(hoveredItem, t) : t("spatialMap.focus_hint");
+  // CarDiagram only glows a region for items present in `mapped`, so passing the raw hovered item
+  // (even when unmapped) still shows the talk-box without lighting up the car.
+  const hoveredItem = maintenanceItems.find((m) => m.id === hovered) ?? null;
 
   const list = (
-    <div className="spatial-list">
-      {maintenanceItems.map((m) => (
-        <MaintenanceRow
-          key={m.id}
-          item={m}
-          className={hovered === m.id ? " hovered" : ""}
-          role="button"
-          tabIndex={0}
-          title={t("costHistory.open_hint")}
-          onMouseEnter={() => setHovered(m.id)}
-          onMouseLeave={() => setHovered(null)}
-          onClick={() => onOpenHistory(m)}
-          onKeyDown={(ev) => {
-            if (ev.key === "Enter" || ev.key === " ") {
-              ev.preventDefault();
-              onOpenHistory(m);
-            }
-          }}
-        />
-      ))}
+    <div className="spatial-list-wrap">
+      <div className="spatial-list-head">
+        <MaintenanceFilterTabs value={filter} onChange={setFilter} />
+      </div>
+      <div className="spatial-list">
+        {filteredSorted.map((m) => (
+          <MaintenanceCard
+            key={m.id}
+            item={m}
+            className={hovered === m.id ? " hovered" : ""}
+            role="button"
+            tabIndex={0}
+            title={t("costHistory.open_hint")}
+            onMouseEnter={() => setHovered(m.id)}
+            onMouseLeave={() => setHovered(null)}
+            onClick={() => onOpenHistory(m)}
+            onKeyDown={(ev) => {
+              if (ev.key === "Enter" || ev.key === " ") {
+                ev.preventDefault();
+                onOpenHistory(m);
+              }
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 
@@ -74,8 +89,7 @@ export function MaintenancePanel({ maintenanceItems, onManage, onOpenHistory }: 
       {mapped.length > 0 ? (
         <div className="maint-panel-body">
           <div className="maint-panel-stage">
-            <div className="spatial-focus">{focusText}</div>
-            <CarDiagram items={mapped} activeId={activeId} />
+            <CarDiagram items={mapped} focusItem={hoveredItem} />
           </div>
           {list}
         </div>

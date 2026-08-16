@@ -1289,7 +1289,6 @@ select.input {
 /* ── Spatial map (side-profile vehicle schematic) ──────────────────── */
 .spatial-map { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface); border-radius: var(--radius); overflow: hidden; border: 1px solid rgba(15,23,42,.04); box-shadow: 0 1px 0 rgba(15,23,42,.04), 0 4px 14px rgba(15,23,42,.05); }
 .spatial-stage { padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
-.spatial-focus { font-family: var(--mono); font-size: 12px; color: var(--accent-ink); min-height: 15px; font-feature-settings: "tnum"; }
 .spatial-hero-wrap { position: relative; }
 .spatial-hero-wrap .hero-img { display: block; width: 100%; height: auto; transition: filter .25s ease, opacity .25s ease; }
 .spatial-hero-wrap.dimmed .hero-img { filter: saturate(.5) brightness(1.02); opacity: .5; }
@@ -1298,25 +1297,72 @@ select.input {
 .spatial-region.active { opacity: .3; }
 .spatial-region-core { fill: var(--accent); opacity: 0; filter: blur(1px); transition: opacity .25s ease; }
 .spatial-region-core.active { opacity: .55; }
-.spatial-list { padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; max-height: 420px; overflow-y: auto; }
-.spatial-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background .15s ease; }
-.spatial-item:hover, .spatial-item.hovered { background: var(--paper-2); }
-.spatial-item.selected { background: var(--accent-soft); }
-.spatial-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted-2); flex-shrink: 0; }
-.spatial-dot.warn { background: var(--warn); }
-.spatial-dot.bad { background: var(--bad); }
-.spatial-dot.good { background: var(--good); }
-.spatial-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.spatial-item-name { font-size: 13.5px; font-weight: 500; }
-.spatial-item-sub { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
-.maint-bars { display: flex; flex-direction: column; gap: 3px; margin-top: 5px; }
-.maint-bar { display: flex; align-items: center; gap: 6px; }
-.maint-bar-icon { color: var(--muted-2); flex-shrink: 0; }
-.bar-track { position: relative; flex: 1; height: 5px; border-radius: 999px; background: var(--line); overflow: hidden; }
+
+/* Connecting line from the talk-box anchor to the focused item's region, drawn in the same
+   0-100 overlay coordinate space as the region ellipses so it scales with the image. */
+.spatial-line line { stroke: var(--line-strong); stroke-width: .6; }
+.spatial-line circle { fill: var(--muted-2); }
+.spatial-line.warn line, .spatial-line.warn circle { stroke: var(--warn); fill: var(--warn); }
+.spatial-line.bad line, .spatial-line.bad circle { stroke: var(--bad); fill: var(--bad); }
+.spatial-line.good line, .spatial-line.good circle { stroke: var(--good); fill: var(--good); }
+
+/* Floating talk-box: fixed top-left anchor, content follows the hovered/selected item. */
+.maint-talkbox { position: absolute; top: 4%; left: 4%; max-width: 200px; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--muted-2); border-radius: var(--radius-sm); padding: 10px 12px; box-shadow: 0 6px 20px rgba(15,23,42,.1); z-index: 2; pointer-events: none; }
+.maint-talkbox.warn { border-left-color: var(--warn); }
+.maint-talkbox.bad { border-left-color: var(--bad); }
+.maint-talkbox.good { border-left-color: var(--good); }
+.maint-talkbox-hint { font-size: 12px; color: var(--muted); }
+.maint-talkbox-head { display: flex; align-items: center; gap: 6px; }
+.maint-talkbox-icon { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; flex-shrink: 0; background: var(--paper-2); color: var(--muted-2); }
+.maint-talkbox-icon.warn { background: var(--warn-soft); color: var(--warn); }
+.maint-talkbox-icon.bad { background: var(--bad-soft); color: var(--bad); }
+.maint-talkbox-icon.good { background: var(--good-soft); color: var(--good); }
+.maint-talkbox-name { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.maint-talkbox-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--bad); background: var(--bad-soft); border-radius: 999px; padding: 1px 6px; margin-left: auto; }
+.maint-talkbox-meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; font-family: var(--mono); font-feature-settings: "tnum"; }
+
+.spatial-list-wrap { display: flex; flex-direction: column; min-height: 0; }
+.spatial-list-head { display: flex; justify-content: flex-end; padding: 0 2px 8px; }
+.spatial-list { padding: 2px; display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; }
+@media (max-width: 860px) { .spatial-map { grid-template-columns: 1fr; } }
+
+/* Maintenance filter tabs (All / Good / Attention / Overdue). */
+.maint-filter-tabs { display: flex; gap: 4px; background: var(--paper-2); border-radius: 999px; padding: 3px; }
+.maint-filter-tab { display: flex; align-items: center; gap: 5px; border: none; background: transparent; color: var(--muted); font-family: inherit; font-size: 11.5px; font-weight: 500; padding: 5px 10px; border-radius: 999px; cursor: pointer; }
+.maint-filter-tab.active { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(15,23,42,.06); }
+.maint-filter-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted-2); }
+.maint-filter-dot.good { background: var(--good); }
+.maint-filter-dot.warn { background: var(--warn); }
+.maint-filter-dot.bad { background: var(--bad); }
+
+/* Maintenance item cards: icon badge, name + %, a single urgency bar, remaining-figure meta. */
+.maint-card { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+.maint-card:hover, .maint-card.hovered { border-color: var(--line-strong); background: var(--paper-2); }
+.maint-card.selected { border-color: var(--accent); background: var(--accent-soft); }
+.maint-card-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; background: var(--muted-2); }
+.maint-card-dot.warn { background: var(--warn); }
+.maint-card-dot.bad { background: var(--bad); }
+.maint-card-dot.good { background: var(--good); }
+.maint-card-icon { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0; background: var(--paper-2); color: var(--muted-2); }
+.maint-card-icon.warn { background: var(--warn-soft); color: var(--warn); }
+.maint-card-icon.bad { background: var(--bad-soft); color: var(--bad); }
+.maint-card-icon.good { background: var(--good-soft); color: var(--good); }
+.maint-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.maint-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.maint-card-name { font-size: 13.5px; font-weight: 500; color: var(--ink); }
+.maint-card-pct { font-size: 12px; font-weight: 600; font-family: var(--mono); font-feature-settings: "tnum"; color: var(--muted-2); flex-shrink: 0; }
+.maint-card-pct.warn { color: var(--warn); }
+.maint-card-pct.bad { color: var(--bad); }
+.maint-card-pct.good { color: var(--good); }
+.maint-card-meta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--muted); }
+.maint-card-meta-item { display: flex; align-items: center; gap: 4px; }
+.maint-card-meta-item.bad { color: var(--bad); font-weight: 600; }
+.maint-card-chevron { color: var(--muted-2); flex-shrink: 0; margin-top: 8px; }
+.bar-track { position: relative; height: 5px; border-radius: 999px; background: var(--line); overflow: hidden; }
 .bar-fill { position: absolute; inset: 0; width: var(--pct, 0%); background: var(--muted-2); border-radius: 999px; transition: width .3s ease; }
+.bar-fill.good { background: var(--good); }
 .bar-fill.warn { background: var(--warn); }
 .bar-fill.bad { background: var(--bad); }
-@media (max-width: 860px) { .spatial-map { grid-template-columns: 1fr; } }
 
 /* Merged dashboard maintenance panel: car diagram + unified list inside one full-width card. */
 .maint-panel-body { display: grid; grid-template-columns: 1fr 1fr; margin-top: 14px; }
