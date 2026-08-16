@@ -2,12 +2,12 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
-import type { ExpenseEvent, TimeBasedCost } from "../api/types";
+import type { ExpenseEvent, MaintenanceItem, TimeBasedCost } from "../api/types";
 import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { Sparkline } from "../components/Sparkline";
 import { useCurrency } from "../utils/currency";
-import { fmtDate, fmtDateShort } from "../utils/format";
+import { fmtDate, fmtDateShort, fmtNumber } from "../utils/format";
 import { useAsync } from "../utils/useAsync";
 
 // Which cost table opened the popup — picks the matching per-cost expense endpoint.
@@ -47,6 +47,38 @@ export function timeCostHistoryTarget(
         value: t("costs.every_interval", { value: row.interval_value, unit: t(`costs.unit_${row.interval_unit}`) }),
       },
       { label: t("costs.th_next_due"), value: row.next_due_date ? fmtDate(row.next_due_date) : "—" },
+    ],
+  };
+}
+
+// The history-popup descriptor for a maintenance item. Shared by the Costs-screen maintenance table
+// and the dashboard maintenance panel so both show the same replace-every / last-serviced / amount
+// summary above the payment history.
+export function maintHistoryTarget(
+  item: MaintenanceItem,
+  t: ReturnType<typeof useTranslation>["t"],
+  fmt: ReturnType<typeof useCurrency>,
+): HistoryTarget {
+  const intervalParts: string[] = [];
+  if (item.interval_km) intervalParts.push(`${fmtNumber(item.interval_km)} km`);
+  if (item.interval_months) intervalParts.push(t("costs.now_months", { months: item.interval_months }));
+  const intervalText = intervalParts.length > 0 ? intervalParts.join(" / ") : "—";
+  const lastServicedText =
+    item.last_serviced_at_odometer !== null
+      ? `${fmtNumber(item.last_serviced_at_odometer)} km`
+      : item.last_serviced_at_date
+        ? fmtDate(item.last_serviced_at_date)
+        : "—";
+  return {
+    kind: "maint",
+    costId: item.id,
+    label: item.label,
+    meta: [
+      { label: t("costs.th_replace_every"), value: intervalText },
+      { label: t("costs.th_last_serviced"), value: lastServicedText },
+      ...(item.estimated_cost !== null
+        ? [{ label: t("costs.field_amount"), value: fmt(item.estimated_cost, { decimals: 0 }) }]
+        : []),
     ],
   };
 }

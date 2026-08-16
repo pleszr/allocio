@@ -2,19 +2,23 @@ import { useState } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
-import type { ActivityItem, MaintenanceItem } from "../api/types";
+import type { ActivityItem } from "../api/types";
 import type { CostsTab } from "../routes";
-import { CostHistoryModal, type HistoryTarget, timeCostHistoryTarget } from "../components/CostHistoryModal";
+import {
+  CostHistoryModal,
+  type HistoryTarget,
+  maintHistoryTarget,
+  timeCostHistoryTarget,
+} from "../components/CostHistoryModal";
 import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
+import { MaintenancePanel } from "../components/MaintenancePanel";
 import { Sparkline } from "../components/Sparkline";
-import { SpatialMap, spatialItems } from "../components/SpatialMap";
 import { TimeCostPanel } from "../components/TimeCostPanel";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { illoBg, illoKind } from "../utils/assetType";
 import { useCurrency } from "../utils/currency";
 import { fmtDateShort, fmtMonthYear, fmtNumber } from "../utils/format";
-import { maintenancePill } from "../utils/maintenanceStatus";
 import { useAsync } from "../utils/useAsync";
 
 interface DashboardScreenProps {
@@ -55,7 +59,6 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const averageAllocation = e.average_allocation;
   const timeCosts = timeBased.data ?? [];
   const hasTimeCosts = timeCosts.some((c) => c.is_active);
-  const mapItems = spatialItems(activeMaintenance);
   const costCount = e.maintenance_items.length;
 
   return (
@@ -209,139 +212,104 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
         )}
       </div>
 
-      {/* Spatial maintenance map (built-in vehicle rows only) */}
-      {mapItems.length > 0 && (
+      {/* Merged full-width maintenance panel (car diagram + unified list) */}
+      {activeMaintenance.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <div className="section-head" style={{ margin: "0 0 12px" }}>
-            <div>
-              <div className="card-title">{t("dashboard.maint_map_title")}</div>
-              <div className="card-sub">{t("dashboard.maint_map_sub")}</div>
-            </div>
-            <button className="btn btn-ghost btn-sm" onClick={() => onTab("costs", "maint")}>
-              {t("dashboard.manage")} <Icon name="chevronRight" size={12} />
-            </button>
-          </div>
-          <SpatialMap maintenanceItems={activeMaintenance} />
+          <MaintenancePanel
+            maintenanceItems={activeMaintenance}
+            onManage={() => onTab("costs", "maint")}
+            onOpenHistory={(item) => setHistoryTarget(maintHistoryTarget(item, t, fmt))}
+          />
         </div>
       )}
 
-      {/* Maintenance + time-based costs + recent activity + balance history */}
+      {/* Full-width time-based costs */}
+      <div className="card" style={{ marginBottom: 24 }}>
+        <div className="card-hd">
+          <div>
+            <div className="card-title">{t("dashboard.time_based_title")}</div>
+            <div className="card-sub">{t("dashboard.time_based_sub")}</div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={() => onTab("costs", "time")}>
+            {t("dashboard.manage")} <Icon name="chevronRight" size={12} />
+          </button>
+        </div>
+        {timeBased.loading ? (
+          <div className="row-meta" style={{ padding: "12px var(--pad)" }}>{t("common.loading")}</div>
+        ) : hasTimeCosts ? (
+          <div style={{ padding: "4px 0 4px" }}>
+            <TimeCostPanel
+              costs={timeCosts}
+              compact
+              onOpenHistory={(cost) => setHistoryTarget(timeCostHistoryTarget(cost, t, fmt))}
+            />
+          </div>
+        ) : (
+          <div className="row-meta" style={{ padding: "12px var(--pad)" }}>{t("dashboard.time_based_empty")}</div>
+        )}
+      </div>
+
+      {/* Recent activity + balance history */}
       <div className="col-2">
         <div className="card">
           <div className="card-hd">
             <div>
-              <div className="card-title">{t("dashboard.maintenance")}</div>
-              <div className="card-sub">
-                {dueSoon.length > 0
-                  ? t("dashboard.items_need_attention", { count: dueSoon.length })
-                  : e.maintenance_items.length > 0
-                    ? t("dashboard.everything_current")
-                    : t("dashboard.no_maintenance_items")}
-              </div>
+              <div className="card-title">{t("dashboard.recent_activity")}</div>
+              <div className="card-sub">{t("dashboard.recent_activity_sub")}</div>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={() => onTab("costs", "maint")}>
-              {t("dashboard.manage")} <Icon name="chevronRight" size={12} />
-            </button>
           </div>
-          {activeMaintenance.length > 0 ? (
-            <div className="maint-grid">
-              {activeMaintenance.map((m) => (
-                <MaintCompactRow key={m.id} item={m} />
-              ))}
-            </div>
-          ) : (
-            <div className="row-meta" style={{ padding: "12px var(--pad)" }}>
-              {t("dashboard.add_maintenance_costs_tab")}
-            </div>
-          )}
-        </div>
-
-        <div className="stack">
-          <div className="card">
-            <div className="card-hd">
-              <div>
-                <div className="card-title">{t("dashboard.time_based_title")}</div>
-                <div className="card-sub">{t("dashboard.time_based_sub")}</div>
+          <div style={{ marginTop: 14, paddingBottom: 6 }}>
+            {e.recent_activity.slice(0, 6).map((tx, i) => (
+              <TxRow key={i} tx={tx} />
+            ))}
+            {e.recent_activity.length === 0 && (
+              <div className="row-meta" style={{ padding: "12px var(--pad)" }}>
+                {t("dashboard.no_activity")}
               </div>
-              <button className="btn btn-ghost btn-sm" onClick={() => onTab("costs", "time")}>
-                {t("dashboard.manage")} <Icon name="chevronRight" size={12} />
-              </button>
-            </div>
-            {timeBased.loading ? (
-              <div className="row-meta" style={{ padding: "12px var(--pad)" }}>{t("common.loading")}</div>
-            ) : hasTimeCosts ? (
-              <div style={{ padding: "4px 0 4px" }}>
-                <TimeCostPanel
-                  costs={timeCosts}
-                  compact
-                  onOpenHistory={(cost) => setHistoryTarget(timeCostHistoryTarget(cost, t, fmt))}
-                />
-              </div>
-            ) : (
-              <div className="row-meta" style={{ padding: "12px var(--pad)" }}>{t("dashboard.time_based_empty")}</div>
             )}
           </div>
+        </div>
 
-          <div className="card">
-            <div className="card-hd">
-              <div>
-                <div className="card-title">{t("dashboard.recent_activity")}</div>
-                <div className="card-sub">{t("dashboard.recent_activity_sub")}</div>
-              </div>
+        <div className="card">
+          <div className="card-hd">
+            <div>
+              <div className="card-title">{t("dashboard.balance_history")}</div>
+              <div className="card-sub">{t("dashboard.balance_history_sub", { name: e.name })}</div>
             </div>
-            <div style={{ marginTop: 14, paddingBottom: 6 }}>
-              {e.recent_activity.slice(0, 6).map((tx, i) => (
-                <TxRow key={i} tx={tx} />
+            <div className="seg">
+              {RANGES.map((r) => (
+                <button
+                  key={r.months}
+                  className="seg-btn"
+                  aria-pressed={months === r.months}
+                  onClick={() => setMonths(r.months)}
+                >
+                  {r.months === 60 ? t("dashboard.range_all") : r.label}
+                </button>
               ))}
-              {e.recent_activity.length === 0 && (
-                <div className="row-meta" style={{ padding: "12px var(--pad)" }}>
-                  {t("dashboard.no_activity")}
-                </div>
-              )}
             </div>
           </div>
-
-          <div className="card">
-            <div className="card-hd">
-              <div>
-                <div className="card-title">{t("dashboard.balance_history")}</div>
-                <div className="card-sub">{t("dashboard.balance_history_sub", { name: e.name })}</div>
-              </div>
-              <div className="seg">
-                {RANGES.map((r) => (
-                  <button
-                    key={r.months}
-                    className="seg-btn"
-                    aria-pressed={months === r.months}
-                    onClick={() => setMonths(r.months)}
-                  >
-                    {r.months === 60 ? t("dashboard.range_all") : r.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div style={{ padding: "20px var(--pad) var(--pad)" }}>
-              {history.loading ? (
-                <div className="row-meta">{t("common.loading")}</div>
-              ) : points.length === 0 ? (
-                <div className="row-meta">{t("dashboard.no_history")}</div>
-              ) : (
-                <>
-                  <Sparkline
-                    data={balances}
-                    width={900}
-                    height={130}
-                    padding={12}
-                    months={points.map((p) => fmtMonthYear(p.as_of))}
-                    fmtValue={(v) => fmt(v, { decimals: 0 })}
-                  />
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-                    <span className="row-meta">{fmtMonthYear(points[0].as_of)}</span>
-                    <span className="row-meta">{fmtMonthYear(points[points.length - 1].as_of)}</span>
-                  </div>
-                </>
-              )}
-            </div>
+          <div style={{ padding: "20px var(--pad) var(--pad)" }}>
+            {history.loading ? (
+              <div className="row-meta">{t("common.loading")}</div>
+            ) : points.length === 0 ? (
+              <div className="row-meta">{t("dashboard.no_history")}</div>
+            ) : (
+              <>
+                <Sparkline
+                  data={balances}
+                  width={900}
+                  height={130}
+                  padding={12}
+                  months={points.map((p) => fmtMonthYear(p.as_of))}
+                  fmtValue={(v) => fmt(v, { decimals: 0 })}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+                  <span className="row-meta">{fmtMonthYear(points[0].as_of)}</span>
+                  <span className="row-meta">{fmtMonthYear(points[points.length - 1].as_of)}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -369,33 +337,6 @@ function formatTrackedDuration(totalMonths: number, t: TFunction): string {
     years: t("dashboard.duration_year", { count: years }),
     months: t("dashboard.duration_month", { count: months }),
   });
-}
-
-function MaintCompactRow({ item }: { item: MaintenanceItem }) {
-  const { t } = useTranslation();
-  const pill = maintenancePill(item.status);
-  const progress = Math.min(1, Math.max(item.km_progress ?? 0, item.month_progress ?? 0));
-  const byKm = item.interval_km !== null;
-  const remainingText =
-    item.status === "overdue"
-      ? t("dashboard.overdue")
-      : byKm
-        ? t("dashboard.maint_remaining_km", { km: fmtNumber(item.remaining_km ?? 0) })
-        : t("dashboard.maint_remaining_mo", { months: item.remaining_months ?? 0 });
-  const rowCls = item.status === "overdue" ? "row-overdue" : item.status === "due" || item.status === "soon" ? "row-soon" : "";
-  const statusCls = pill.fill ? `maint-cell-status ${pill.fill}` : "maint-cell-status";
-
-  return (
-    <div className={`maint-cell ${rowCls}`}>
-      <div className="maint-cell-top">
-        <span className="maint-cell-name">{item.label}</span>
-        <span className={statusCls}>{remainingText}</span>
-      </div>
-      <div className="bar-track">
-        <div className={`bar-fill ${pill.fill}`} style={{ ["--pct" as string]: `${progress * 100}%` }} />
-      </div>
-    </div>
-  );
 }
 
 function TxRow({ tx }: { tx: ActivityItem }) {

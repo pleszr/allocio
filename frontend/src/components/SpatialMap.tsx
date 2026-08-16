@@ -45,7 +45,7 @@ const CAR_REGIONS: Record<string, Region[]> = {
   summer_tires: BOTH_WHEELS,
 };
 
-interface SpatialItem {
+export interface SpatialItem {
   id: string;
   label: string;
   status: MaintenanceItem["status"];
@@ -68,10 +68,44 @@ export function spatialItems(maintenanceItems: MaintenanceItem[]): SpatialItem[]
     }));
 }
 
-function dotClass(status: MaintenanceItem["status"]): string {
+export function dotClass(status: MaintenanceItem["status"]): string {
   if (status === "overdue") return "bad";
   if (status === "due" || status === "soon") return "warn";
   return "good";
+}
+
+// The car x-ray with the glowing region overlay, driven by an externally-controlled `activeId`.
+// Shared by SpatialMap (Costs screen, with its own list) and MaintenancePanel (dashboard, with the
+// unified maintenance list). `items` are the mapped rows only — the ones that have a car region.
+export function CarDiagram({ items, activeId }: { items: SpatialItem[]; activeId: string | null }) {
+  const { t } = useTranslation();
+  return (
+    <div className={`spatial-hero-wrap${activeId ? " dimmed" : ""}`}>
+      <img className="hero-img" src={carXray} alt={t("spatialMap.car_alt")} />
+      <svg className="spatial-overlay" viewBox={CAR_VIEWBOX} preserveAspectRatio="none">
+        {items.flatMap((it) =>
+          it.regions.map((r, ri) => (
+            <g key={it.id + ri}>
+              <ellipse
+                className={`spatial-region${activeId === it.id ? " active" : ""}`}
+                cx={r.cx}
+                cy={r.cy}
+                rx={r.rx}
+                ry={r.ry}
+              />
+              <ellipse
+                className={`spatial-region-core${activeId === it.id ? " active" : ""}`}
+                cx={r.cx}
+                cy={r.cy}
+                rx={r.rx * 0.5}
+                ry={r.ry * 0.5}
+              />
+            </g>
+          )),
+        )}
+      </svg>
+    </div>
+  );
 }
 
 interface SpatialMapProps {
@@ -101,31 +135,7 @@ export function SpatialMap({ maintenanceItems }: SpatialMapProps) {
     <div className="spatial-map" onClick={() => setSelected(null)}>
       <div className="spatial-stage">
         <div className="spatial-focus">{focusText}</div>
-        <div className={`spatial-hero-wrap${activeId ? " dimmed" : ""}`}>
-          <img className="hero-img" src={carXray} alt={t("spatialMap.car_alt")} />
-          <svg className="spatial-overlay" viewBox={CAR_VIEWBOX} preserveAspectRatio="none">
-            {items.flatMap((it) =>
-              it.regions.map((r, ri) => (
-                <g key={it.id + ri}>
-                  <ellipse
-                    className={`spatial-region${activeId === it.id ? " active" : ""}`}
-                    cx={r.cx}
-                    cy={r.cy}
-                    rx={r.rx}
-                    ry={r.ry}
-                  />
-                  <ellipse
-                    className={`spatial-region-core${activeId === it.id ? " active" : ""}`}
-                    cx={r.cx}
-                    cy={r.cy}
-                    rx={r.rx * 0.5}
-                    ry={r.ry * 0.5}
-                  />
-                </g>
-              )),
-            )}
-          </svg>
-        </div>
+        <CarDiagram items={items} activeId={activeId} />
       </div>
       <div className="spatial-list">
         {items.map((it) => {
