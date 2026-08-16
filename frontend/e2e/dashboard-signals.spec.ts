@@ -162,13 +162,17 @@ async function assertDashboardWidgetLayout(
   dashboard: ReturnType<Page["locator"]>,
   stacked = false,
 ): Promise<void> {
+  // New layout: full-width Maintenance panel and full-width Time-based costs sit above a .col-2 that
+  // holds Recent activity (left) and Balance history (right).
+  const maintenancePanel = dashboard.locator(".card").filter({ hasText: "Maintenance" }).first();
+  const timeBasedCard = dashboard.locator(".card").filter({ hasText: "Time-based costs" }).first();
   const widgetGrid = dashboard.locator(".col-2");
-  const maintenanceCard = widgetGrid.locator(":scope > .card");
-  const rightStack = widgetGrid.locator(":scope > .stack");
-  const recentActivityCard = rightStack.locator(".card").filter({ hasText: "Recent activity" });
-  const balanceHistoryCard = rightStack.locator(".card").filter({ hasText: "Balance history" });
+  const recentActivityCard = widgetGrid.locator(":scope > .card").filter({ hasText: "Recent activity" });
+  const balanceHistoryCard = widgetGrid.locator(":scope > .card").filter({ hasText: "Balance history" });
   const dashboardCards = dashboard.locator(".card");
 
+  await expect(maintenancePanel).toBeVisible();
+  await expect(timeBasedCard).toBeVisible();
   await expect(recentActivityCard).toBeVisible();
   await expect(balanceHistoryCard).toBeVisible();
   await expect(dashboardCards.last()).toContainText("Balance history");
@@ -177,27 +181,38 @@ async function assertDashboardWidgetLayout(
   expect(titles.indexOf("Recent activity")).toBeLessThan(titles.indexOf("Balance history"));
   expect(titles.at(-1)).toBe("Balance history");
 
-  const [dashboardBox, maintenanceBox, rightStackBox, balanceBox] = await Promise.all([
+  const [dashboardBox, maintenanceBox, timeBasedBox, recentBox, balanceBox] = await Promise.all([
     dashboard.boundingBox(),
-    maintenanceCard.boundingBox(),
-    rightStack.boundingBox(),
+    maintenancePanel.boundingBox(),
+    timeBasedCard.boundingBox(),
+    recentActivityCard.boundingBox(),
     balanceHistoryCard.boundingBox(),
   ]);
   expect(dashboardBox).not.toBeNull();
   expect(maintenanceBox).not.toBeNull();
-  expect(rightStackBox).not.toBeNull();
+  expect(timeBasedBox).not.toBeNull();
+  expect(recentBox).not.toBeNull();
   expect(balanceBox).not.toBeNull();
 
+  // Maintenance and time-based costs are always full width, above the col-2 pair.
+  expect(maintenanceBox!.width / dashboardBox!.width).toBeGreaterThan(0.9);
+  expect(timeBasedBox!.width / dashboardBox!.width).toBeGreaterThan(0.9);
+  expect(timeBasedBox!.y).toBeGreaterThanOrEqual(maintenanceBox!.y + maintenanceBox!.height - 1);
+  expect(recentBox!.y).toBeGreaterThanOrEqual(timeBasedBox!.y + timeBasedBox!.height - 1);
+
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  );
+  expect(hasHorizontalOverflow).toBe(false);
+
   if (stacked) {
-    expect(rightStackBox!.x).toBeCloseTo(maintenanceBox!.x, 0);
-    expect(rightStackBox!.y).toBeGreaterThanOrEqual(maintenanceBox!.y + maintenanceBox!.height - 1);
+    // col-2 collapses: Balance history drops below Recent activity and spans (almost) full width.
+    expect(balanceBox!.x).toBeCloseTo(recentBox!.x, 0);
+    expect(balanceBox!.y).toBeGreaterThanOrEqual(recentBox!.y + recentBox!.height - 1);
     expect(balanceBox!.width / dashboardBox!.width).toBeGreaterThan(0.9);
-    const hasHorizontalOverflow = await page.evaluate(
-      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
-    );
-    expect(hasHorizontalOverflow).toBe(false);
   } else {
-    expect(rightStackBox!.x).toBeGreaterThan(maintenanceBox!.x + maintenanceBox!.width - 1);
+    // Recent activity and Balance history sit side by side, each roughly half width.
+    expect(balanceBox!.x).toBeGreaterThan(recentBox!.x + recentBox!.width - 1);
     expect(balanceBox!.width / dashboardBox!.width).toBeGreaterThan(0.42);
     expect(balanceBox!.width / dashboardBox!.width).toBeLessThan(0.52);
   }

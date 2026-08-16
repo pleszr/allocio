@@ -1054,50 +1054,6 @@ select.input {
   box-shadow: 0 1px 2px rgba(15,23,42,.06);
 }
 
-/* Maintenance bar */
-.bar-track {
-  position: relative;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--paper-2);
-  overflow: hidden;
-}
-.bar-fill {
-  position: absolute; inset: 0;
-  width: var(--pct, 0%);
-  background: var(--accent);
-  border-radius: 999px;
-  transition: width 0.3s ease;
-}
-.bar-fill.warn { background: var(--warn); }
-.bar-fill.bad { background: var(--bad); }
-
-/* Dense maintenance grid — 2 columns, every item visible without a scroll */
-.maint-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1px;
-  background: var(--line-soft);
-  margin-top: 12px;
-}
-.maint-cell {
-  background: var(--surface);
-  padding: 9px var(--pad);
-  display: grid;
-  grid-template-columns: 1fr 90px;
-  grid-template-areas: "name status" "bar bar";
-  align-items: center;
-  gap: 2px 12px;
-}
-.maint-cell-name { grid-area: name; font-size: 13px; font-weight: 500; }
-.maint-cell-status { grid-area: status; font-size: 11.5px; color: var(--muted); white-space: nowrap; text-align: right; }
-.maint-cell-status.bad { color: var(--bad); font-weight: 600; }
-.maint-cell-status.warn { color: var(--warn); font-weight: 600; }
-.maint-cell .bar-track { grid-area: bar; margin: 0; }
-.maint-cell-top { display: contents; }
-.maint-cell.row-overdue { background: var(--bad-band); }
-.maint-cell.row-soon { background: var(--warn-band); }
-
 .row-meta { font-size: 12.5px; color: var(--muted); }
 
 .add-row {
@@ -1354,6 +1310,11 @@ select.input {
 .spatial-item-name { font-size: 13.5px; font-weight: 500; }
 .spatial-item-sub { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
 @media (max-width: 860px) { .spatial-map { grid-template-columns: 1fr; } }
+
+/* Merged dashboard maintenance panel: car diagram + unified list inside one full-width card. */
+.maint-panel-body { display: grid; grid-template-columns: 1.4fr 1fr; margin-top: 14px; }
+.maint-panel-stage { padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; background: var(--surface-sunk); }
+@media (max-width: 860px) { .maint-panel-body { grid-template-columns: 1fr; } }
 
 /* ── Check-in posted confirmation ──────────────────────────────────── */
 .ci-posted-check {

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { api, ApiError } from "../api/client";
 import type { IntervalUnit, MaintenanceItem, TimeBasedCost, UsageBasedCost } from "../api/types";
 import { CostDistributionChart } from "../components/CostDistributionChart";
-import { CostHistoryModal, type HistoryTarget, timeCostHistoryTarget } from "../components/CostHistoryModal";
+import { CostHistoryModal, type HistoryTarget, maintHistoryTarget, timeCostHistoryTarget } from "../components/CostHistoryModal";
 import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { SpatialMap, spatialItems } from "../components/SpatialMap";
@@ -661,33 +661,7 @@ function MaintTable({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
-  const intervalText = (m: MaintenanceItem) => {
-    const parts: string[] = [];
-    if (m.interval_km) parts.push(`${fmtNumber(m.interval_km)} km`);
-    if (m.interval_months) parts.push(t("costs.now_months", { months: m.interval_months }));
-    return parts.length > 0 ? parts.join(" / ") : "—";
-  };
-
-  const lastServicedText = (m: MaintenanceItem) =>
-    m.last_serviced_at_odometer !== null
-      ? `${fmtNumber(m.last_serviced_at_odometer)} km`
-      : m.last_serviced_at_date
-        ? fmtDate(m.last_serviced_at_date)
-        : "—";
-
-  const openHistory = (m: MaintenanceItem) =>
-    onOpenHistory({
-      kind: "maint",
-      costId: m.id,
-      label: m.label,
-      meta: [
-        { label: t("costs.th_replace_every"), value: intervalText(m) },
-        { label: t("costs.th_last_serviced"), value: lastServicedText(m) },
-        ...(m.estimated_cost !== null
-          ? [{ label: t("costs.field_amount"), value: fmt(m.estimated_cost, { decimals: 0 }) }]
-          : []),
-      ],
-    });
+  const openHistory = (m: MaintenanceItem) => onOpenHistory(maintHistoryTarget(m, t, fmt));
 
   return (
     <div className="card">
