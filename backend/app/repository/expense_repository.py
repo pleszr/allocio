@@ -92,6 +92,25 @@ def list_expenses_for_bucket(session: Session, bucket_id: uuid.UUID) -> list[Exp
     return list(session.scalars(stmt).all())
 
 
+def list_linked_time_based_event_dates(session: Session, cost_id: uuid.UUID) -> list[date]:
+    """Return the `event_date`s of modeled expenses linked to a time-based cost, ascending.
+
+    Each such expense is a recorded occurrence of the cost (a payment posted against it), so the
+    earliest is the first month the cost occurred — the anchor for its next-due date when no explicit
+    `first_due_date` is set.
+    """
+    stmt = (
+        select(ExpenseEvent.event_date)
+        .where(
+            ExpenseEvent.kind == "modeled",
+            ExpenseEvent.source_type == "time_based_cost",
+            ExpenseEvent.source_id == cost_id,
+        )
+        .order_by(ExpenseEvent.event_date)
+    )
+    return list(session.scalars(stmt).all())
+
+
 def list_expenses_for_bucket_since(session: Session, bucket_id: uuid.UUID, since: date) -> list[ExpenseEvent]:
     """Return expense events for the bucket with `event_date >= since`, ordered by `event_date`."""
     stmt = (

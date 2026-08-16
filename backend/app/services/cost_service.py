@@ -122,18 +122,22 @@ class CostService:
 
     def next_due_for(self, cost: TimeBasedCost) -> date | None:
         """Compute a time-based cost's informational next-due date as of today."""
-        return self._resolve_next_due(cost, date.today())
+        linked_dates = expense_repository.list_linked_time_based_event_dates(self._session, cost.id)
+        return self._resolve_next_due(cost, linked_dates, date.today())
 
-    def _resolve_next_due(self, cost: TimeBasedCost, as_of: date) -> date | None:
-        """Resolve a cost's next-due date, rolling from its explicit anchor or its creation date.
+    def _resolve_next_due(self, cost: TimeBasedCost, linked_dates: list[date], as_of: date) -> date | None:
+        """Resolve a cost's next-due date from the best available anchor.
 
-        When ``first_due_date`` is set it is the anchor. Otherwise the cost's ``created_at`` is
-        treated as the cycle start, so quick-added and seeded template rows still get a placed
-        next-due date (one interval past creation) instead of none. Returns ``None`` only when a row
-        has neither an anchor nor a creation timestamp (an unsaved row), leaving old behavior intact.
+        Anchor priority: an explicit ``first_due_date`` wins; otherwise the earliest linked payment's
+        ``event_date`` — the first month the cost actually occurred, recorded as a modeled expense —
+        is a real occurrence rolled forward to today; failing that, the cost's ``created_at`` is
+        treated as the cycle start (next occurrence one interval past creation). Returns ``None`` only
+        for an unsaved row with no anchor, no payment, and no creation timestamp.
         """
         if cost.first_due_date is not None:
             return calculator.next_due_date(cost.first_due_date, cost.interval_value, cost.interval_unit, as_of)
+        if linked_dates:
+            return calculator.next_due_date(min(linked_dates), cost.interval_value, cost.interval_unit, as_of)
         if cost.created_at is None:
             return None
         return calculator.next_due_from_start(cost.created_at.date(), cost.interval_value, cost.interval_unit, as_of)
@@ -289,7 +293,9 @@ class CostService:
                     reference_amount=calculator.quantize_currency(reference),
                     annualized_amount=calculator.quantize_currency(annualized),
                     daily_rate=calculator.quantize_currency(daily),
-                    next_due_date=self._resolve_next_due(row, as_of),
+                    next_due_date=self._resolve_next_due(
+                        row, [event_date for event_date, _ in linked_by_source.get(row.id, [])], as_of
+                    ),
                 )
             )
         return views

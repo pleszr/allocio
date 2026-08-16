@@ -2546,8 +2546,8 @@
             },
             {
               "name": "delete_expense_events_for_check_in",
-              "line_start": 152,
-              "line_end": 158,
+              "line_start": 171,
+              "line_end": 177,
               "hash": "463527558ce9f012"
             },
             {
@@ -2564,26 +2564,26 @@
             },
             {
               "name": "list_bucket_covered_amounts_before",
-              "line_start": 161,
-              "line_end": 175,
+              "line_start": 180,
+              "line_end": 194,
               "hash": "8e710e216be0a4e2"
             },
             {
               "name": "list_bucket_expense_movements",
-              "line_start": 105,
-              "line_end": 119,
+              "line_start": 124,
+              "line_end": 138,
               "hash": "73891021f8e4efac"
             },
             {
               "name": "list_expense_events_for_check_in",
-              "line_start": 146,
-              "line_end": 149,
+              "line_start": 165,
+              "line_end": 168,
               "hash": "0467f0ff747d66ad"
             },
             {
               "name": "list_expenses_by_check_in",
-              "line_start": 178,
-              "line_end": 191,
+              "line_start": 197,
+              "line_end": 210,
               "hash": "d89e23bc06f8baf0"
             },
             {
@@ -2594,9 +2594,15 @@
             },
             {
               "name": "list_expenses_for_bucket_since",
-              "line_start": 95,
-              "line_end": 102,
+              "line_start": 114,
+              "line_end": 121,
               "hash": "8679be57f65aedcf"
+            },
+            {
+              "name": "list_linked_time_based_event_dates",
+              "line_start": 95,
+              "line_end": 111,
+              "hash": "63d8e44abe289ed7"
             },
             {
               "name": "resolve_source_labels",
@@ -2612,8 +2618,8 @@
             },
             {
               "name": "sum_expense_funding_by_check_in",
-              "line_start": 122,
-              "line_end": 143,
+              "line_start": 141,
+              "line_end": 162,
               "hash": "71e207e9d56b2855"
             }
           ],
@@ -3645,7 +3651,7 @@
             {
               "name": "CostService",
               "line_start": 68,
-              "line_end": 393,
+              "line_end": 399,
               "hash": "68c76c7e7a557a17",
               "methods": [
                 {
@@ -3656,68 +3662,68 @@
                 },
                 {
                   "name": "_add_and_commit",
-                  "line_start": 385,
-                  "line_end": 393,
+                  "line_start": 391,
+                  "line_end": 399,
                   "hash": "b36dc53859bafbf6"
                 },
                 {
                   "name": "_apply_and_commit",
-                  "line_start": 350,
-                  "line_end": 371,
+                  "line_start": 356,
+                  "line_end": 377,
                   "hash": "83eca40275a4e471"
                 },
                 {
                   "name": "_apply_changes",
-                  "line_start": 373,
-                  "line_end": 378,
+                  "line_start": 379,
+                  "line_end": 384,
                   "hash": "7d1ab76cd441b095"
                 },
                 {
                   "name": "_current_asset_usage",
-                  "line_start": 297,
-                  "line_end": 306,
+                  "line_start": 303,
+                  "line_end": 312,
                   "hash": "1f5c33328e016924"
                 },
                 {
                   "name": "_km_since_service",
-                  "line_start": 343,
-                  "line_end": 348,
+                  "line_start": 349,
+                  "line_end": 354,
                   "hash": "61b00aedc6b5dc73"
                 },
                 {
                   "name": "_maintenance_view",
-                  "line_start": 308,
-                  "line_end": 341,
+                  "line_start": 314,
+                  "line_end": 347,
                   "hash": "2d0bb7e0b2307223"
                 },
                 {
                   "name": "_require_interval_unless_other",
-                  "line_start": 380,
-                  "line_end": 383,
+                  "line_start": 386,
+                  "line_end": 389,
                   "hash": "fb8a92b3036a5ff4"
                 },
                 {
                   "name": "_require_owned_asset",
-                  "line_start": 255,
-                  "line_end": 260,
+                  "line_start": 259,
+                  "line_end": 264,
                   "hash": "a60e1d83da511025"
                 },
                 {
                   "name": "_resolve_next_due",
-                  "line_start": 127,
-                  "line_end": 139,
-                  "hash": "8e0edba95354dbb0"
+                  "line_start": 128,
+                  "line_end": 143,
+                  "hash": "cafbdd2bebafece2"
                 },
                 {
                   "name": "_time_based_views",
-                  "line_start": 262,
-                  "line_end": 295,
-                  "hash": "a6179776bdf7ce35"
+                  "line_start": 266,
+                  "line_end": 301,
+                  "hash": "09580c0bea39e68c"
                 },
                 {
                   "name": "create_maintenance_item",
-                  "line_start": 212,
-                  "line_end": 243,
+                  "line_start": 216,
+                  "line_end": 247,
                   "hash": "63a44b053eaa44c5"
                 },
                 {
@@ -3728,26 +3734,26 @@
                 },
                 {
                   "name": "create_usage_based_cost",
-                  "line_start": 150,
-                  "line_end": 174,
+                  "line_start": 154,
+                  "line_end": 178,
                   "hash": "10c8ae872a6cf53d"
                 },
                 {
                   "name": "current_asset_usage",
-                  "line_start": 199,
-                  "line_end": 202,
+                  "line_start": 203,
+                  "line_end": 206,
                   "hash": "33120c36f0d1697b"
                 },
                 {
                   "name": "list_maintenance_item_views",
-                  "line_start": 191,
-                  "line_end": 197,
+                  "line_start": 195,
+                  "line_end": 201,
                   "hash": "e30059cd817aac65"
                 },
                 {
                   "name": "list_maintenance_items",
-                  "line_start": 186,
-                  "line_end": 189,
+                  "line_start": 190,
+                  "line_end": 193,
                   "hash": "1385b30e33cec3b8"
                 },
                 {
@@ -3764,32 +3770,32 @@
                 },
                 {
                   "name": "list_usage_based_costs",
-                  "line_start": 145,
-                  "line_end": 148,
+                  "line_start": 149,
+                  "line_end": 152,
                   "hash": "eb95d00e6db48558"
                 },
                 {
                   "name": "maintenance_item_view",
-                  "line_start": 204,
-                  "line_end": 210,
+                  "line_start": 208,
+                  "line_end": 214,
                   "hash": "b269704d0569c31b"
                 },
                 {
                   "name": "next_due_for",
                   "line_start": 123,
-                  "line_end": 125,
-                  "hash": "fc13d606cbf5516f"
+                  "line_end": 126,
+                  "hash": "5d7d4d13c53ecff4"
                 },
                 {
                   "name": "time_based_cost_view",
-                  "line_start": 141,
-                  "line_end": 143,
+                  "line_start": 145,
+                  "line_end": 147,
                   "hash": "a128168514dfa297"
                 },
                 {
                   "name": "update_maintenance_item",
-                  "line_start": 245,
-                  "line_end": 253,
+                  "line_start": 249,
+                  "line_end": 257,
                   "hash": "9b0c52ecbe74b090"
                 },
                 {
@@ -3800,8 +3806,8 @@
                 },
                 {
                   "name": "update_usage_based_cost",
-                  "line_start": 176,
-                  "line_end": 184,
+                  "line_start": 180,
+                  "line_end": 188,
                   "hash": "f0eabdb490cdb6e0"
                 }
               ]
