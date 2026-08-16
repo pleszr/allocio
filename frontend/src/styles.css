@@ -1287,8 +1287,8 @@ select.input {
 @media (max-width: 860px) { .tcp { grid-template-columns: 1fr; } }
 
 /* ── Spatial map (side-profile vehicle schematic) ──────────────────── */
-.spatial-map { display: grid; grid-template-columns: 1.4fr 1fr; background: var(--surface); border-radius: var(--radius); overflow: hidden; border: 1px solid rgba(15,23,42,.04); box-shadow: 0 1px 0 rgba(15,23,42,.04), 0 4px 14px rgba(15,23,42,.05); }
-.spatial-stage { padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; background: var(--surface-sunk); }
+.spatial-map { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface); border-radius: var(--radius); overflow: hidden; border: 1px solid rgba(15,23,42,.04); box-shadow: 0 1px 0 rgba(15,23,42,.04), 0 4px 14px rgba(15,23,42,.05); }
+.spatial-stage { padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
 .spatial-focus { font-family: var(--mono); font-size: 12px; color: var(--accent-ink); min-height: 15px; font-feature-settings: "tnum"; }
 .spatial-hero-wrap { position: relative; }
 .spatial-hero-wrap .hero-img { display: block; width: 100%; height: auto; transition: filter .25s ease, opacity .25s ease; }
@@ -1309,11 +1309,18 @@ select.input {
 .spatial-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .spatial-item-name { font-size: 13.5px; font-weight: 500; }
 .spatial-item-sub { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+.maint-bars { display: flex; flex-direction: column; gap: 3px; margin-top: 5px; }
+.maint-bar { display: flex; align-items: center; gap: 6px; }
+.maint-bar-icon { color: var(--muted-2); flex-shrink: 0; }
+.bar-track { position: relative; flex: 1; height: 5px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.bar-fill { position: absolute; inset: 0; width: var(--pct, 0%); background: var(--muted-2); border-radius: 999px; transition: width .3s ease; }
+.bar-fill.warn { background: var(--warn); }
+.bar-fill.bad { background: var(--bad); }
 @media (max-width: 860px) { .spatial-map { grid-template-columns: 1fr; } }
 
 /* Merged dashboard maintenance panel: car diagram + unified list inside one full-width card. */
-.maint-panel-body { display: grid; grid-template-columns: 1.4fr 1fr; margin-top: 14px; }
-.maint-panel-stage { padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; background: var(--surface-sunk); }
+.maint-panel-body { display: grid; grid-template-columns: 1fr 1fr; margin-top: 14px; }
+.maint-panel-stage { padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
 @media (max-width: 860px) { .maint-panel-body { grid-template-columns: 1fr; } }
 
 /* ── Check-in posted confirmation ──────────────────────────────────── */

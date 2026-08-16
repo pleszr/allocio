@@ -4534,8 +4534,8 @@
           "functions": [
             {
               "name": "Icon",
-              "line_start": 28,
-              "line_end": 47,
+              "line_start": 30,
+              "line_end": 49,
               "hash": "8d090243042b514a"
             }
           ],
@@ -4543,8 +4543,8 @@
           "components": [
             {
               "name": "Icon",
-              "line_start": 28,
-              "line_end": 47,
+              "line_start": 30,
+              "line_end": 49,
               "hash": "8d090243042b514a",
               "kind": "function"
             }
@@ -4625,7 +4625,6 @@
           "language": "typescript",
           "imports": [
             "../api/types",
-            "../utils/format",
             "./Icon",
             "./SpatialMap",
             "react",
@@ -4637,18 +4636,18 @@
           "functions": [
             {
               "name": "MaintenancePanel",
-              "line_start": 21,
-              "line_end": 105,
-              "hash": "ff8dfac7bed7a025"
+              "line_start": 20,
+              "line_end": 87,
+              "hash": "aa125afc2b3e9393"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "MaintenancePanel",
-              "line_start": 21,
-              "line_end": 105,
-              "hash": "ff8dfac7bed7a025",
+              "line_start": 20,
+              "line_end": 87,
+              "hash": "aa125afc2b3e9393",
               "kind": "function"
             }
           ]
@@ -4728,39 +4727,64 @@
             "../api/types",
             "../assets/car-xray.webp",
             "../utils/format",
+            "./Icon",
+            "i18next",
             "react",
             "react-i18next"
           ],
           "exports": [
             "CarDiagram",
+            "MAINT_OVERDUE_RATIO",
+            "MAINT_WARN_RATIO",
+            "MaintenanceRow",
             "SpatialItem",
             "SpatialMap",
+            "barTone",
             "dotClass",
+            "maintenanceFocusText",
             "spatialItems"
           ],
           "functions": [
             {
               "name": "CarDiagram",
-              "line_start": 80,
-              "line_end": 109,
+              "line_start": 95,
+              "line_end": 124,
               "hash": "c2906734016bbf7c"
             },
             {
+              "name": "MaintenanceRow",
+              "line_start": 141,
+              "line_end": 184,
+              "hash": "f7e4e38953993774"
+            },
+            {
               "name": "SpatialMap",
-              "line_start": 115,
-              "line_end": 168,
-              "hash": "874e988b1bf3533d"
+              "line_start": 190,
+              "line_end": 228,
+              "hash": "0efd796db691943f"
+            },
+            {
+              "name": "barTone",
+              "line_start": 57,
+              "line_end": 61,
+              "hash": "b45181bacda5d10a"
             },
             {
               "name": "dotClass",
-              "line_start": 71,
-              "line_end": 75,
+              "line_start": 86,
+              "line_end": 90,
               "hash": "73f0d3b2b98f7818"
             },
             {
+              "name": "maintenanceFocusText",
+              "line_start": 129,
+              "line_end": 135,
+              "hash": "b3da7c6ec4d6bc65"
+            },
+            {
               "name": "spatialItems",
-              "line_start": 59,
-              "line_end": 69,
+              "line_start": 74,
+              "line_end": 84,
               "hash": "6f7279decb3b9532"
             }
           ],
@@ -4768,16 +4792,23 @@
           "components": [
             {
               "name": "CarDiagram",
-              "line_start": 80,
-              "line_end": 109,
+              "line_start": 95,
+              "line_end": 124,
               "hash": "c2906734016bbf7c",
               "kind": "function"
             },
             {
+              "name": "MaintenanceRow",
+              "line_start": 141,
+              "line_end": 184,
+              "hash": "f7e4e38953993774",
+              "kind": "function"
+            },
+            {
               "name": "SpatialMap",
-              "line_start": 115,
-              "line_end": 168,
-              "hash": "874e988b1bf3533d",
+              "line_start": 190,
+              "line_end": 228,
+              "hash": "0efd796db691943f",
               "kind": "function"
             }
           ]

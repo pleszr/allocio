@@ -14,6 +14,8 @@ const ICONS: Record<string, string> = {
   close: "M6 6l12 12M18 6 6 18",
   alert: "M12 9v4m0 4h.01M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.4 0z",
   calendar: "M8 2v4m8-4v4M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z",
+  odometer: "M4 18a8 8 0 1 1 16 0M12 14l4-4",
+  clock: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
 };
 
 export type IconName = keyof typeof ICONS;

@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { MaintenanceItem } from "../api/types";
 import { fmtNumber } from "../utils/format";
+import { Icon } from "./Icon";
 import carXray from "../assets/car-xray.webp";
 
 // An anatomical "where does this live" overlay: maintenance items glow over a side-profile car
@@ -44,6 +46,19 @@ const CAR_REGIONS: Record<string, Region[]> = {
   winter_tires: BOTH_WHEELS,
   summer_tires: BOTH_WHEELS,
 };
+
+// Mirrors backend/app/domain/calculator.py: a ratio at or past _SOON_RATIO is approaching its
+// interval, at or past _OVERDUE_RATIO it is past due. Per-bar colouring uses these directly so
+// each dimension shows its own state, unlike item.status which is the max of the two.
+export const MAINT_WARN_RATIO = 0.8;
+export const MAINT_OVERDUE_RATIO = 1.05;
+
+// A single progress bar's colour comes from its own ratio, not the row's combined status.
+export function barTone(ratio: number): string {
+  if (ratio >= MAINT_OVERDUE_RATIO) return "bad";
+  if (ratio >= MAINT_WARN_RATIO) return "warn";
+  return "";
+}
 
 export interface SpatialItem {
   id: string;
@@ -108,6 +123,66 @@ export function CarDiagram({ items, activeId }: { items: SpatialItem[]; activeId
   );
 }
 
+// The focus line above the car. Shows the hovered item's label plus every dimension that has a
+// remaining figure, because the per-row text was replaced by bars and this is now the only
+// place the actual numbers are readable.
+export function maintenanceFocusText(item: MaintenanceItem, t: TFunction): string {
+  if (item.status === "overdue") return `${item.label} · ${t("spatialMap.overdue")}`;
+  const parts = [item.label];
+  if (item.remaining_km !== null) parts.push(t("spatialMap.km_left", { km: fmtNumber(item.remaining_km) }));
+  if (item.remaining_months !== null) parts.push(t("spatialMap.months_left", { months: item.remaining_months }));
+  return parts.join(" · ");
+}
+
+interface MaintenanceRowProps extends React.HTMLAttributes<HTMLDivElement> {
+  item: MaintenanceItem;
+}
+
+export function MaintenanceRow({ item, className, ...rowProps }: MaintenanceRowProps) {
+  const { t } = useTranslation();
+  const hasBars = item.km_progress !== null || item.month_progress !== null;
+  return (
+    <div className={`spatial-item${className ?? ""}`} {...rowProps}>
+      <span className={`spatial-dot ${dotClass(item.status)}`} />
+      <span className="spatial-item-body">
+        <span className="spatial-item-name">{item.label}</span>
+        {hasBars && (
+          <span className="maint-bars">
+            {item.km_progress !== null && (
+              <span
+                className="maint-bar"
+                aria-label={t("spatialMap.km_left", { km: fmtNumber(item.remaining_km ?? 0) })}
+              >
+                <Icon name="odometer" size={12} className="maint-bar-icon" />
+                <span className="bar-track">
+                  <span
+                    className={`bar-fill ${barTone(item.km_progress)}`}
+                    style={{ ["--pct" as string]: `${Math.min(1, item.km_progress) * 100}%` }}
+                  />
+                </span>
+              </span>
+            )}
+            {item.month_progress !== null && (
+              <span
+                className="maint-bar"
+                aria-label={t("spatialMap.months_left", { months: item.remaining_months ?? 0 })}
+              >
+                <Icon name="clock" size={12} className="maint-bar-icon" />
+                <span className="bar-track">
+                  <span
+                    className={`bar-fill ${barTone(item.month_progress)}`}
+                    style={{ ["--pct" as string]: `${Math.min(1, item.month_progress) * 100}%` }}
+                  />
+                </span>
+              </span>
+            )}
+          </span>
+        )}
+      </span>
+    </div>
+  );
+}
+
 interface SpatialMapProps {
   maintenanceItems: MaintenanceItem[];
 }
@@ -122,14 +197,7 @@ export function SpatialMap({ maintenanceItems }: SpatialMapProps) {
 
   if (items.length === 0) return null;
 
-  const subText = (item: MaintenanceItem): string => {
-    if (item.status === "overdue") return t("spatialMap.overdue");
-    if (item.remaining_km !== null) return t("spatialMap.km_left", { km: fmtNumber(item.remaining_km) });
-    if (item.remaining_months !== null) return t("spatialMap.months_left", { months: item.remaining_months });
-    return "";
-  };
-
-  const focusText = active ? [active.label, subText(active.item)].filter(Boolean).join(" · ") : t("spatialMap.focus_hint");
+  const focusText = active ? maintenanceFocusText(active.item, t) : t("spatialMap.focus_hint");
 
   return (
     <div className="spatial-map" onClick={() => setSelected(null)}>
@@ -138,30 +206,22 @@ export function SpatialMap({ maintenanceItems }: SpatialMapProps) {
         <CarDiagram items={items} activeId={activeId} />
       </div>
       <div className="spatial-list">
-        {items.map((it) => {
-          const sub = subText(it.item);
-          return (
-            <div
-              key={it.id}
-              className={`spatial-item${selected === it.id ? " selected" : ""}${hovered === it.id ? " hovered" : ""}`}
-              onMouseEnter={(ev) => {
-                ev.stopPropagation();
-                setHovered(it.id);
-              }}
-              onMouseLeave={() => setHovered(null)}
-              onClick={(ev) => {
-                ev.stopPropagation();
-                setSelected((s) => (s === it.id ? null : it.id));
-              }}
-            >
-              <span className={`spatial-dot ${dotClass(it.status)}`} />
-              <span className="spatial-item-body">
-                <span className="spatial-item-name">{it.label}</span>
-                {sub && <span className="spatial-item-sub">{sub}</span>}
-              </span>
-            </div>
-          );
-        })}
+        {items.map((it) => (
+          <MaintenanceRow
+            key={it.id}
+            item={it.item}
+            className={`${selected === it.id ? " selected" : ""}${hovered === it.id ? " hovered" : ""}`}
+            onMouseEnter={(ev) => {
+              ev.stopPropagation();
+              setHovered(it.id);
+            }}
+            onMouseLeave={() => setHovered(null)}
+            onClick={(ev) => {
+              ev.stopPropagation();
+              setSelected((s) => (s === it.id ? null : it.id));
+            }}
+          />
+        ))}
       </div>
     </div>
   );
