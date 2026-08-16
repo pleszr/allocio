@@ -4534,6 +4534,7 @@
           "language": "typescript",
           "imports": [
             "../api/types",
+            "../assets/car-xray.webp",
             "../utils/format",
             "react",
             "react-i18next"
@@ -4544,44 +4545,31 @@
           ],
           "functions": [
             {
-              "name": "CarSchematic",
-              "line_start": 158,
-              "line_end": 179,
-              "hash": "1b305d43497e75b9"
-            },
-            {
               "name": "SpatialMap",
-              "line_start": 77,
-              "line_end": 154,
-              "hash": "07678b61147e54b9"
+              "line_start": 81,
+              "line_end": 158,
+              "hash": "cc66b0dde6d52709"
             },
             {
               "name": "dotClass",
-              "line_start": 67,
-              "line_end": 71,
+              "line_start": 71,
+              "line_end": 75,
               "hash": "291c617fd07e6e6a"
             },
             {
               "name": "spatialItems",
-              "line_start": 55,
-              "line_end": 65,
+              "line_start": 59,
+              "line_end": 69,
               "hash": "6f7279decb3b9532"
             }
           ],
           "classes": [],
           "components": [
             {
-              "name": "CarSchematic",
-              "line_start": 158,
-              "line_end": 179,
-              "hash": "1b305d43497e75b9",
-              "kind": "function"
-            },
-            {
               "name": "SpatialMap",
-              "line_start": 77,
-              "line_end": 154,
-              "hash": "07678b61147e54b9",
+              "line_start": 81,
+              "line_end": 158,
+              "hash": "cc66b0dde6d52709",
               "kind": "function"
             }
           ]

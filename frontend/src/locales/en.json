@@ -420,6 +420,7 @@
     "review_first_checkin_count_other": "{{count}} expenses"
   },
   "spatialMap": {
+    "car_alt": "Cutaway x-ray diagram of a vehicle",
     "focus_hint": "Hover an item to locate it",
     "overdue": "overdue",
     "km_left": "{{km}} km left",

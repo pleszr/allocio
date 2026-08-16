@@ -1271,7 +1271,7 @@ select.input {
 .spatial-focus { font-family: var(--mono); font-size: 12px; color: var(--accent-ink); min-height: 15px; font-feature-settings: "tnum"; }
 .spatial-hero-wrap { position: relative; }
 .spatial-hero-wrap .hero-img { display: block; width: 100%; height: auto; transition: filter .25s ease, opacity .25s ease; }
-.spatial-hero-wrap.dimmed .hero-img { opacity: .5; }
+.spatial-hero-wrap.dimmed .hero-img { filter: saturate(.5) brightness(1.02); opacity: .5; }
 .spatial-overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
 .spatial-region { fill: var(--accent); opacity: 0; filter: blur(6px); transition: opacity .25s ease; }
 .spatial-region.active { opacity: .3; }

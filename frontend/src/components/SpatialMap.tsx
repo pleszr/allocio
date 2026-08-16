@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { MaintenanceItem } from "../api/types";
 import { fmtNumber } from "../utils/format";
+import carXray from "../assets/car-xray.webp";
 
 // An anatomical "where does this live" overlay: maintenance items glow over a side-profile car
 // schematic when hovered. Region coordinates are a frontend-static map keyed by the built-in
@@ -9,7 +10,10 @@ import { fmtNumber } from "../utils/format";
 // They are approximate, illustrative placements — not a precise mechanical diagram — and only the
 // built-in vehicle template rows are mapped. Assets whose maintenance rows carry no mapped
 // technical_key (custom vehicle rows, houses, pets) produce no items and the map renders nothing.
-const CAR_VIEWBOX = "0 0 240 120";
+// Overlay coordinates are percentages of the x-ray image: the overlay SVG uses viewBox 0 0 100 100
+// with preserveAspectRatio="none", so it maps linearly onto the full image box in both axes and
+// (cx, cy) reads as (x%, y%) of the photo. Placements were verified visually against the render.
+const CAR_VIEWBOX = "0 0 100 100";
 
 interface Region {
   cx: number;
@@ -18,24 +22,24 @@ interface Region {
   ry: number;
 }
 
-const FRONT_WHEEL: Region = { cx: 64, cy: 100, rx: 13, ry: 13 };
-const REAR_WHEEL: Region = { cx: 176, cy: 100, rx: 13, ry: 13 };
+const FRONT_WHEEL: Region[] = [{ cx: 44, cy: 76, rx: 5.5, ry: 8.5 }];
+const REAR_WHEEL: Region[] = [{ cx: 87.5, cy: 53, rx: 4.5, ry: 6.5 }];
 const BOTH_WHEELS: Region[] = [
-  { cx: 64, cy: 100, rx: 15, ry: 15 },
-  { cx: 176, cy: 100, rx: 15, ry: 15 },
+  { cx: 43, cy: 79, rx: 7.5, ry: 11 },
+  { cx: 90.5, cy: 57.5, rx: 6.5, ry: 10 },
 ];
 
 const CAR_REGIONS: Record<string, Region[]> = {
-  annual_service: [{ cx: 48, cy: 74, rx: 15, ry: 11 }],
-  timing_system: [{ cx: 40, cy: 76, rx: 8, ry: 8 }],
-  water_pump: [{ cx: 57, cy: 78, rx: 7, ry: 7 }],
-  automatic_transmission_fluid: [{ cx: 72, cy: 84, rx: 8, ry: 7 }],
-  fuel_filter: [{ cx: 150, cy: 88, rx: 8, ry: 7 }],
-  battery: [{ cx: 34, cy: 70, rx: 7, ry: 6 }],
-  front_brake_pad: [FRONT_WHEEL],
-  front_brake_disc: [FRONT_WHEEL],
-  rear_brake_pad: [REAR_WHEEL],
-  rear_brake_disc: [REAR_WHEEL],
+  annual_service: [{ cx: 21.5, cy: 52, rx: 8.5, ry: 11 }],
+  timing_system: [{ cx: 17.5, cy: 50.5, rx: 4.5, ry: 6 }],
+  water_pump: [{ cx: 18.5, cy: 58.5, rx: 4.5, ry: 6 }],
+  battery: [{ cx: 30, cy: 47, rx: 4.5, ry: 5.5 }],
+  automatic_transmission_fluid: [{ cx: 35, cy: 58.5, rx: 4.5, ry: 6 }],
+  fuel_filter: [{ cx: 57.5, cy: 63, rx: 5, ry: 6 }],
+  front_brake_pad: FRONT_WHEEL,
+  front_brake_disc: FRONT_WHEEL,
+  rear_brake_pad: REAR_WHEEL,
+  rear_brake_disc: REAR_WHEEL,
   all_season_tires: BOTH_WHEELS,
   winter_tires: BOTH_WHEELS,
   summer_tires: BOTH_WHEELS,
@@ -98,8 +102,8 @@ export function SpatialMap({ maintenanceItems }: SpatialMapProps) {
       <div className="spatial-stage">
         <div className="spatial-focus">{focusText}</div>
         <div className={`spatial-hero-wrap${activeId ? " dimmed" : ""}`}>
-          <CarSchematic />
-          <svg className="spatial-overlay" viewBox={CAR_VIEWBOX} preserveAspectRatio="xMidYMid meet">
+          <img className="hero-img" src={carXray} alt={t("spatialMap.car_alt")} />
+          <svg className="spatial-overlay" viewBox={CAR_VIEWBOX} preserveAspectRatio="none">
             {items.flatMap((it) =>
               it.regions.map((r, ri) => (
                 <g key={it.id + ri}>
@@ -150,30 +154,5 @@ export function SpatialMap({ maintenanceItems }: SpatialMapProps) {
         })}
       </div>
     </div>
-  );
-}
-
-// Side-profile car outline. Purely decorative stroke art (no fill) so it reads in both themes via
-// the shared line-color vars; the overlay regions above are positioned against this viewBox.
-function CarSchematic() {
-  return (
-    <svg className="hero-img hero-svg" viewBox={CAR_VIEWBOX} aria-hidden="true">
-      <line x1="10" y1="100" x2="230" y2="100" stroke="var(--line)" strokeWidth="2" />
-      <path
-        d="M28 88 L40 66 Q44 60 52 60 L96 60 L120 44 L160 44 Q170 44 176 54 L196 66 L212 70 Q220 72 220 82 L220 88"
-        fill="none"
-        stroke="var(--line-strong)"
-        strokeWidth="2"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      <path d="M28 88 L52 88 M76 88 L164 88 M188 88 L220 88" stroke="var(--line-strong)" strokeWidth="2" strokeLinecap="round" />
-      <path d="M100 58 L120 46 L150 46 L150 58 Z" fill="none" stroke="var(--line-strong)" strokeWidth="1.5" strokeLinejoin="round" />
-      <line x1="126" y1="47" x2="126" y2="58" stroke="var(--line-strong)" strokeWidth="1.5" />
-      <circle cx="64" cy="100" r="13" fill="none" stroke="var(--line-strong)" strokeWidth="2.5" />
-      <circle cx="64" cy="100" r="5" fill="none" stroke="var(--line-strong)" strokeWidth="1.5" />
-      <circle cx="176" cy="100" r="13" fill="none" stroke="var(--line-strong)" strokeWidth="2.5" />
-      <circle cx="176" cy="100" r="5" fill="none" stroke="var(--line-strong)" strokeWidth="1.5" />
-    </svg>
   );
 }

@@ -420,6 +420,7 @@
     "review_first_checkin_count_other": "{{count}} költség"
   },
   "spatialMap": {
+    "car_alt": "Jármű metszeti röntgenábrája",
     "focus_hint": "Vigye rá egy elemre a helyének megtekintéséhez",
     "overdue": "lejárt",
     "km_left": "{{km}} km van hátra",
