@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
 import type { ExpenseEvent } from "../api/types";
@@ -52,7 +53,10 @@ export function CostHistoryModal({ assetId, kind, costId, label, meta, onClose }
   const amounts = rows.map((r) => r.amount);
   const dates = rows.map((r) => fmtDateShort(r.event_date));
 
-  return (
+  // Portal to <body>: the Costs screen's `.content.fade-in` keeps a `transform` (animation
+  // fill-mode `both`), which would otherwise make this fixed backdrop a child of that tall,
+  // scrollable box and center the dialog within it (appearing low) instead of the viewport.
+  return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <div
         className="modal-card cost-history-card"
@@ -121,6 +125,7 @@ export function CostHistoryModal({ assetId, kind, costId, label, meta, onClose }
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

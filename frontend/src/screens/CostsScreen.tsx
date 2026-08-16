@@ -30,6 +30,28 @@ export interface HistoryTarget {
   meta: CostHistoryMeta[];
 }
 
+// The history-popup descriptor for a time-based cost. Shared by the cost table and the
+// TimeCostPanel so both entry points show the same interval/next-due summary.
+function timeCostHistoryTarget(
+  row: TimeBasedCost,
+  t: ReturnType<typeof useTranslation>["t"],
+  fmt: ReturnType<typeof useCurrency>,
+): HistoryTarget {
+  return {
+    kind: "time",
+    costId: row.id,
+    label: row.label,
+    meta: [
+      { label: t("costs.th_amount"), value: fmt(row.amount, { decimals: 0 }) },
+      {
+        label: t("costs.th_every"),
+        value: t("costs.every_interval", { value: row.interval_value, unit: t(`costs.unit_${row.interval_unit}`) }),
+      },
+      { label: t("costs.th_next_due"), value: row.next_due_date ? fmtDate(row.next_due_date) : "—" },
+    ],
+  };
+}
+
 export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps) {
   const { t } = useTranslation();
   const fmt = useCurrency();
@@ -172,7 +194,7 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
 
       {tab === "time" && (
         <>
-          <TimeCostPanel costs={timeRows} />
+          <TimeCostPanel costs={timeRows} onOpenHistory={(cost) => setHistory(timeCostHistoryTarget(cost, t, fmt))} />
           {timeRows.some((row) => row.is_active) && <div style={{ height: 20 }} />}
           <TimeTable assetId={assetId} rows={timeRows} onChanged={reloadAll} onOpenHistory={setHistory} />
         </>
@@ -337,20 +359,7 @@ function TimeTable({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
-  const openHistory = (row: TimeBasedCost) =>
-    onOpenHistory({
-      kind: "time",
-      costId: row.id,
-      label: row.label,
-      meta: [
-        { label: t("costs.th_amount"), value: fmt(row.amount, { decimals: 0 }) },
-        {
-          label: t("costs.th_every"),
-          value: t("costs.every_interval", { value: row.interval_value, unit: t(`costs.unit_${row.interval_unit}`) }),
-        },
-        { label: t("costs.th_next_due"), value: row.next_due_date ? fmtDate(row.next_due_date) : "—" },
-      ],
-    });
+  const openHistory = (row: TimeBasedCost) => onOpenHistory(timeCostHistoryTarget(row, t, fmt));
 
   return (
     <div className="card">
