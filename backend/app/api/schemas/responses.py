@@ -90,7 +90,8 @@ class TimeBasedCostResponse(BaseModel):
     first_due_date: date | None = Field(description="Stored anchor date of a known occurrence, if set.")
     next_due_date: date | None = Field(
         default=None,
-        description="Computed next occurrence on or after today, rolled forward from the anchor; null when no anchor is set.",
+        description="Computed next occurrence on or after today, rolled forward from the explicit anchor "
+        "when set, otherwise from the cost's creation date (one interval past creation).",
     )
     notes: str | None = Field(description="Optional free-text notes for the cost.")
     is_active: bool = Field(description="Whether the cost row drives future calculations.")

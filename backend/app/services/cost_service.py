@@ -121,8 +121,22 @@ class CostService:
         return self._apply_and_commit(row, changes, _TIME_BASED_EDITABLE_KEYS)
 
     def next_due_for(self, cost: TimeBasedCost) -> date | None:
-        """Compute a time-based cost's informational next-due date as of today, or None without an anchor."""
-        return calculator.next_due_date(cost.first_due_date, cost.interval_value, cost.interval_unit, date.today())
+        """Compute a time-based cost's informational next-due date as of today."""
+        return self._resolve_next_due(cost, date.today())
+
+    def _resolve_next_due(self, cost: TimeBasedCost, as_of: date) -> date | None:
+        """Resolve a cost's next-due date, rolling from its explicit anchor or its creation date.
+
+        When ``first_due_date`` is set it is the anchor. Otherwise the cost's ``created_at`` is
+        treated as the cycle start, so quick-added and seeded template rows still get a placed
+        next-due date (one interval past creation) instead of none. Returns ``None`` only when a row
+        has neither an anchor nor a creation timestamp (an unsaved row), leaving old behavior intact.
+        """
+        if cost.first_due_date is not None:
+            return calculator.next_due_date(cost.first_due_date, cost.interval_value, cost.interval_unit, as_of)
+        if cost.created_at is None:
+            return None
+        return calculator.next_due_from_start(cost.created_at.date(), cost.interval_value, cost.interval_unit, as_of)
 
     def time_based_cost_view(self, row: TimeBasedCost) -> TimeBasedCostView:
         """Enrich one already-owned recurring row for create/update responses."""
@@ -275,9 +289,7 @@ class CostService:
                     reference_amount=calculator.quantize_currency(reference),
                     annualized_amount=calculator.quantize_currency(annualized),
                     daily_rate=calculator.quantize_currency(daily),
-                    next_due_date=calculator.next_due_date(
-                        row.first_due_date, row.interval_value, row.interval_unit, as_of
-                    ),
+                    next_due_date=self._resolve_next_due(row, as_of),
                 )
             )
         return views

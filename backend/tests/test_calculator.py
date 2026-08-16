@@ -311,3 +311,33 @@ def test_next_due_date_rejects_non_positive_interval():
         calculator.next_due_date(past_anchor, 0, "months", date(2026, 7, 17))
     with pytest.raises(ValueError):
         calculator.next_due_date(past_anchor, -3, "months", date(2026, 7, 17))
+
+
+def test_next_due_from_start_recent_start_is_one_interval_out():
+    # Created one month ago; a 12-month cycle's first occurrence is eleven months out.
+    start = date(2026, 7, 16)
+    today = date(2026, 8, 16)
+    assert calculator.next_due_from_start(start, 12, "months", today) == date(2027, 7, 16)
+
+
+def test_next_due_from_start_same_day_start_is_one_full_interval():
+    day = date(2026, 8, 16)
+    assert calculator.next_due_from_start(day, 12, "months", day) == date(2027, 8, 16)
+
+
+def test_next_due_from_start_rolls_past_a_stale_start():
+    # Started thirteen months ago: the occurrence one interval out is already past, so it rolls once more.
+    start = date(2025, 7, 16)
+    today = date(2026, 8, 16)
+    assert calculator.next_due_from_start(start, 12, "months", today) == date(2027, 7, 16)
+
+
+def test_next_due_from_start_years_unit():
+    start = date(2026, 2, 1)
+    today = date(2026, 8, 16)
+    assert calculator.next_due_from_start(start, 1, "years", today) == date(2027, 2, 1)
+
+
+def test_next_due_from_start_rejects_non_positive_interval():
+    with pytest.raises(ValueError):
+        calculator.next_due_from_start(date(2026, 1, 1), 0, "months", date(2026, 8, 16))

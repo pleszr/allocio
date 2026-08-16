@@ -180,13 +180,13 @@ is read-only and excludes usage-based rows because no usage history or forecast 
 
 ### Next-due date
 
-The next-due date is an informational signal derived from a time-based cost's optional `first_due_date` anchor and its interval.
+The next-due date is an informational signal derived from a time-based cost's `first_due_date` anchor (or, when that is null, its `created_at`) and its interval.
 
 Rules:
 
 - next-due is the first occurrence on or after today, found by rolling `first_due_date` forward by whole intervals
 - a `first_due_date` on or after today yields itself (the first occurrence has not happened yet)
-- a null `first_due_date` yields no next-due date (null)
+- a null `first_due_date` falls back to the cost's `created_at`: the cycle is treated as having begun at creation, so the first occurrence is one interval past `created_at`, rolled forward to on/after today (a 12-month cost created one month ago resolves to about eleven months out). Seeded template rows and quick-added rows therefore still get a placed next-due date rather than null
 - month-end anchors clamp to the target month's last day (e.g. `2025-01-31` + 1 month → `2025-02-28`)
 - next-due is informational only: it does not change the annualized amount or the period accrual formulas above
 
