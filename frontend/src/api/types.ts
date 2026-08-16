@@ -174,6 +174,25 @@ export interface CheckInHistory {
   rows: CheckInHistoryRow[];
 }
 
+// A posted, immutable expense event linked to (or standalone from) a cost row. Mirrors the backend
+// ExpenseEventResponse; used by the per-cost history popup.
+export interface ExpenseEvent {
+  id: string;
+  bucket_id: string;
+  check_in_id: string | null;
+  event_date: string;
+  usage_counter_at_event: number | null;
+  kind: ExpenseKind;
+  amount: number;
+  bucket_amount: number;
+  paid_out_of_pocket: number;
+  excluded_from_average: boolean;
+  comment: string | null;
+  source_type: string | null;
+  source_id: string | null;
+  metadata_json: Record<string, unknown> | null;
+}
+
 // ── Cost rows ─────────────────────────────────────────────────────────
 export interface TimeBasedCost {
   id: string;

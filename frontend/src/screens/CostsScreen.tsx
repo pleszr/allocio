@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { api, ApiError } from "../api/client";
 import type { IntervalUnit, MaintenanceItem, TimeBasedCost, UsageBasedCost } from "../api/types";
 import { CostDistributionChart } from "../components/CostDistributionChart";
+import { CostHistoryModal, type CostHistoryMeta, type CostKind } from "../components/CostHistoryModal";
 import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { SpatialMap, spatialItems } from "../components/SpatialMap";
@@ -20,11 +21,21 @@ interface CostsScreenProps {
 
 type CostTab = "time" | "usage" | "maint";
 
+// A cost row the user clicked to open its history popup. `meta` is the type-specific summary
+// (interval, next due, rate…) built by the table that owns the row.
+export interface HistoryTarget {
+  kind: CostKind;
+  costId: string;
+  label: string;
+  meta: CostHistoryMeta[];
+}
+
 export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps) {
   const { t } = useTranslation();
   const fmt = useCurrency();
   const [tab, setTab] = useState<CostTab>(initialTab ?? "time");
   const [manualEditing, setManualEditing] = useState(false);
+  const [history, setHistory] = useState<HistoryTarget | null>(null);
   const asset = useAsync(() => api.getAsset(assetId), [assetId]);
   const time = useAsync(() => api.listTimeBasedCosts(assetId), [assetId]);
   const usage = useAsync(() => api.listUsageBasedCosts(assetId), [assetId]);
@@ -163,10 +174,18 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
         <>
           <TimeCostPanel costs={timeRows} />
           {timeRows.some((row) => row.is_active) && <div style={{ height: 20 }} />}
-          <TimeTable assetId={assetId} rows={timeRows} onChanged={reloadAll} />
+          <TimeTable assetId={assetId} rows={timeRows} onChanged={reloadAll} onOpenHistory={setHistory} />
         </>
       )}
-      {tab === "usage" && <UsageTable assetId={assetId} rows={usageRows} avgMonthlyUsage={avgMonthlyUsage} onChanged={reloadAll} />}
+      {tab === "usage" && (
+        <UsageTable
+          assetId={assetId}
+          rows={usageRows}
+          avgMonthlyUsage={avgMonthlyUsage}
+          onChanged={reloadAll}
+          onOpenHistory={setHistory}
+        />
+      )}
       {tab === "maint" && (
         <>
           {spatialItems(maintRows).length > 0 && (
@@ -175,8 +194,19 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
               <div style={{ height: 20 }} />
             </>
           )}
-          <MaintTable assetId={assetId} rows={maintRows} onChanged={reloadAll} />
+          <MaintTable assetId={assetId} rows={maintRows} onChanged={reloadAll} onOpenHistory={setHistory} />
         </>
+      )}
+
+      {history && (
+        <CostHistoryModal
+          assetId={assetId}
+          kind={history.kind}
+          costId={history.costId}
+          label={history.label}
+          meta={history.meta}
+          onClose={() => setHistory(null)}
+        />
       )}
 
       <div className="card" style={{ marginTop: 24 }}>
@@ -291,11 +321,36 @@ function useMutation(onChanged: () => void) {
 }
 
 // ── Time-based ─────────────────────────────────────────────────────────
-function TimeTable({ assetId, rows, onChanged }: { assetId: string; rows: TimeBasedCost[]; onChanged: () => void }) {
+function TimeTable({
+  assetId,
+  rows,
+  onChanged,
+  onOpenHistory,
+}: {
+  assetId: string;
+  rows: TimeBasedCost[];
+  onChanged: () => void;
+  onOpenHistory: (target: HistoryTarget) => void;
+}) {
   const { t } = useTranslation();
   const fmt = useCurrency();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+
+  const openHistory = (row: TimeBasedCost) =>
+    onOpenHistory({
+      kind: "time",
+      costId: row.id,
+      label: row.label,
+      meta: [
+        { label: t("costs.th_amount"), value: fmt(row.amount, { decimals: 0 }) },
+        {
+          label: t("costs.th_every"),
+          value: t("costs.every_interval", { value: row.interval_value, unit: t(`costs.unit_${row.interval_unit}`) }),
+        },
+        { label: t("costs.th_next_due"), value: row.next_due_date ? fmtDate(row.next_due_date) : "—" },
+      ],
+    });
 
   return (
     <div className="card">
@@ -321,7 +376,13 @@ function TimeTable({ assetId, rows, onChanged }: { assetId: string; rows: TimeBa
                 onChanged={onChanged}
               />
             ) : (
-              <tr key={row.id} style={{ opacity: row.is_active ? 1 : 0.5 }}>
+              <tr
+                key={row.id}
+                className="cost-row-clickable"
+                style={{ opacity: row.is_active ? 1 : 0.5 }}
+                onClick={() => openHistory(row)}
+                title={t("costHistory.open_hint")}
+              >
                 <td className="col-name">
                   {row.label}
                   {!row.is_active && <span className="pill" style={{ marginLeft: 8 }}>{t("costs.inactive")}</span>}
@@ -332,7 +393,7 @@ function TimeTable({ assetId, rows, onChanged }: { assetId: string; rows: TimeBa
                 </td>
                 <td className="col-num">{fmt(row.daily_rate, { decimals: 2 })}</td>
                 <td className="row-meta">{row.next_due_date ? fmtDate(row.next_due_date) : "—"}</td>
-                <td>
+                <td onClick={(e) => e.stopPropagation()}>
                   <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(row.id)}>
                     <Icon name="edit" size={12} />
                   </button>
@@ -461,16 +522,32 @@ function UsageTable({
   rows,
   avgMonthlyUsage,
   onChanged,
+  onOpenHistory,
 }: {
   assetId: string;
   rows: UsageBasedCost[];
   avgMonthlyUsage: number;
   onChanged: () => void;
+  onOpenHistory: (target: HistoryTarget) => void;
 }) {
   const { t } = useTranslation();
   const fmt = useCurrency();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+
+  const openHistory = (row: UsageBasedCost) =>
+    onOpenHistory({
+      kind: "usage",
+      costId: row.id,
+      label: row.label,
+      meta: [
+        { label: t("costs.th_rate"), value: `${fmt(row.amount_per_unit, { decimals: 3 })}/${row.usage_unit}` },
+        {
+          label: t("costs.th_est_month"),
+          value: fmt(row.amount_per_unit * avgMonthlyUsage, { decimals: 2 }),
+        },
+      ],
+    });
 
   return (
     <div className="card">
@@ -488,7 +565,13 @@ function UsageTable({
             editingId === u.id ? (
               <UsageEditRow key={u.id} assetId={assetId} row={u} onClose={() => setEditingId(null)} onChanged={onChanged} />
             ) : (
-              <tr key={u.id} style={{ opacity: u.is_active ? 1 : 0.5 }}>
+              <tr
+                key={u.id}
+                className="cost-row-clickable"
+                style={{ opacity: u.is_active ? 1 : 0.5 }}
+                onClick={() => openHistory(u)}
+                title={t("costHistory.open_hint")}
+              >
                 <td className="col-name">
                   {u.label}
                   {!u.is_active && <span className="pill" style={{ marginLeft: 8 }}>{t("costs.inactive")}</span>}
@@ -502,7 +585,7 @@ function UsageTable({
                     {t("costs.avg_per_month", { amount: fmtNumber(avgMonthlyUsage, 0), unit: u.usage_unit })}
                   </div>
                 </td>
-                <td>
+                <td onClick={(e) => e.stopPropagation()}>
                   <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(u.id)}>
                     <Icon name="edit" size={12} />
                   </button>
@@ -584,10 +667,49 @@ function UsageCreateRow({ assetId, onClose, onChanged }: { assetId: string; onCl
 }
 
 // ── Maintenance ────────────────────────────────────────────────────────
-function MaintTable({ assetId, rows, onChanged }: { assetId: string; rows: MaintenanceItem[]; onChanged: () => void }) {
+function MaintTable({
+  assetId,
+  rows,
+  onChanged,
+  onOpenHistory,
+}: {
+  assetId: string;
+  rows: MaintenanceItem[];
+  onChanged: () => void;
+  onOpenHistory: (target: HistoryTarget) => void;
+}) {
   const { t } = useTranslation();
+  const fmt = useCurrency();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+
+  const intervalText = (m: MaintenanceItem) => {
+    const parts: string[] = [];
+    if (m.interval_km) parts.push(`${fmtNumber(m.interval_km)} km`);
+    if (m.interval_months) parts.push(t("costs.now_months", { months: m.interval_months }));
+    return parts.length > 0 ? parts.join(" / ") : "—";
+  };
+
+  const lastServicedText = (m: MaintenanceItem) =>
+    m.last_serviced_at_odometer !== null
+      ? `${fmtNumber(m.last_serviced_at_odometer)} km`
+      : m.last_serviced_at_date
+        ? fmtDate(m.last_serviced_at_date)
+        : "—";
+
+  const openHistory = (m: MaintenanceItem) =>
+    onOpenHistory({
+      kind: "maint",
+      costId: m.id,
+      label: m.label,
+      meta: [
+        { label: t("costs.th_replace_every"), value: intervalText(m) },
+        { label: t("costs.th_last_serviced"), value: lastServicedText(m) },
+        ...(m.estimated_cost !== null
+          ? [{ label: t("costs.field_amount"), value: fmt(m.estimated_cost, { decimals: 0 }) }]
+          : []),
+      ],
+    });
 
   return (
     <div className="card">
@@ -607,7 +729,13 @@ function MaintTable({ assetId, rows, onChanged }: { assetId: string; rows: Maint
             editingId === m.id ? (
               <MaintEditRow key={m.id} assetId={assetId} row={m} onClose={() => setEditingId(null)} onChanged={onChanged} />
             ) : (
-              <tr key={m.id} style={{ opacity: m.is_active ? 1 : 0.5 }}>
+              <tr
+                key={m.id}
+                className="cost-row-clickable"
+                style={{ opacity: m.is_active ? 1 : 0.5 }}
+                onClick={() => openHistory(m)}
+                title={t("costHistory.open_hint")}
+              >
                 <td className="col-name">
                   {m.label}
                   {!m.is_active && <span className="pill" style={{ marginLeft: 8 }}>{t("costs.inactive")}</span>}
@@ -637,7 +765,7 @@ function MaintTable({ assetId, rows, onChanged }: { assetId: string; rows: Maint
                 <td>
                   <span className={`pill ${maintenancePill(m.status).cls}`}>{maintenancePill(m.status).label}</span>
                 </td>
-                <td>
+                <td onClick={(e) => e.stopPropagation()}>
                   <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(m.id)}>
                     <Icon name="edit" size={12} />
                   </button>

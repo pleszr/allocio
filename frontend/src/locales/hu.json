@@ -212,6 +212,14 @@
     "distribution_toggle": "{{label}} ki/be kapcsolása",
     "distribution_all_hidden": "Minden tétel el van rejtve. Kapcsolj vissza legalább egyet a diagram megjelenítéséhez."
   },
+  "costHistory": {
+    "open_hint": "Fizetési előzmények megtekintése",
+    "close": "Bezárás",
+    "past_payments": "Korábbi kifizetések",
+    "loading": "Kifizetések betöltése…",
+    "empty": "Ehhez a költséghez még nincs rögzített kifizetés.",
+    "split": "kassza {{bucket}} · zsebből {{pocket}}"
+  },
   "checkin": {
     "loading": "Elszámolás betöltése…",
     "not_found": "Az eszköz nem található.",

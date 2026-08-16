@@ -92,6 +92,22 @@ class ExpenseService:
             raise NotFoundError("Bucket not found for asset.")
         return expense_repository.list_expenses_for_bucket(self._session, bucket.id)
 
+    def list_source_expenses(
+        self, user_id: uuid.UUID, asset_id: uuid.UUID, source_type: str, source_id: uuid.UUID
+    ) -> list[ExpenseEvent]:
+        """Return the posted expenses linked to one cost/maintenance row on an owned asset. Read-only.
+
+        Raises `NotFoundError` when the asset is unowned/missing or the referenced source row does not
+        belong to it, so an unowned or bogus id never leaks another asset's expenses.
+        """
+        self._require_owned_asset(user_id, asset_id)
+        bucket = expense_repository.get_bucket_for_asset(self._session, asset_id)
+        if bucket is None:
+            raise NotFoundError("Bucket not found for asset.")
+        if not expense_repository.source_row_exists(self._session, asset_id, source_type, source_id):
+            raise NotFoundError("Cost row not found for this asset.")
+        return expense_repository.list_expenses_for_source(self._session, bucket.id, source_type, source_id)
+
     def _require_owned_asset(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> Asset:
         """Return the owned asset or raise `NotFoundError` so unowned rows never leak."""
         asset = expense_repository.get_owned_asset(self._session, user_id, asset_id)

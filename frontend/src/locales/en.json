@@ -212,6 +212,14 @@
     "distribution_toggle": "Toggle {{label}}",
     "distribution_all_hidden": "Everything is hidden. Toggle an item back on to see the chart."
   },
+  "costHistory": {
+    "open_hint": "View payment history",
+    "close": "Close",
+    "past_payments": "Past payments",
+    "loading": "Loading payments…",
+    "empty": "No payments recorded for this cost yet.",
+    "split": "bucket {{bucket}} · out of pocket {{pocket}}"
+  },
   "checkin": {
     "loading": "Loading check-in…",
     "not_found": "Asset not found.",

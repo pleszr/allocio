@@ -934,10 +934,34 @@
           ],
           "functions": [
             {
+              "name": "_list_source_expenses",
+              "line_start": 79,
+              "line_end": 86,
+              "hash": "6f60e8e143e691c9"
+            },
+            {
               "name": "list_expenses",
               "line_start": 69,
               "line_end": 76,
               "hash": "c29ae2b820b21689"
+            },
+            {
+              "name": "list_maintenance_item_expenses",
+              "line_start": 151,
+              "line_end": 158,
+              "hash": "8dea975723086855"
+            },
+            {
+              "name": "list_time_based_cost_expenses",
+              "line_start": 103,
+              "line_end": 110,
+              "hash": "101d849a4893e7a1"
+            },
+            {
+              "name": "list_usage_based_cost_expenses",
+              "line_start": 127,
+              "line_end": 134,
+              "hash": "965a22d0a72dee70"
             },
             {
               "name": "log_expense",
@@ -963,6 +987,30 @@
               "line_start": 31,
               "line_end": 53,
               "hash": "9429136a73fd5a94"
+            },
+            {
+              "method": "get",
+              "path": "/assets/{asset_id}/maintenance-items/{item_id}/expenses",
+              "handler": "list_maintenance_item_expenses",
+              "line_start": 151,
+              "line_end": 158,
+              "hash": "8dea975723086855"
+            },
+            {
+              "method": "get",
+              "path": "/assets/{asset_id}/time-based-costs/{cost_id}/expenses",
+              "handler": "list_time_based_cost_expenses",
+              "line_start": 103,
+              "line_end": 110,
+              "hash": "101d849a4893e7a1"
+            },
+            {
+              "method": "get",
+              "path": "/assets/{asset_id}/usage-based-costs/{cost_id}/expenses",
+              "handler": "list_usage_based_cost_expenses",
+              "line_start": 127,
+              "line_end": 134,
+              "hash": "965a22d0a72dee70"
             }
           ]
         },
@@ -2546,8 +2594,8 @@
             },
             {
               "name": "delete_expense_events_for_check_in",
-              "line_start": 171,
-              "line_end": 177,
+              "line_start": 192,
+              "line_end": 198,
               "hash": "463527558ce9f012"
             },
             {
@@ -2564,26 +2612,26 @@
             },
             {
               "name": "list_bucket_covered_amounts_before",
-              "line_start": 180,
-              "line_end": 194,
+              "line_start": 201,
+              "line_end": 215,
               "hash": "8e710e216be0a4e2"
             },
             {
               "name": "list_bucket_expense_movements",
-              "line_start": 124,
-              "line_end": 138,
+              "line_start": 145,
+              "line_end": 159,
               "hash": "73891021f8e4efac"
             },
             {
               "name": "list_expense_events_for_check_in",
-              "line_start": 165,
-              "line_end": 168,
+              "line_start": 186,
+              "line_end": 189,
               "hash": "0467f0ff747d66ad"
             },
             {
               "name": "list_expenses_by_check_in",
-              "line_start": 197,
-              "line_end": 210,
+              "line_start": 218,
+              "line_end": 231,
               "hash": "d89e23bc06f8baf0"
             },
             {
@@ -2594,9 +2642,15 @@
             },
             {
               "name": "list_expenses_for_bucket_since",
-              "line_start": 114,
-              "line_end": 121,
+              "line_start": 135,
+              "line_end": 142,
               "hash": "8679be57f65aedcf"
+            },
+            {
+              "name": "list_expenses_for_source",
+              "line_start": 114,
+              "line_end": 132,
+              "hash": "ffed902053d61507"
             },
             {
               "name": "list_linked_time_based_event_dates",
@@ -2618,8 +2672,8 @@
             },
             {
               "name": "sum_expense_funding_by_check_in",
-              "line_start": 141,
-              "line_end": 162,
+              "line_start": 162,
+              "line_end": 183,
               "hash": "71e207e9d56b2855"
             }
           ],
@@ -3962,7 +4016,7 @@
             {
               "name": "ExpenseService",
               "line_start": 21,
-              "line_end": 110,
+              "line_end": 126,
               "hash": "aac40effad0ed04e",
               "methods": [
                 {
@@ -3973,8 +4027,8 @@
                 },
                 {
                   "name": "_add_and_commit",
-                  "line_start": 102,
-                  "line_end": 110,
+                  "line_start": 118,
+                  "line_end": 126,
                   "hash": "fbc26d001fc19683"
                 },
                 {
@@ -3985,8 +4039,8 @@
                 },
                 {
                   "name": "_require_owned_asset",
-                  "line_start": 95,
-                  "line_end": 100,
+                  "line_start": 111,
+                  "line_end": 116,
                   "hash": "4d421a5da80957e2"
                 },
                 {
@@ -3994,6 +4048,12 @@
                   "line_start": 87,
                   "line_end": 93,
                   "hash": "38b27347410b93b7"
+                },
+                {
+                  "name": "list_source_expenses",
+                  "line_start": 95,
+                  "line_end": 109,
+                  "hash": "907d296540f8dc26"
                 },
                 {
                   "name": "log_expense",
@@ -4264,28 +4324,28 @@
           "functions": [
             {
               "name": "decimalReviver",
-              "line_start": 91,
-              "line_end": 93,
+              "line_start": 92,
+              "line_end": 94,
               "hash": "b5a0254618d00cc1"
             },
             {
               "name": "errorDetail",
-              "line_start": 113,
-              "line_end": 128,
+              "line_start": 114,
+              "line_end": 129,
               "hash": "765e518477e65b7e"
             },
             {
               "name": "request",
-              "line_start": 95,
-              "line_end": 111,
+              "line_start": 96,
+              "line_end": 112,
               "hash": "2dda4c2fac5ec951"
             }
           ],
           "classes": [
             {
               "name": "ApiError",
-              "line_start": 34,
-              "line_end": 41,
+              "line_start": 35,
+              "line_end": 42,
               "hash": "28a9a3b9b0e33e17",
               "methods": []
             }
@@ -4327,6 +4387,7 @@
             "EditCheckInBody",
             "EditCheckInPreview",
             "ExpenseDraft",
+            "ExpenseEvent",
             "ExpenseKind",
             "ExpenseLine",
             "ExpenseSourceType",
@@ -4408,6 +4469,45 @@
           ]
         },
         {
+          "path": "frontend/src/components/CostHistoryModal.tsx",
+          "language": "typescript",
+          "imports": [
+            "../api/client",
+            "../api/types",
+            "../components/Icon",
+            "../components/Sparkline",
+            "../components/StateView",
+            "../utils/currency",
+            "../utils/format",
+            "../utils/useAsync",
+            "react",
+            "react-i18next"
+          ],
+          "exports": [
+            "CostHistoryMeta",
+            "CostHistoryModal",
+            "CostKind"
+          ],
+          "functions": [
+            {
+              "name": "CostHistoryModal",
+              "line_start": 39,
+              "line_end": 126,
+              "hash": "4603938cd98580e1"
+            }
+          ],
+          "classes": [],
+          "components": [
+            {
+              "name": "CostHistoryModal",
+              "line_start": 39,
+              "line_end": 126,
+              "hash": "4603938cd98580e1",
+              "kind": "function"
+            }
+          ]
+        },
+        {
           "path": "frontend/src/components/Icon.tsx",
           "language": "typescript",
           "imports": [],
@@ -4418,8 +4518,8 @@
           "functions": [
             {
               "name": "Icon",
-              "line_start": 27,
-              "line_end": 46,
+              "line_start": 28,
+              "line_end": 47,
               "hash": "8d090243042b514a"
             }
           ],
@@ -4427,8 +4527,8 @@
           "components": [
             {
               "name": "Icon",
-              "line_start": 27,
-              "line_end": 46,
+              "line_start": 28,
+              "line_end": 47,
               "hash": "8d090243042b514a",
               "kind": "function"
             }
@@ -4960,6 +5060,7 @@
             "../api/client",
             "../api/types",
             "../components/CostDistributionChart",
+            "../components/CostHistoryModal",
             "../components/Icon",
             "../components/SpatialMap",
             "../components/StateView",
@@ -4972,103 +5073,104 @@
             "react-i18next"
           ],
           "exports": [
-            "CostsScreen"
+            "CostsScreen",
+            "HistoryTarget"
           ],
           "functions": [
             {
               "name": "ActiveToggle",
-              "line_start": 801,
-              "line_end": 809,
+              "line_start": 929,
+              "line_end": 937,
               "hash": "ef34fd4f7587900c"
             },
             {
               "name": "CostsScreen",
-              "line_start": 23,
-              "line_end": 205,
-              "hash": "137fe0069f248fe2"
+              "line_start": 33,
+              "line_end": 235,
+              "hash": "ef06d24c8f3bbecc"
             },
             {
               "name": "EditActions",
-              "line_start": 775,
-              "line_end": 799,
+              "line_start": 903,
+              "line_end": 927,
               "hash": "2aca5443da9c1705"
             },
             {
               "name": "LabeledInput",
-              "line_start": 742,
-              "line_end": 761,
+              "line_start": 870,
+              "line_end": 889,
               "hash": "7f8fe7d5b0379745"
             },
             {
               "name": "LabeledMoney",
-              "line_start": 763,
-              "line_end": 773,
+              "line_start": 891,
+              "line_end": 901,
               "hash": "2fd6ac9280c6f385"
             },
             {
               "name": "MaintCreateRow",
-              "line_start": 702,
-              "line_end": 739,
+              "line_start": 830,
+              "line_end": 867,
               "hash": "0427f560dfaac8d6"
             },
             {
               "name": "MaintEditRow",
-              "line_start": 660,
-              "line_end": 700,
+              "line_start": 788,
+              "line_end": 828,
               "hash": "788f6fe0b73d3e9b"
             },
             {
               "name": "MaintTable",
-              "line_start": 587,
-              "line_end": 658,
-              "hash": "38ce32d7cd6622b8"
+              "line_start": 670,
+              "line_end": 786,
+              "hash": "565671b55df859ce"
             },
             {
               "name": "ManualExtraEditor",
-              "line_start": 208,
-              "line_end": 270,
+              "line_start": 238,
+              "line_end": 300,
               "hash": "c279e7fa0d406e1a"
             },
             {
               "name": "TimeCreateRow",
-              "line_start": 413,
-              "line_end": 456,
+              "line_start": 474,
+              "line_end": 517,
               "hash": "581cdd817ab1deb0"
             },
             {
               "name": "TimeEditRow",
-              "line_start": 355,
-              "line_end": 411,
+              "line_start": 416,
+              "line_end": 472,
               "hash": "094d860b453d0cea"
             },
             {
               "name": "TimeTable",
-              "line_start": 294,
-              "line_end": 353,
-              "hash": "c2190d4f93d3581d"
+              "line_start": 324,
+              "line_end": 414,
+              "hash": "b91ec1ff5b4f5a71"
             },
             {
               "name": "UsageCreateRow",
-              "line_start": 558,
-              "line_end": 584,
+              "line_start": 641,
+              "line_end": 667,
               "hash": "aa3946f85e7372f2"
             },
             {
               "name": "UsageEditRow",
-              "line_start": 525,
-              "line_end": 556,
+              "line_start": 608,
+              "line_end": 639,
               "hash": "48a385c2b3ecbad4"
             },
             {
               "name": "UsageTable",
-              "line_start": 459,
-              "line_end": 523,
-              "hash": "55481e2b839cdf17"
+              "line_start": 520,
+              "line_end": 606,
+              "hash": "984e2bbecec5008a"
             },
             {
               "name": "useMutation",
-              "line_start": 273,
-              "line_end": 291,
+              "line_start": 303,
+              "line_end": 321,
               "hash": "d5ef544cd4cf10e0"
             }
           ],
@@ -5076,107 +5178,107 @@
           "components": [
             {
               "name": "ActiveToggle",
-              "line_start": 801,
-              "line_end": 809,
+              "line_start": 929,
+              "line_end": 937,
               "hash": "ef34fd4f7587900c",
               "kind": "function"
             },
             {
               "name": "CostsScreen",
-              "line_start": 23,
-              "line_end": 205,
-              "hash": "137fe0069f248fe2",
+              "line_start": 33,
+              "line_end": 235,
+              "hash": "ef06d24c8f3bbecc",
               "kind": "function"
             },
             {
               "name": "EditActions",
-              "line_start": 775,
-              "line_end": 799,
+              "line_start": 903,
+              "line_end": 927,
               "hash": "2aca5443da9c1705",
               "kind": "function"
             },
             {
               "name": "LabeledInput",
-              "line_start": 742,
-              "line_end": 761,
+              "line_start": 870,
+              "line_end": 889,
               "hash": "7f8fe7d5b0379745",
               "kind": "function"
             },
             {
               "name": "LabeledMoney",
-              "line_start": 763,
-              "line_end": 773,
+              "line_start": 891,
+              "line_end": 901,
               "hash": "2fd6ac9280c6f385",
               "kind": "function"
             },
             {
               "name": "MaintCreateRow",
-              "line_start": 702,
-              "line_end": 739,
+              "line_start": 830,
+              "line_end": 867,
               "hash": "0427f560dfaac8d6",
               "kind": "function"
             },
             {
               "name": "MaintEditRow",
-              "line_start": 660,
-              "line_end": 700,
+              "line_start": 788,
+              "line_end": 828,
               "hash": "788f6fe0b73d3e9b",
               "kind": "function"
             },
             {
               "name": "MaintTable",
-              "line_start": 587,
-              "line_end": 658,
-              "hash": "38ce32d7cd6622b8",
+              "line_start": 670,
+              "line_end": 786,
+              "hash": "565671b55df859ce",
               "kind": "function"
             },
             {
               "name": "ManualExtraEditor",
-              "line_start": 208,
-              "line_end": 270,
+              "line_start": 238,
+              "line_end": 300,
               "hash": "c279e7fa0d406e1a",
               "kind": "function"
             },
             {
               "name": "TimeCreateRow",
-              "line_start": 413,
-              "line_end": 456,
+              "line_start": 474,
+              "line_end": 517,
               "hash": "581cdd817ab1deb0",
               "kind": "function"
             },
             {
               "name": "TimeEditRow",
-              "line_start": 355,
-              "line_end": 411,
+              "line_start": 416,
+              "line_end": 472,
               "hash": "094d860b453d0cea",
               "kind": "function"
             },
             {
               "name": "TimeTable",
-              "line_start": 294,
-              "line_end": 353,
-              "hash": "c2190d4f93d3581d",
+              "line_start": 324,
+              "line_end": 414,
+              "hash": "b91ec1ff5b4f5a71",
               "kind": "function"
             },
             {
               "name": "UsageCreateRow",
-              "line_start": 558,
-              "line_end": 584,
+              "line_start": 641,
+              "line_end": 667,
               "hash": "aa3946f85e7372f2",
               "kind": "function"
             },
             {
               "name": "UsageEditRow",
-              "line_start": 525,
-              "line_end": 556,
+              "line_start": 608,
+              "line_end": 639,
               "hash": "48a385c2b3ecbad4",
               "kind": "function"
             },
             {
               "name": "UsageTable",
-              "line_start": 459,
-              "line_end": 523,
-              "hash": "55481e2b839cdf17",
+              "line_start": 520,
+              "line_end": 606,
+              "hash": "984e2bbecec5008a",
               "kind": "function"
             }
           ]
