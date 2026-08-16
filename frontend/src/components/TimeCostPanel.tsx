@@ -61,7 +61,7 @@ export function TimeCostPanel({ costs, today = new Date(), compact, onOpenHistor
   // Donut proportions use each cost's annualized weight (what it costs across a year), while the
   // list shows the per-occurrence amount and its magnitude relative to the largest occurrence.
   const annualTotal = items.reduce((sum, i) => sum + i.annualized_amount, 0);
-  const maxAmount = Math.max(...items.map((i) => i.amount));
+  const maxAmount = Math.max(...items.map((i) => i.reference_amount));
   const rankedByAnnual = [...items].sort((a, b) => a.annualized_amount - b.annualized_amount);
 
   const left = 8;
@@ -96,7 +96,7 @@ export function TimeCostPanel({ costs, today = new Date(), compact, onOpenHistor
   const dueLabel = (it: TimelineItem) =>
     it.days == null ? t("timeCostPanel.no_due_date") : it.days < 0 ? t("timeCostPanel.overdue") : t("timeCostPanel.in_days", { days: it.days });
   const focusText = active
-    ? t("timeCostPanel.focus", { label: active.label, amount: fmt(active.amount, { decimals: 0 }), due: dueLabel(active) })
+    ? t("timeCostPanel.focus", { label: active.label, amount: fmt(active.reference_amount, { decimals: 0 }), due: dueLabel(active) })
     : t("timeCostPanel.hover_hint");
 
   const hoverHandlers = (id: string) => ({
@@ -173,9 +173,9 @@ export function TimeCostPanel({ costs, today = new Date(), compact, onOpenHistor
                 </span>
               </span>
               <span className="tcp-item-amt">
-                {fmt(it.amount, { decimals: 0 })}
+                {fmt(it.reference_amount, { decimals: 0 })}
                 <span className="tcp-magnitude">
-                  <i style={{ width: `${maxAmount > 0 ? Math.round((it.amount / maxAmount) * 100) : 0}%` }} />
+                  <i style={{ width: `${maxAmount > 0 ? Math.round((it.reference_amount / maxAmount) * 100) : 0}%` }} />
                 </span>
               </span>
             </div>

@@ -186,7 +186,7 @@ Rules:
 
 - next-due is the first occurrence on or after today, found by rolling `first_due_date` forward by whole intervals
 - a `first_due_date` on or after today yields itself (the first occurrence has not happened yet)
-- with no `first_due_date`, the anchor is the **earliest linked payment's `event_date`** — the first month the cost actually occurred, recorded as a modeled expense linked to the cost — rolled forward to the first occurrence on or after today. Imported and checked-in history therefore yield exact next-due dates
+- with no `first_due_date`, the anchor is the **latest linked payment's `event_date`** — the most recent month the cost actually occurred, recorded as a modeled expense linked to the cost — rolled forward to the first occurrence on or after today, so recording a fresh payment moves the next-due one interval past it. Imported and checked-in history therefore yield exact next-due dates
 - with neither an anchor nor any linked payment, the cost's `created_at` is the fallback cycle start: the first occurrence is one interval past `created_at`, rolled forward (a 12-month cost created one month ago resolves to about eleven months out). Seeded template rows and quick-added rows still get a placed next-due date rather than null
 - month-end anchors clamp to the target month's last day (e.g. `2025-01-31` + 1 month → `2025-02-28`)
 - next-due is informational only: it does not change the annualized amount or the period accrual formulas above

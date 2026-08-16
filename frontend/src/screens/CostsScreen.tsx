@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { api, ApiError } from "../api/client";
 import type { IntervalUnit, MaintenanceItem, TimeBasedCost, UsageBasedCost } from "../api/types";
 import { CostDistributionChart } from "../components/CostDistributionChart";
-import { CostHistoryModal, type CostHistoryMeta, type CostKind } from "../components/CostHistoryModal";
+import { CostHistoryModal, type HistoryTarget, timeCostHistoryTarget } from "../components/CostHistoryModal";
 import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { SpatialMap, spatialItems } from "../components/SpatialMap";
@@ -20,37 +20,6 @@ interface CostsScreenProps {
 }
 
 type CostTab = "time" | "usage" | "maint";
-
-// A cost row the user clicked to open its history popup. `meta` is the type-specific summary
-// (interval, next due, rate…) built by the table that owns the row.
-export interface HistoryTarget {
-  kind: CostKind;
-  costId: string;
-  label: string;
-  meta: CostHistoryMeta[];
-}
-
-// The history-popup descriptor for a time-based cost. Shared by the cost table and the
-// TimeCostPanel so both entry points show the same interval/next-due summary.
-function timeCostHistoryTarget(
-  row: TimeBasedCost,
-  t: ReturnType<typeof useTranslation>["t"],
-  fmt: ReturnType<typeof useCurrency>,
-): HistoryTarget {
-  return {
-    kind: "time",
-    costId: row.id,
-    label: row.label,
-    meta: [
-      { label: t("costs.th_amount"), value: fmt(row.amount, { decimals: 0 }) },
-      {
-        label: t("costs.th_every"),
-        value: t("costs.every_interval", { value: row.interval_value, unit: t(`costs.unit_${row.interval_unit}`) }),
-      },
-      { label: t("costs.th_next_due"), value: row.next_due_date ? fmtDate(row.next_due_date) : "—" },
-    ],
-  };
-}
 
 export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps) {
   const { t } = useTranslation();
