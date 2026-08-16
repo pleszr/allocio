@@ -439,7 +439,11 @@
     "focus_hint": "Hover an item to locate it",
     "overdue": "overdue",
     "km_left": "{{km}} km left",
-    "months_left": "{{months}} mo left"
+    "months_left": "{{months}} mo left",
+    "filter_all": "All",
+    "filter_good": "Good",
+    "filter_attention": "Attention",
+    "filter_overdue": "Overdue"
   },
   "timeCostPanel": {
     "next_12_months": "Next 12 months",

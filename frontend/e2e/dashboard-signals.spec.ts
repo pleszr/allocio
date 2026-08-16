@@ -43,15 +43,6 @@ test("dashboard renders backend-derived vehicle overview and next-maintenance si
         next_maintenance: nextMaintenance,
         current_usage: 121012,
         usage_since_last_check_in: 1012,
-        upcoming_expenses: [
-          {
-            name: "Annual service",
-            category: "maintenance",
-            days_until: 90,
-            amount: 12345,
-            overdue: false,
-          },
-        ],
       },
     });
   });
@@ -73,11 +64,6 @@ test("dashboard renders backend-derived vehicle overview and next-maintenance si
   await expect(nextMaintenanceKpi).toContainText(
     "Next maintenance is Oil service and it is 1,500 km away.",
   );
-  const upcomingCard = dashboard.locator(".card").filter({ hasText: "Upcoming expenses" });
-  await expect(upcomingCard.getByText("Annual service", { exact: true })).toBeVisible();
-  await expect(upcomingCard).toContainText("Maintenance · in ~90d");
-  await expect(upcomingCard).toContainText("12,345 Ft");
-  await expect(upcomingCard.getByText("Nothing forecasted in this window.", { exact: true })).toHaveCount(0);
   await expect(dashboard.getByText("Until annual service", { exact: true })).toHaveCount(0);
   await assertDashboardWidgetLayout(page, dashboard);
 

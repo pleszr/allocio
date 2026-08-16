@@ -1,9 +1,16 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { MaintenanceItem } from "../api/types";
-import { CarDiagram, dotClass, spatialItems } from "./SpatialMap";
+import {
+  CarDiagram,
+  MaintenanceCard,
+  MaintenanceFilterTabs,
+  matchesMaintenanceFilter,
+  sortByUrgency,
+  spatialItems,
+  type MaintenanceFilter,
+} from "./SpatialMap";
 import { Icon } from "./Icon";
-import { fmtNumber } from "../utils/format";
 
 interface MaintenancePanelProps {
   // The asset's active maintenance items (the dashboard already filters on is_active).
@@ -21,35 +28,31 @@ interface MaintenancePanelProps {
 export function MaintenancePanel({ maintenanceItems, onManage, onOpenHistory }: MaintenancePanelProps) {
   const { t } = useTranslation();
   const mapped = useMemo(() => spatialItems(maintenanceItems), [maintenanceItems]);
-  const mappedIds = useMemo(() => new Set(mapped.map((m) => m.id)), [mapped]);
   const [hovered, setHovered] = useState<string | null>(null);
-  // Only mapped items drive the car highlight; hovering an unmapped row lights nothing.
-  const activeId = hovered !== null && mappedIds.has(hovered) ? hovered : null;
+  const [filter, setFilter] = useState<MaintenanceFilter>("all");
+  const filteredSorted = useMemo(
+    () => sortByUrgency(maintenanceItems.filter((it) => matchesMaintenanceFilter(it, filter))),
+    [maintenanceItems, filter],
+  );
 
   if (maintenanceItems.length === 0) return null;
 
   const dueSoon = maintenanceItems.filter((m) => m.status && m.status !== "ok");
-
-  const subText = (item: MaintenanceItem): string => {
-    if (item.status === "overdue") return t("spatialMap.overdue");
-    if (item.remaining_km !== null) return t("spatialMap.km_left", { km: fmtNumber(item.remaining_km) });
-    if (item.remaining_months !== null) return t("spatialMap.months_left", { months: item.remaining_months });
-    return "";
-  };
-
-  const hoveredItem = maintenanceItems.find((m) => m.id === activeId);
-  const focusText = hoveredItem
-    ? [hoveredItem.label, subText(hoveredItem)].filter(Boolean).join(" · ")
-    : t("spatialMap.focus_hint");
+  // CarDiagram only glows a region for items present in `mapped`, so passing the raw hovered item
+  // (even when unmapped) still shows the talk-box without lighting up the car.
+  const hoveredItem = maintenanceItems.find((m) => m.id === hovered) ?? null;
 
   const list = (
-    <div className="spatial-list">
-      {maintenanceItems.map((m) => {
-        const sub = subText(m);
-        return (
-          <div
+    <div className="spatial-list-wrap">
+      <div className="spatial-list-head">
+        <MaintenanceFilterTabs value={filter} onChange={setFilter} />
+      </div>
+      <div className="spatial-list">
+        {filteredSorted.map((m) => (
+          <MaintenanceCard
             key={m.id}
-            className={`spatial-item${hovered === m.id ? " hovered" : ""}`}
+            item={m}
+            className={hovered === m.id ? " hovered" : ""}
             role="button"
             tabIndex={0}
             title={t("costHistory.open_hint")}
@@ -62,15 +65,9 @@ export function MaintenancePanel({ maintenanceItems, onManage, onOpenHistory }: 
                 onOpenHistory(m);
               }
             }}
-          >
-            <span className={`spatial-dot ${dotClass(m.status)}`} />
-            <span className="spatial-item-body">
-              <span className="spatial-item-name">{m.label}</span>
-              {sub && <span className="spatial-item-sub">{sub}</span>}
-            </span>
-          </div>
-        );
-      })}
+          />
+        ))}
+      </div>
     </div>
   );
 
@@ -92,8 +89,7 @@ export function MaintenancePanel({ maintenanceItems, onManage, onOpenHistory }: 
       {mapped.length > 0 ? (
         <div className="maint-panel-body">
           <div className="maint-panel-stage">
-            <div className="spatial-focus">{focusText}</div>
-            <CarDiagram items={mapped} activeId={activeId} />
+            <CarDiagram items={mapped} focusItem={hoveredItem} />
           </div>
           {list}
         </div>

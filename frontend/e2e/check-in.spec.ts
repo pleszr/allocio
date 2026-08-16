@@ -84,6 +84,7 @@ test("tire-type picker is seeded and expenses are sent with the preview request"
       comment: "Car wash",
       source_type: null,
       source_id: null,
+      excluded_from_average: false,
     },
   ]);
 
