@@ -4629,18 +4629,18 @@
           "functions": [
             {
               "name": "TimeCostPanel",
-              "line_start": 27,
-              "line_end": 192,
-              "hash": "cbef37e205aeac27"
+              "line_start": 29,
+              "line_end": 207,
+              "hash": "8697f924c9413eec"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "TimeCostPanel",
-              "line_start": 27,
-              "line_end": 192,
-              "hash": "cbef37e205aeac27",
+              "line_start": 29,
+              "line_end": 207,
+              "hash": "8697f924c9413eec",
               "kind": "function"
             }
           ]
@@ -4896,7 +4896,7 @@
               "name": "CostsScreen",
               "line_start": 22,
               "line_end": 194,
-              "hash": "7dfdc701457ad696"
+              "hash": "2553da4c85fbfdea"
             },
             {
               "name": "EditActions",
@@ -4996,7 +4996,7 @@
               "name": "CostsScreen",
               "line_start": 22,
               "line_end": 194,
-              "hash": "7dfdc701457ad696",
+              "hash": "2553da4c85fbfdea",
               "kind": "function"
             },
             {
@@ -5121,7 +5121,7 @@
               "name": "DashboardScreen",
               "line_start": 29,
               "line_end": 326,
-              "hash": "2ea72045b612e07e"
+              "hash": "7ef5766d54da457d"
             },
             {
               "name": "MaintCompactRow",
@@ -5148,7 +5148,7 @@
               "name": "DashboardScreen",
               "line_start": 29,
               "line_end": 326,
-              "hash": "2ea72045b612e07e",
+              "hash": "7ef5766d54da457d",
               "kind": "function"
             },
             {

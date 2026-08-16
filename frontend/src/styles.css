@@ -1235,6 +1235,7 @@ select.input {
 .tcp-title { font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); flex-shrink: 0; }
 .tcp-focus { font-family: var(--mono); font-size: 11.5px; color: var(--accent-ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tcp-svg { width: 100%; height: auto; overflow: visible; }
+.tcp-no-dates { font-size: 12.5px; color: var(--muted); line-height: 1.5; padding: 8px 0; }
 .tcp-month { font-family: var(--mono); font-size: 2.6px; fill: var(--muted-2); }
 .tcp-today { stroke: var(--line-strong); stroke-width: .4; stroke-dasharray: 1.2 1.2; }
 .tcp-track-bg { stroke: var(--line); stroke-width: 2; stroke-linecap: round; }

@@ -424,6 +424,8 @@
     "in_days": "in {{days}}d",
     "overdue": "overdue",
     "due_date": "due {{date}}",
+    "no_due_date": "no date set",
+    "no_dates_hint": "No due dates set yet — add one to a cost to place it on the timeline.",
     "annual_total": "Annual total"
   },
   "templates": {

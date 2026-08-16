@@ -424,6 +424,8 @@
     "in_days": "{{days}} nap múlva",
     "overdue": "lejárt",
     "due_date": "esedékes: {{date}}",
+    "no_due_date": "nincs dátum",
+    "no_dates_hint": "Még nincs beállított esedékesség — adj meg egyet egy költséghez, hogy megjelenjen az idővonalon.",
     "annual_total": "Éves összesen"
   },
   "templates": {

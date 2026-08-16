@@ -161,7 +161,7 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
       {tab === "time" && (
         <>
           <TimeCostPanel costs={timeRows} />
-          {timeRows.some((row) => row.is_active && row.next_due_date) && <div style={{ height: 20 }} />}
+          {timeRows.some((row) => row.is_active) && <div style={{ height: 20 }} />}
           <TimeTable assetId={assetId} rows={timeRows} onChanged={reloadAll} />
         </>
       )}

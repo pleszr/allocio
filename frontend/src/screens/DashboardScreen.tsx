@@ -51,7 +51,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
     : activeMaintenance.find((m) => m.technical_key === "annual_service");
   const averageAllocation = e.average_allocation;
   const timeCosts = timeBased.data ?? [];
-  const hasTimeCosts = timeCosts.some((c) => c.is_active && c.next_due_date);
+  const hasTimeCosts = timeCosts.some((c) => c.is_active);
   const costCount = e.maintenance_items.length;
 
   return (

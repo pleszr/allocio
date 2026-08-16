@@ -15,15 +15,17 @@ interface TimeCostPanelProps {
 }
 
 interface TimelineItem extends TimeBasedCost {
-  days: number;
-  // Position on the 12-month track, expressed in months from "today" (0..12+). Costs due further
-  // out than a year are clamped at the right edge by the x-scale below.
-  frac: number;
+  // Days until next_due_date, or null when the cost has no due date set yet.
+  days: number | null;
+  // Position on the 12-month track in months from "today" (0..12+), or null when undated. Undated
+  // costs still appear in the list and donut; they just can't be placed on the timeline.
+  frac: number | null;
 }
 
-// Timeline + donut view of an asset's recurring time-based costs, ordered by how soon each is next
-// due. Purely presentational: the caller passes already-fetched cost rows. Only costs that are both
-// active and have a resolved next_due_date can be placed on the timeline, so the rest are dropped.
+// Timeline + donut view of an asset's recurring time-based costs. Purely presentational: the caller
+// passes already-fetched cost rows. Every active cost shows in the list and (full variant) the
+// annual-total donut; the timeline plots only the costs that have a resolved next_due_date, since a
+// cost with no due date has no position on the calendar.
 export function TimeCostPanel({ costs, today = new Date(), compact }: TimeCostPanelProps) {
   const { t } = useTranslation();
   const fmt = useCurrency();
@@ -33,16 +35,25 @@ export function TimeCostPanel({ costs, today = new Date(), compact }: TimeCostPa
 
   const items = useMemo<TimelineItem[]>(() => {
     return costs
-      .filter((c) => c.is_active && c.next_due_date)
+      .filter((c) => c.is_active)
       .map((c) => {
-        const days = Math.round((new Date(c.next_due_date as string).getTime() - today.getTime()) / 86400000);
-        const frac = Math.max(0, (days / 365) * 12);
+        const days = c.next_due_date
+          ? Math.round((new Date(c.next_due_date).getTime() - today.getTime()) / 86400000)
+          : null;
+        const frac = days != null ? Math.max(0, (days / 365) * 12) : null;
         return { ...c, days, frac };
       })
-      .sort((a, b) => a.days - b.days);
+      .sort((a, b) => {
+        // Dated costs first, soonest-due at the top; undated costs after, in stable order.
+        if (a.days == null && b.days == null) return 0;
+        if (a.days == null) return 1;
+        if (b.days == null) return -1;
+        return a.days - b.days;
+      });
   }, [costs, today]);
 
   if (items.length === 0) return null;
+  const dated = items.filter((i) => i.frac != null);
 
   // Donut proportions use each cost's annualized weight (what it costs across a year), while the
   // list shows the per-occurrence amount and its magnitude relative to the largest occurrence.
@@ -79,12 +90,10 @@ export function TimeCostPanel({ costs, today = new Date(), compact }: TimeCostPa
   });
 
   const active = items.find((i) => i.id === activeId);
+  const dueLabel = (it: TimelineItem) =>
+    it.days == null ? t("timeCostPanel.no_due_date") : it.days < 0 ? t("timeCostPanel.overdue") : t("timeCostPanel.in_days", { days: it.days });
   const focusText = active
-    ? t("timeCostPanel.focus", {
-        label: active.label,
-        amount: fmt(active.amount, { decimals: 0 }),
-        due: active.days < 0 ? t("timeCostPanel.overdue") : t("timeCostPanel.in_days", { days: active.days }),
-      })
+    ? t("timeCostPanel.focus", { label: active.label, amount: fmt(active.amount, { decimals: 0 }), due: dueLabel(active) })
     : t("timeCostPanel.hover_hint");
 
   const hoverHandlers = (id: string) => ({
@@ -106,34 +115,38 @@ export function TimeCostPanel({ costs, today = new Date(), compact }: TimeCostPa
           <span className="tcp-title">{t("timeCostPanel.next_12_months")}</span>
           <span className="tcp-focus">{focusText}</span>
         </div>
-        <svg
-          className="tcp-svg"
-          viewBox={`0 0 100 ${rowTop + items.length * rowH + 8}`}
-          preserveAspectRatio="xMidYMid meet"
-        >
-          {!compact &&
-            MONTHS.map((_, i) => {
-              const idx = (startMonthIdx + i) % 12;
+        {dated.length === 0 ? (
+          <div className="tcp-no-dates">{t("timeCostPanel.no_dates_hint")}</div>
+        ) : (
+          <svg
+            className="tcp-svg"
+            viewBox={`0 0 100 ${rowTop + dated.length * rowH + 8}`}
+            preserveAspectRatio="xMidYMid meet"
+          >
+            {!compact &&
+              MONTHS.map((_, i) => {
+                const idx = (startMonthIdx + i) % 12;
+                return (
+                  <text key={i} x={xForFrac(i)} y={4} className="tcp-month" textAnchor="middle">
+                    {MONTHS[idx]}
+                  </text>
+                );
+              })}
+            <line x1={left} x2={left} y1={rowTop - 4} y2={rowTop + dated.length * rowH + 1} className="tcp-today" />
+            {dated.map((it, i) => {
+              const y = rowTop + i * rowH;
+              const dueX = xForFrac(it.frac as number);
               return (
-                <text key={i} x={xForFrac(i)} y={4} className="tcp-month" textAnchor="middle">
-                  {MONTHS[idx]}
-                </text>
+                <g key={it.id}>
+                  <line x1={left} x2={right} y1={y} y2={y} className="tcp-track-bg" />
+                  <line x1={left} x2={dueX} y1={y} y2={y} className={`tcp-track-fill${activeId === it.id ? " active" : ""}`} />
+                  <circle cx={dueX} cy={y} r="1.5" className={`tcp-dot${activeId === it.id ? " active" : ""}`} />
+                  <rect x={left} y={y - rowH / 2} width={right - left} height={rowH} className="tcp-hit" {...hoverHandlers(it.id)} />
+                </g>
               );
             })}
-          <line x1={left} x2={left} y1={rowTop - 4} y2={rowTop + items.length * rowH + 1} className="tcp-today" />
-          {items.map((it, i) => {
-            const y = rowTop + i * rowH;
-            const dueX = xForFrac(it.frac);
-            return (
-              <g key={it.id}>
-                <line x1={left} x2={right} y1={y} y2={y} className="tcp-track-bg" />
-                <line x1={left} x2={dueX} y1={y} y2={y} className={`tcp-track-fill${activeId === it.id ? " active" : ""}`} />
-                <circle cx={dueX} cy={y} r="1.5" className={`tcp-dot${activeId === it.id ? " active" : ""}`} />
-                <rect x={left} y={y - rowH / 2} width={right - left} height={rowH} className="tcp-hit" {...hoverHandlers(it.id)} />
-              </g>
-            );
-          })}
-        </svg>
+          </svg>
+        )}
       </div>
       <div className="tcp-right">
         <div className="tcp-list">
@@ -146,7 +159,9 @@ export function TimeCostPanel({ costs, today = new Date(), compact }: TimeCostPa
               <span className="tcp-item-body">
                 <span className="tcp-item-name">{it.label}</span>
                 <span className="tcp-item-sub">
-                  {t("timeCostPanel.due_date", { date: fmtDateShort(it.next_due_date as string) })}
+                  {it.next_due_date
+                    ? t("timeCostPanel.due_date", { date: fmtDateShort(it.next_due_date) })
+                    : t("timeCostPanel.no_due_date")}
                 </span>
               </span>
               <span className="tcp-item-amt">
