@@ -315,7 +315,7 @@ def test_create_time_based_cost_with_past_anchor_rolls_next_due_forward(client: 
     assert date.fromisoformat(row["next_due_date"]) >= date.today()
 
 
-def test_create_without_anchor_returns_null_next_due_and_template_rows_null(client: TestClient) -> None:
+def test_create_without_anchor_derives_next_due_from_creation(client: TestClient) -> None:
     created = _create_vehicle(client)
     asset_id = created["asset"]["id"]
 
@@ -324,15 +324,22 @@ def test_create_without_anchor_returns_null_next_due_and_template_rows_null(clie
 
     assert response.status_code == 201
     row = response.json()
+    # No explicit anchor: the next-due date is still resolved, derived from the creation date one
+    # interval out, rather than being null.
     assert row["first_due_date"] is None
-    assert row["next_due_date"] is None
+    assert row["next_due_date"] is not None
+    assert date.fromisoformat(row["next_due_date"]) >= date.today()
 
-    # Seeded vehicle template rows carry no anchor: next_due_date is null without any error.
+    # Seeded vehicle template rows likewise get a creation-derived next_due_date, still with no anchor.
     listed = client.get(f"/api/assets/{asset_id}/time-based-costs")
     assert listed.status_code == 200
     template_rows = [r for r in listed.json() if r["technical_key"] is not None]
     assert template_rows
-    assert all(r["first_due_date"] is None and r["next_due_date"] is None for r in template_rows)
+    assert all(r["first_due_date"] is None for r in template_rows)
+    assert all(
+        r["next_due_date"] is not None and date.fromisoformat(r["next_due_date"]) >= date.today()
+        for r in template_rows
+    )
 
 
 def test_patch_sets_then_clears_anchor(client: TestClient) -> None:
@@ -355,8 +362,10 @@ def test_patch_sets_then_clears_anchor(client: TestClient) -> None:
     )
     assert clear_response.status_code == 200
     clear_row = clear_response.json()
+    # Clearing the explicit anchor falls back to the creation-derived next-due date, not null.
     assert clear_row["first_due_date"] is None
-    assert clear_row["next_due_date"] is None
+    assert clear_row["next_due_date"] is not None
+    assert date.fromisoformat(clear_row["next_due_date"]) >= date.today()
 
 
 def test_next_due_roll_forward_correct_through_api(client: TestClient) -> None:

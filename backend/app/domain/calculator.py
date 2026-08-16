@@ -90,6 +90,35 @@ def next_due_date(
     return _add_months(anchor, step * interval_months)
 
 
+def next_due_from_start(
+    start: date, interval_value: int, interval_unit: IntervalUnit, today: date
+) -> date:
+    """Compute the next occurrence when ``start`` is the cycle's beginning (e.g. a cost's creation).
+
+    The cycle is treated as having begun at ``start``, so the first occurrence falls one interval
+    after it; that occurrence is then rolled forward to the first one on or after ``today``. This is
+    the auto-default used when a cost carries no explicit anchor date: a 12-month cost created one
+    month ago resolves to about eleven months out.
+
+    Args:
+        start: The date the cost's cycle began (its creation date).
+        interval_value: Positive number of units in one interval.
+        interval_unit: Either ``"months"`` or ``"years"``.
+        today: The reference date the occurrence is rolled forward past.
+
+    Returns:
+        The first occurrence on or after ``today``, never earlier than one interval after ``start``.
+
+    Raises:
+        ValueError: If ``interval_value`` is not positive.
+    """
+    if interval_value <= 0:
+        raise ValueError("interval_value must be positive.")
+    interval_months = interval_value if interval_unit == "months" else interval_value * 12
+    first_occurrence = _add_months(start, interval_months)
+    return next_due_date(first_occurrence, interval_value, interval_unit, today)
+
+
 def reference_amount(
     baseline: Decimal, linked_expenses: Sequence[tuple[date, Decimal]], period_start: date
 ) -> Decimal:
