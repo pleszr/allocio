@@ -7,6 +7,7 @@ import type { CostsTab } from "../routes";
 import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
 import { Sparkline } from "../components/Sparkline";
+import { SpatialMap, spatialItems } from "../components/SpatialMap";
 import { TimeCostPanel } from "../components/TimeCostPanel";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { illoBg, illoKind } from "../utils/assetType";
@@ -52,6 +53,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const averageAllocation = e.average_allocation;
   const timeCosts = timeBased.data ?? [];
   const hasTimeCosts = timeCosts.some((c) => c.is_active);
+  const mapItems = spatialItems(activeMaintenance);
   const costCount = e.maintenance_items.length;
 
   return (
@@ -204,6 +206,22 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           </div>
         )}
       </div>
+
+      {/* Spatial maintenance map (built-in vehicle rows only) */}
+      {mapItems.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div className="section-head" style={{ margin: "0 0 12px" }}>
+            <div>
+              <div className="card-title">{t("dashboard.maint_map_title")}</div>
+              <div className="card-sub">{t("dashboard.maint_map_sub")}</div>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={() => onTab("costs", "maint")}>
+              {t("dashboard.manage")} <Icon name="chevronRight" size={12} />
+            </button>
+          </div>
+          <SpatialMap maintenanceItems={activeMaintenance} />
+        </div>
+      )}
 
       {/* Maintenance + time-based costs + recent activity + balance history */}
       <div className="col-2">

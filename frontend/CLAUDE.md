@@ -11,7 +11,7 @@ React 18 + TypeScript + Vite product app for Allocio. Built as static assets, no
 - `src/routes.ts` — the `Route` union used for local-state navigation (no React Router)
 - `src/styles.css` — global stylesheet ported from the design; theming keys off `data-theme` / `data-density` on `<html>`
 - `src/api/` — `types.ts` (TS mirrors of backend response/request shapes) and `client.ts` (typed `fetch` wrapper over `/api/*`)
-- `src/components/` — presentational + chrome components (Icon, Sparkline, CostDistributionChart, TimeCostPanel, Illustrations, Sidebar, TopBar, UserMenu, Tabs, StateView)
+- `src/components/` — presentational + chrome components (Icon, Sparkline, CostDistributionChart, TimeCostPanel, SpatialMap, Illustrations, Sidebar, TopBar, UserMenu, Tabs, StateView)
 - `src/screens/` — one file per screen (Home, Dashboard, Costs, CheckIn, History, NewBucket, SignIn)
 - `src/utils/` — pure helpers: `format.ts` (currency-agnostic number/date helpers), `assetType.ts`, `health.ts`, and the `useAsync` fetch hook, plus `currency.tsx` — the `CurrencyProvider` React context and `useCurrency()` hook that own money rendering (the display currency symbol and its placement). Money must be rendered through `useCurrency()`'s `fmt`, not a hardcoded symbol. Do NOT name this `lib/` — the repo `.gitignore` ignores `lib/`.
 - `vite.config.ts` — Vite config, dev server, and `/api` proxy to the backend (port defaults to
@@ -39,7 +39,7 @@ npm run e2e   # Playwright browser e2e; needs Postgres up (docker compose up -d)
   `E2E_FRONTEND_PORT` in `frontend/.env.local`.
 - The suite requires the always-on local Postgres container (`docker compose up -d`); it creates and drops a throwaway `allocio_e2e` database per run and never touches the `allocio` dev database. If Postgres is down, the backend command fails fast with the command to start it. The e2e backend runs with `AUTH_DISABLED=true` so the app renders past the auth gate without Google.
 - Not run in CI. The fast API-level counterpart (`backend/tests/test_workflow_e2e.py`) runs as a pre-commit hook.
-- Selectors prefer user-facing roles and text; add a `data-testid` only where no good role/text handle exists (currently just the bucket-name input). Playwright's `getByLabel` requires a real `htmlFor`/`id` pairing (or nesting) between a `.field-label` and its input/select — a visually-adjacent label with no `htmlFor` is invisible to it. `CheckInScreen.tsx`'s fields pair every label this way so e2e specs can target them directly instead of falling back to a `data-testid`; prefer the same pairing when adding a new labeled form field elsewhere.
+- Selectors prefer user-facing roles and text; add a `data-testid` only where no good role/text handle exists (currently just the bucket-name input). Playwright's `getByLabel` requires a real `htmlFor`/`id` pairing (or nesting) between a `.field-label` and its input/select — a visually-adjacent label with no `htmlFor` is invisible to it. `CheckInScreen.tsx`'s fields pair every label this way so e2e specs can target them directly instead of falling back to a `data-testid`; prefer the same pairing when adding a new labeled form field elsewhere. `CheckInScreen.tsx` is a guided 3-step wizard (period → expenses → review): period/usage/tire fields live on step 1, expenses on step 2, and the review breakdown + "Confirm and post" button on step 3, so e2e flows must click the footer "Continue" button to advance between them.
 
 ## Rules
 

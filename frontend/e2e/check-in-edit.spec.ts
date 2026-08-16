@@ -47,6 +47,8 @@ test("editing a posted check-in's expense from History updates the ledger with n
   await page.getByRole("tab", { name: "Check-in" }).click();
   await initialPreviewed;
 
+  // The check-in screen is a guided wizard: period -> expenses -> review.
+  await page.getByRole("button", { name: "Continue" }).click(); // period -> expenses
   await page.getByRole("button", { name: /Add expense/ }).click();
   const previewed = page.waitForResponse((response) => {
     if (!response.url().endsWith("/check-ins/preview") || !response.ok()) return false;
@@ -59,6 +61,7 @@ test("editing a posted check-in's expense from History updates the ledger with n
   // This is a same-day, zero-accrual baseline (elapsed_days = 0), so the bucket has nothing
   // available yet and the 5,000 expense is entirely paid out of pocket -- triggering the existing
   // out-of-pocket confirmation dialog before the post actually happens.
+  await page.getByRole("button", { name: "Continue" }).click(); // expenses -> review
   const posted = page.waitForResponse(
     (r) => r.url().includes("/check-ins") && !r.url().includes("/preview") && r.request().method() === "POST",
   );
@@ -82,15 +85,21 @@ test("editing a posted check-in's expense from History updates the ledger with n
 
   // Editing a past period is clearly indicated, and the period end field renders read-only (a plain
   // display value, not the editable date `<input>` the new-check-in flow uses).
+  // The read-only period and the "editing a past period" banner render on the wizard's first step.
   await expect(page.getByText(/Editing the check-in for/)).toBeVisible();
   await expect(page.locator("input#checkin-period-end")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Update preview/ })).toHaveCount(0);
 
+  // period -> expenses, where the editable amount lives.
+  await page.getByRole("button", { name: "Continue" }).click();
   const editPreviewed = page.waitForResponse((response) => {
     if (!/\/check-ins\/[^/]+\/preview$/.test(response.url()) || !response.ok()) return false;
     return response.request().postDataJSON().expenses?.[0]?.amount === 8000;
   });
   await page.getByLabel("Amount").fill("8000");
+
+  // expenses -> review, where the confirm button lives.
+  await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("button", { name: /Confirm and post/ })).toBeDisabled();
   await editPreviewed;
   await expect(page.getByRole("button", { name: /Confirm and post/ })).toBeEnabled();

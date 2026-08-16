@@ -123,6 +123,8 @@
     "time_based_title": "Time-based costs",
     "time_based_sub": "Recurring costs by when they're next due",
     "time_based_empty": "No time-based costs configured.",
+    "maint_map_title": "Maintenance map",
+    "maint_map_sub": "Hover an item to see where it lives",
     "category_time_based": "Time-based",
     "category_maintenance": "Maintenance",
     "due_overdue": "overdue now",
@@ -276,6 +278,13 @@
     "posted": "Posted",
     "posting": "Posting…",
     "confirm_post": "Confirm and post",
+    "back": "Back",
+    "continue": "Continue",
+    "expenses_empty": "No expenses logged — that's fine if nothing came up.",
+    "posted_title": "Check-in posted",
+    "posted_sub": "{{name}}'s bucket is up to date.",
+    "posted_new_balance": "New balance {{amount}}",
+    "posted_done": "Done",
     "out_of_pocket_dialog_title": "Paid out of pocket",
     "out_of_pocket_dialog_body": "This expense is larger than the money available in this bucket. {{amount}} will be recorded as paid out of pocket, and the bucket balance will stay at zero.",
     "out_of_pocket_back": "Back",
@@ -416,6 +425,13 @@
     "review_first_checkin_label": "First check-in expenses",
     "review_first_checkin_count_one": "{{count}} expense",
     "review_first_checkin_count_other": "{{count}} expenses"
+  },
+  "spatialMap": {
+    "car_alt": "Cutaway x-ray diagram of a vehicle",
+    "focus_hint": "Hover an item to locate it",
+    "overdue": "overdue",
+    "km_left": "{{km}} km left",
+    "months_left": "{{months}} mo left"
   },
   "timeCostPanel": {
     "next_12_months": "Next 12 months",

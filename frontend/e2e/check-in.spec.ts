@@ -65,6 +65,9 @@ test("tire-type picker is seeded and expenses are sent with the preview request"
   });
   await tirePicker.selectOption("winter");
 
+  // Advance from the period step to the expenses step (wizard: period -> expenses -> review).
+  await page.getByRole("button", { name: "Continue" }).click();
+
   // Add a manual "Other" expense.
   await page.getByRole("button", { name: /Add expense/ }).click();
   await page.getByLabel("Amount").fill("5000");
@@ -124,6 +127,9 @@ test("out-of-pocket amount requires bilingual confirmation and stays out of the 
     }
   });
 
+  // Wizard: period -> expenses.
+  await page.getByRole("button", { name: "Continue" }).click();
+
   await page.getByRole("button", { name: /Add expense/ }).click();
   const previewed = page.waitForResponse((response) => {
     if (!response.url().endsWith("/check-ins/preview") || !response.ok()) return false;
@@ -131,6 +137,9 @@ test("out-of-pocket amount requires bilingual confirmation and stays out of the 
   });
   await page.getByLabel("Amount").fill("5000");
   await page.getByLabel("Comment").fill("Unexpected repair");
+
+  // expenses -> review, where the confirm button and preview breakdown render.
+  await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("button", { name: "Confirm and post" })).toBeDisabled();
 
   await previewed;
@@ -205,10 +214,12 @@ test("paid-out-of-pocket override forces the full expense out of the bucket in t
     if (!response.url().endsWith("/check-ins/preview") || !response.ok()) return false;
     return response.request().postDataJSON().usage_end === 120600;
   });
+  // Current usage lives on the wizard's first (period) step.
   await page.getByLabel("Current usage").fill("120600");
-  await expect(page.getByRole("button", { name: "Confirm and post" })).toBeDisabled();
   await usagePreviewed;
-  await expect(page.getByRole("button", { name: "Confirm and post" })).toBeEnabled();
+
+  // period -> expenses.
+  await page.getByRole("button", { name: "Continue" }).click();
 
   await page.getByRole("button", { name: /Add expense/ }).click();
   const previewed = page.waitForResponse((response) => {
@@ -228,6 +239,8 @@ test("paid-out-of-pocket override forces the full expense out of the bucket in t
   expect(Number(previewResult.expense_lines[0].paid_out_of_pocket)).toBe(3000);
   expect(Number(previewResult.expense_lines[0].bucket_amount)).toBe(0);
 
+  // expenses -> review, where the per-line breakdown renders.
+  await page.getByRole("button", { name: "Continue" }).click();
   const pocketLine = page.locator(".checkin-line").filter({ hasText: "Paid out of pocket" });
   await expect(pocketLine.locator(".checkin-line-amt")).toHaveText("3,000.00 Ft");
   const bucketLine = page.locator(".checkin-line").filter({ hasText: "Covered by bucket" });
@@ -256,6 +269,10 @@ test("a failed automatic preview can be retried without changing the form", asyn
   );
   await page.getByRole("tab", { name: "Check-in" }).click();
   await failedPreview;
+
+  // The preview error surfaces on the review step; advance there (period -> expenses -> review).
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
 
   await expect(page.getByText("Temporary preview failure")).toBeVisible();
   const confirm = page.getByRole("button", { name: "Confirm and post" });

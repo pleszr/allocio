@@ -123,6 +123,8 @@
     "time_based_title": "Idő alapú költségek",
     "time_based_sub": "Ismétlődő költségek a következő esedékesség szerint",
     "time_based_empty": "Nincs beállított idő alapú költség.",
+    "maint_map_title": "Karbantartási térkép",
+    "maint_map_sub": "Vigye rá az egérrel, hogy lássa, hol található",
     "category_time_based": "Idő alapú",
     "category_maintenance": "Karbantartás",
     "due_overdue": "már lejárt",
@@ -276,6 +278,13 @@
     "posted": "Rögzítve",
     "posting": "Rögzítés…",
     "confirm_post": "Megerősítés és rögzítés",
+    "back": "Vissza",
+    "continue": "Tovább",
+    "expenses_empty": "Nincs rögzített kiadás — ez rendben van, ha nem merült fel semmi.",
+    "posted_title": "Elszámolás rögzítve",
+    "posted_sub": "{{name}} kasszája naprakész.",
+    "posted_new_balance": "Új egyenleg: {{amount}}",
+    "posted_done": "Kész",
     "out_of_pocket_dialog_title": "Kifizettük zsebből",
     "out_of_pocket_dialog_body": "Ez a kiadás nagyobb, mint a zsebben elérhető összeg. {{amount}} zsebből fizetett összegként lesz rögzítve, a zseb egyenlege pedig nulla marad.",
     "out_of_pocket_back": "Vissza",
@@ -416,6 +425,13 @@
     "review_first_checkin_label": "Első elszámolás költségei",
     "review_first_checkin_count_one": "{{count}} költség",
     "review_first_checkin_count_other": "{{count}} költség"
+  },
+  "spatialMap": {
+    "car_alt": "Jármű metszeti röntgenábrája",
+    "focus_hint": "Vigye rá egy elemre a helyének megtekintéséhez",
+    "overdue": "lejárt",
+    "km_left": "{{km}} km van hátra",
+    "months_left": "{{months}} hó van hátra"
   },
   "timeCostPanel": {
     "next_12_months": "Következő 12 hónap",
