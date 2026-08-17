@@ -224,13 +224,17 @@ export function CarDiagram({ items, focusItem }: { items: SpatialItem[]; focusIt
 interface MaintenanceFilterTabsProps {
   value: MaintenanceFilter;
   onChange: (filter: MaintenanceFilter) => void;
+  // Override for the first tab's label — the dashboard's MaintenancePanel renames it to "Top 5"
+  // (its list is also capped there). Costs screen's SpatialMap usage omits this and keeps the
+  // real, uncapped "All" tab.
+  allLabel?: string;
 }
 
 // The All / Good / Attention / Overdue tabs shared by both maintenance lists.
-export function MaintenanceFilterTabs({ value, onChange }: MaintenanceFilterTabsProps) {
+export function MaintenanceFilterTabs({ value, onChange, allLabel }: MaintenanceFilterTabsProps) {
   const { t } = useTranslation();
   const tabs: { key: MaintenanceFilter; label: string; dot?: string }[] = [
-    { key: "all", label: t("spatialMap.filter_all") },
+    { key: "all", label: allLabel ?? t("spatialMap.filter_all") },
     { key: "good", label: t("spatialMap.filter_good"), dot: "good" },
     { key: "attention", label: t("spatialMap.filter_attention"), dot: "warn" },
     { key: "overdue", label: t("spatialMap.filter_overdue"), dot: "bad" },
@@ -339,7 +343,7 @@ export function SpatialMap({ maintenanceItems }: SpatialMapProps) {
         <div className="spatial-list-head">
           <MaintenanceFilterTabs value={filter} onChange={setFilter} />
         </div>
-        <div className="spatial-list">
+        <div className="spatial-list spatial-list--full">
           {filteredSorted.map((it) => (
             <MaintenanceCard
               key={it.id}

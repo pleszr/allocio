@@ -441,6 +441,7 @@
     "km_left": "{{km}} km left",
     "months_left": "{{months}} mo left",
     "filter_all": "All",
+    "filter_top5": "Top 5",
     "filter_good": "Good",
     "filter_attention": "Attention",
     "filter_overdue": "Overdue"

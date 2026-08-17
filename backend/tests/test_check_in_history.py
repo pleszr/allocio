@@ -152,16 +152,17 @@ def test_two_check_ins_ordered_with_running_balance(client: TestClient, db_sessi
     body = _get_history(client, asset.id).json()
 
     assert len(body["rows"]) == 2
+    # Rows are returned newest-first: check_in_2 (the later period) comes before check_in_1.
     row1, row2 = body["rows"]
-    assert row1["check_in_id"] == str(check_in_1.id)
-    assert row2["check_in_id"] == str(check_in_2.id)
-    assert row1["elapsed_days"] == 30
-    assert row1["usage_since_last"] == 500
-    assert _dec(row1["balance"]) == Decimal("300.00")
-    assert row2["usage_since_last"] == 400
-    assert _dec(row2["net"]) == Decimal("150.00")
-    # Running total, not per-row: 300 (row1) + 150 (row2's own net) = 450.
-    assert _dec(row2["balance"]) == Decimal("450.00")
+    assert row1["check_in_id"] == str(check_in_2.id)
+    assert row2["check_in_id"] == str(check_in_1.id)
+    assert row2["elapsed_days"] == 30
+    assert row2["usage_since_last"] == 500
+    assert _dec(row2["balance"]) == Decimal("300.00")
+    assert row1["usage_since_last"] == 400
+    assert _dec(row1["net"]) == Decimal("150.00")
+    # Running total, not per-row: 300 (check_in_1) + 150 (check_in_2's own net) = 450.
+    assert _dec(row1["balance"]) == Decimal("450.00")
 
 
 def test_history_separates_full_bucket_and_out_of_pocket_expense(

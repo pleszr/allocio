@@ -36,7 +36,7 @@ class CheckInExpenseLine:
 
 @dataclass(frozen=True)
 class CheckInHistoryRow:
-    """One posted check-in's ledger row, in period order."""
+    """One posted check-in's ledger row; returned newest period first."""
 
     check_in_id: uuid.UUID
     period_end: date
@@ -54,7 +54,7 @@ class CheckInHistoryRow:
 
 @dataclass(frozen=True)
 class CheckInHistory:
-    """An owned asset's ordered (oldest → newest) check-in ledger for a `GET .../check-in-history` call."""
+    """An owned asset's ordered (newest → oldest) check-in ledger for a `GET .../check-in-history` call."""
 
     asset_id: uuid.UUID
     currency: str
@@ -68,7 +68,7 @@ class CheckInHistoryService:
         self._session = session
 
     def check_in_history(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> CheckInHistory:
-        """Build the ordered ledger for one owned asset. Writes nothing."""
+        """Build the ordered ledger for one owned asset, newest check-in first. Writes nothing."""
         bucket = self._owned_bucket(user_id, asset_id)
         check_ins = check_in_repository.list_posted_check_ins(self._session, asset_id)
         allocation_totals = check_in_repository.sum_allocation_amounts_by_check_in(self._session, bucket.id)
@@ -77,6 +77,9 @@ class CheckInHistoryService:
         all_expenses = [expense for expenses in expense_lines_by_check_in.values() for expense in expenses]
         source_labels = expense_repository.resolve_source_labels(self._session, all_expenses)
         rows = self._build_rows(check_ins, allocation_totals, expense_totals, expense_lines_by_check_in, source_labels)
+        # `_build_rows` walks check-ins oldest-first to accumulate the running `balance` correctly;
+        # reverse only the returned order so the API response is newest-first.
+        rows = list(reversed(rows))
         return CheckInHistory(asset_id=asset_id, currency=bucket.currency, rows=rows)
 
     def _owned_bucket(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> Bucket:
