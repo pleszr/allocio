@@ -1322,7 +1322,7 @@ select.input {
 .maint-talkbox-meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; font-family: var(--mono); font-feature-settings: "tnum"; }
 
 .spatial-list-wrap { display: flex; flex-direction: column; min-height: 0; }
-.spatial-list-head { display: flex; justify-content: flex-end; padding: 0 2px 8px; }
+.spatial-list-head { display: flex; justify-content: flex-end; padding: 20px 2px 8px; }
 .spatial-list { padding: 2px; display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; }
 .spatial-list.spatial-list--full { max-height: none; overflow-y: visible; }
 @media (max-width: 860px) { .spatial-map { grid-template-columns: 1fr; } }
