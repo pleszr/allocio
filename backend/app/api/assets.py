@@ -283,6 +283,7 @@ def _to_asset_detail_response(detail: AssetDetail) -> AssetDetailResponse:
         tracked_in_app_months=detail.tracked_in_app_months,
         average_monthly_cost=detail.average_monthly_cost,
         avg_monthly_paid_out_of_pocket=detail.avg_monthly_paid_out_of_pocket,
+        average_actual_monthly_cost=detail.average_actual_monthly_cost,
         next_maintenance=(
             NextMaintenanceResponse(
                 label=detail.next_maintenance.label,

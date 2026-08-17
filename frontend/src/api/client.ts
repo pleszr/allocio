@@ -80,6 +80,7 @@ const DECIMAL_KEYS = new Set([
   "average_monthly_usage",
   "average_monthly_cost",
   "avg_monthly_paid_out_of_pocket",
+  "average_actual_monthly_cost",
   "total",
   // Built-in template catalogs carry per-currency maps for row amounts, estimated costs, and
   // monthly safety-buffer defaults. The reviver runs bottom-up, so it sees "HUF"/"EUR"/"USD" as

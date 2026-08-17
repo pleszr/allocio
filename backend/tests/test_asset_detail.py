@@ -1099,6 +1099,29 @@ def test_manual_extra_recommended_divides_12_month_gap_by_elapsed_months_capped_
     assert detail.manual_extra_recommended == Decimal("250.00")
 
 
+def test_average_actual_monthly_cost_uses_real_expense_total_not_allocated_plus_out_of_pocket(
+    client: TestClient, db_session: Session
+) -> None:
+    """Distinct from average_monthly_cost: divides the full trailing-365-day expense total (not
+    allocated funding plus only the out-of-pocket portion) by the same elapsed-months divisor as
+    manual_extra_recommended, so the two figures reconcile against average_allocation."""
+    asset_id = client.post("/api/assets", json={"name": "Real cost", "type": "house"}).json()["asset"]["id"]
+    asset_uuid = uuid.UUID(asset_id)
+    as_of = date(2026, 7, 25)
+    asset = db_session.get(Asset, asset_uuid)
+    assert asset is not None
+    asset.created_at = datetime(2024, 1, 1, tzinfo=UTC)  # well over 12 months before as_of
+    db_session.flush()
+    check_in = _add_posted_check_in(db_session, asset_uuid, as_of - timedelta(days=90), as_of)
+    bucket_id = _bucket_id(db_session, asset_id)
+    _add_allocation(db_session, bucket_id, check_in.id, "1000.00", as_of - timedelta(days=30))
+    _add_expense(db_session, bucket_id, "4000.00", as_of - timedelta(days=20))
+
+    detail = _service_detail(db_session, asset_id, as_of)
+
+    assert detail.average_actual_monthly_cost == Decimal("333.33")
+
+
 def test_manual_extra_recommended_divides_by_elapsed_months_for_asset_younger_than_a_year(
     client: TestClient, db_session: Session
 ) -> None:

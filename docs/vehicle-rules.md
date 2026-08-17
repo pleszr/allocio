@@ -672,6 +672,14 @@ If the user-configured rate is:
   since creation, clamped to `[1, 12]` — a shorter divisor for an asset under a year old, capped at
   12 for an older one. Derived guidance only; it never overwrites the stored `manual_extra_monthly`
   value on its own.
+- **Average actual monthly cost** is the same trailing-365-day expense total used by the manual-extra
+  recommendation (full `amount`, not just `paid_out_of_pocket`, skipping `excluded_from_average`
+  expenses), divided by the same elapsed-months divisor as that recommendation. It is distinct from
+  average monthly cost above, which blends allocated funding with only the out-of-pocket shortfall
+  portion of expenses rather than real spend — a long-lived asset with an accumulated bucket balance
+  can show a small out-of-pocket figure while still running a large structural funding gap, because
+  the balance is absorbing the difference. Average actual monthly cost surfaces that real gap: it
+  minus the trailing allocation total over the same window equals the recommended extra.
 - **Next maintenance** is the active maintenance view with the smallest non-null `remaining_km`.
   This excludes month-only rows and kilometer rows without a comparable current-usage/service
   baseline. Overdue distance remains clamped to zero. Equal distances sort by case-insensitive
