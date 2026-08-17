@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
 import type { ActivityItem } from "../api/types";
@@ -12,6 +11,7 @@ import {
 } from "../components/CostHistoryModal";
 import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
+import { ManualExtraEditor } from "../components/ManualExtraEditor";
 import { MaintenancePanel } from "../components/MaintenancePanel";
 import { Sparkline } from "../components/Sparkline";
 import { TimeCostPanel } from "../components/TimeCostPanel";
@@ -37,8 +37,10 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const fmt = useCurrency();
   const detail = useAsync(() => api.getAsset(assetId), [assetId]);
   const timeBased = useAsync(() => api.listTimeBasedCosts(assetId), [assetId]);
+  const usageBased = useAsync(() => api.listUsageBasedCosts(assetId), [assetId]);
   const [months, setMonths] = useState(12);
   const [historyTarget, setHistoryTarget] = useState<HistoryTarget | null>(null);
+  const [manualExtraEditing, setManualExtraEditing] = useState(false);
   const history = useAsync(() => api.getBalanceHistory(assetId, months), [assetId, months]);
 
   if (detail.loading) return <LoadingState label={t("dashboard.loading")} />;
@@ -51,15 +53,13 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const points = history.data?.points ?? [];
   const balances = points.map((p) => p.balance);
   const delta = balances.length >= 2 ? balances[balances.length - 1] - balances[balances.length - 2] : 0;
-  const dueSoon = e.maintenance_items.filter((m) => m.status && m.status !== "ok");
   const activeMaintenance = e.maintenance_items.filter((m) => m.is_active);
-  const annualService = e.tracks_usage
-    ? undefined
-    : activeMaintenance.find((m) => m.technical_key === "annual_service");
   const averageAllocation = e.average_allocation;
   const timeCosts = timeBased.data ?? [];
   const hasTimeCosts = timeCosts.some((c) => c.is_active);
-  const costCount = e.maintenance_items.length;
+  const usageRows = usageBased.data ?? [];
+  const timePerYear = timeCosts.filter((c) => c.is_active).reduce((sum, row) => sum + row.annualized_amount, 0);
+  const usageRate = usageRows.filter((u) => u.is_active).reduce((sum, u) => sum + u.amount_per_unit, 0);
 
   return (
     <div className="content fade-in">
@@ -120,97 +120,77 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
         </div>
       </div>
 
-      {/* KPI grid */}
-      <div className="kpi-grid" style={{ marginBottom: 24 }}>
-        {e.tracks_usage ? (
-          <div className="kpi">
-            <div className="kpi-label">{t("dashboard.avg_monthly_cost_label")}</div>
-            <div className="num-lg">
-              {fmt(e.average_monthly_cost, { decimals: 0 })}
-              <span className="muted" style={{ fontSize: 14 }}>
-                {t("dashboard.per_mo")}
-              </span>
-            </div>
-            <div className="kpi-sub">
-              {e.vehicle_age_years !== null
-                ? t("dashboard.avg_monthly_cost_sub_with_age", {
-                    age: e.vehicle_age_years,
-                    duration: formatTrackedDuration(e.tracked_in_app_months, t),
-                  })
-                : t("dashboard.avg_monthly_cost_sub_no_age", {
-                    duration: formatTrackedDuration(e.tracked_in_app_months, t),
-                  })}
-            </div>
+      {/* KPI grid — same tiles, content, and styling as the Costs screen's former grid */}
+      <div className="kpi-grid kpi-grid-4" style={{ marginBottom: 24 }}>
+        <div className="kpi">
+          <div className="kpi-label">{t("costs.time_total")}</div>
+          <div className="num-lg">
+            {fmt(timePerYear / 12, { decimals: 0 })}
+            <span className="muted" style={{ fontSize: 14 }}>
+              {t("costs.per_mo")}
+            </span>
           </div>
-        ) : (
-          <div className="kpi">
-            <div className="kpi-label">{t("dashboard.daily_accrual")}</div>
-            <div className="num-lg">{fmt(e.daily_accrual, { decimals: 2 })}</div>
-            <div className="kpi-sub">
-              {t("dashboard.per_mo_recommended", {
-                amount: fmt(e.recommended_monthly_allocation, { decimals: 0 }),
-              })}
-            </div>
+          <div className="kpi-sub">
+            {fmt(timePerYear, { decimals: 0 })}
+            {t("costs.per_yr")}
           </div>
-        )}
-        {e.tracks_usage ? (
-          <div className="kpi">
-            <div className="kpi-label">{t("dashboard.paid_out_of_pocket_label")}</div>
-            <div className="num-lg">
-              {fmt(e.avg_monthly_paid_out_of_pocket, { decimals: 0 })}
-              <span className="muted" style={{ fontSize: 14 }}>
-                {t("dashboard.per_mo_avg")}
-              </span>
-            </div>
-            <div className="kpi-sub">
-              {t("dashboard.consider_adding_extra", {
-                amount: fmt(e.manual_extra_recommended, { decimals: 0 }),
-              })}
-            </div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">{t("costs.usage_rate")}</div>
+          <div className="num-lg">
+            {fmt(usageRate * e.average_monthly_usage, { decimals: 2 })}
+            <span className="muted" style={{ fontSize: 14 }}>
+              {t("costs.per_mo")}
+            </span>
           </div>
-        ) : (
-          <div className="kpi">
-            <div className="kpi-label">{t("dashboard.maintenance_items")}</div>
-            <div className="num-lg">{costCount}</div>
-            <div className="kpi-sub">
-              {dueSoon.length > 0 ? t("dashboard.need_attention", { n: dueSoon.length }) : t("dashboard.all_current")}
-            </div>
+          <div className="kpi-sub">
+            {fmt(usageRate, { decimals: 3 })}
+            {t("costs.per_unit")}
           </div>
-        )}
-        {e.tracks_usage ? (
-          <div className="kpi">
-            <div className="kpi-label">{t("dashboard.next_maintenance")}</div>
-            <div className="kpi-copy">
-              <div className="kpi-copy-line">
-                {e.next_maintenance
-                  ? t("dashboard.next_maintenance_detail", {
-                      name: e.next_maintenance.label,
-                      km: fmtNumber(e.next_maintenance.remaining_km),
-                    })
-                  : t("dashboard.next_maintenance_empty")}
-              </div>
-            </div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">{t("costs.manual_extra")}</div>
+          <div className="num-lg">
+            {fmt(e.manual_extra_monthly, { decimals: 0 })}
+            <span className="muted" style={{ fontSize: 14 }}>
+              {t("costs.per_mo")}
+            </span>
           </div>
-        ) : (
-          <div className="kpi">
-            <div className="kpi-label">{t("dashboard.until_annual_service")}</div>
-            {annualService?.remaining_km !== null && annualService?.remaining_km !== undefined ? (
-              <div className="num-lg">
-                {fmtNumber(annualService.remaining_km)}{" "}
-                <span className="muted" style={{ fontSize: 14 }}>
-                  km
-                </span>
-              </div>
-            ) : (
-              <div className="kpi-sub">
-                {annualService
-                  ? t("dashboard.annual_service_baseline_missing")
-                  : t("dashboard.annual_service_not_configured")}
-              </div>
-            )}
+          <div className="kpi-sub">
+            {e.manual_extra_recommended > 0
+              ? t("costs.manual_extra_recommended_sub", {
+                  amount: fmt(e.manual_extra_recommended, { decimals: 0 }),
+                  count: e.manual_extra_recommended_months,
+                })
+              : t("costs.manual_extra_sub")}
           </div>
-        )}
+          <button className="kpi-link" onClick={() => setManualExtraEditing(true)}>
+            <Icon name="edit" size={11} /> {t("costs.manual_extra_edit")}
+          </button>
+        </div>
+        <div className="kpi" style={{ background: "var(--accent-soft)", borderColor: "transparent" }}>
+          <div className="kpi-label">{t("costs.required_allocation")}</div>
+          <div className="num-lg">
+            {fmt(e.recommended_monthly_allocation, { decimals: 0 })}
+            <span className="muted" style={{ fontSize: 14 }}>
+              {t("costs.per_mo")}
+            </span>
+          </div>
+          <div className="kpi-sub">{t("costs.time_usage_manual")}</div>
+        </div>
       </div>
+
+      {manualExtraEditing && (
+        <ManualExtraEditor
+          assetId={assetId}
+          current={e.manual_extra_monthly}
+          recommended={e.manual_extra_recommended}
+          averageAllocation={e.average_allocation.amount}
+          averageActualCost={e.average_actual_monthly_cost}
+          onClose={() => setManualExtraEditing(false)}
+          onChanged={detail.reload}
+        />
+      )}
 
       {/* Merged full-width maintenance panel (car diagram + unified list) */}
       {activeMaintenance.length > 0 && (
@@ -325,18 +305,6 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
       )}
     </div>
   );
-}
-
-function formatTrackedDuration(totalMonths: number, t: TFunction): string {
-  if (totalMonths < 24) {
-    return t("dashboard.duration_month", { count: totalMonths });
-  }
-  const years = Math.floor(totalMonths / 12);
-  const months = totalMonths % 12;
-  return t("dashboard.duration_years_and_months", {
-    years: t("dashboard.duration_year", { count: years }),
-    months: t("dashboard.duration_month", { count: months }),
-  });
 }
 
 function TxRow({ tx }: { tx: ActivityItem }) {

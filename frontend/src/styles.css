@@ -304,6 +304,20 @@ body {
 .user-popover-error { font-size: 12px; padding: 8px 12px; }
 .user-popover-signout { flex-shrink: 0; width: 100%; text-align: center; padding: 8px 9px; }
 
+.confirm-popover {
+  z-index: 40;
+  width: 240px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+.confirm-popover-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.confirm-popover-breakdown { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.confirm-popover-error { font-size: 12px; color: var(--bad); margin-bottom: 12px; }
+.confirm-popover-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
 /* ── Sign-in gate ──────────────────────────────────── */
 .signin-wrap {
   min-height: 100vh;

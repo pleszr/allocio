@@ -562,6 +562,14 @@ class AssetDetailResponse(BaseModel):
         description="Every expense's paid-out-of-pocket amount (excluding allocations) inside the inclusive, "
         "calendar-month-clamped trailing 12-month window, divided by 12 and currency-quantized."
     )
+    average_actual_monthly_cost: Decimal = Field(
+        description="Every posted expense's full amount (not just its paid-out-of-pocket portion) inside the "
+        "trailing 365-day window used by manual_extra_recommended, divided by the same elapsed-months divisor "
+        "(manual_extra_recommended_months) and currency-quantized. Distinct from average_monthly_cost, which "
+        "blends allocated funding with only the out-of-pocket shortfall portion of expenses rather than real "
+        "spend; this value minus the trailing allocation total over the same window equals "
+        "manual_extra_recommended."
+    )
     next_maintenance: NextMaintenanceResponse | None = Field(
         description="Active maintenance item with the smallest non-null remaining_km, tied by case-insensitive "
         "label then UUID; null when no kilometer-comparable item qualifies."

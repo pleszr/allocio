@@ -79,6 +79,7 @@ class AssetDetail:
     tracked_in_app_months: int
     average_monthly_cost: Decimal
     avg_monthly_paid_out_of_pocket: Decimal
+    average_actual_monthly_cost: Decimal
     next_maintenance: NextMaintenance | None
     tracks_usage: bool
     current_usage: int | None
@@ -115,6 +116,7 @@ class AssetDetailService:
         manual_extra_recommended_months = max(
             1, min(12, calculator.whole_months(asset.created_at.date(), today))
         )
+        total_allocated_365d, total_expense_365d = self._manual_extra_recommendation_inputs(asset_id, today)
         return AssetDetail(
             asset_id=asset.id,
             type=summary.type,
@@ -132,6 +134,9 @@ class AssetDetailService:
             tracked_in_app_months=calculator.whole_months(asset.created_at.date(), today),
             average_monthly_cost=self._average_monthly_cost(asset_id, today),
             avg_monthly_paid_out_of_pocket=self._avg_monthly_paid_out_of_pocket(asset_id, today),
+            average_actual_monthly_cost=calculator.quantize_currency(
+                total_expense_365d / Decimal(manual_extra_recommended_months)
+            ),
             next_maintenance=self._next_maintenance(maintenance_items),
             tracks_usage=vehicle_profile is not None,
             current_usage=self._costs.current_asset_usage(user_id, asset_id),
@@ -142,7 +147,7 @@ class AssetDetailService:
             upcoming_expenses=self._upcoming_expenses(user_id, asset_id, maintenance_items),
             manual_extra_monthly=asset.manual_extra_monthly,
             manual_extra_recommended=self._manual_extra_recommendation(
-                asset_id, manual_extra_recommended_months, today
+                total_allocated_365d, total_expense_365d, manual_extra_recommended_months
             ),
             manual_extra_recommended_months=manual_extra_recommended_months,
             average_monthly_usage=self._workspace.monthly_usage_rate(asset_id),
@@ -243,21 +248,17 @@ class AssetDetailService:
             amount=calculator.quantize_currency(total / Decimal(len(selected))),
         )
 
-    def _manual_extra_recommendation(
-        self, asset_id: uuid.UUID, elapsed_months: int, today: date
-    ) -> Decimal:
-        """Derive a recommended monthly manual-extra buffer from the trailing expense/allocation gap.
+    def _manual_extra_recommendation_inputs(self, asset_id: uuid.UUID, today: date) -> tuple[Decimal, Decimal]:
+        """Return `(total_allocated, total_expense)` over the trailing 365 days.
 
-        Sums the last 12 months' expenses minus allocations (floored at zero), then divides by
-        `elapsed_months` — the asset's whole calendar months since creation, capped at 12 — rather
-        than a flat /12, so an asset younger than a year isn't understated by a mostly-empty
-        window. Derived guidance only, per docs/domain-model.md — never overwrites the stored
-        `manual_extra_monthly` value on its own. Skips any expense flagged `excluded_from_average`,
-        same as `_average_monthly_cost`.
+        Shared raw totals behind both `manual_extra_recommended` (the funding shortfall) and
+        `average_actual_monthly_cost` (the real spend average) — both are derived from these same
+        two sums so they reconcile with each other rather than each computing its own notion of
+        "cost". Skips any expense flagged `excluded_from_average`, same as `_average_monthly_cost`.
         """
         bucket = expense_repository.get_bucket_for_asset(self._session, asset_id)
         if bucket is None:
-            return Decimal(0)
+            return Decimal(0), Decimal(0)
         window_start = today - timedelta(days=365)
         allocations = check_in_repository.list_posted_allocation_events(self._session, bucket.id)
         expenses = expense_repository.list_expenses_for_bucket(self._session, bucket.id)
@@ -270,6 +271,19 @@ class AssetDetailService:
             ),
             Decimal(0),
         )
+        return total_allocated, total_expense
+
+    def _manual_extra_recommendation(
+        self, total_allocated: Decimal, total_expense: Decimal, elapsed_months: int
+    ) -> Decimal:
+        """Derive a recommended monthly manual-extra buffer from the trailing expense/allocation gap.
+
+        Divides the shortfall (expenses minus allocations, floored at zero) by `elapsed_months` —
+        the asset's whole calendar months since creation, capped at 12 — rather than a flat /12, so
+        an asset younger than a year isn't understated by a mostly-empty window. Derived guidance
+        only, per docs/domain-model.md — never overwrites the stored `manual_extra_monthly` value on
+        its own.
+        """
         shortfall = max(Decimal(0), total_expense - total_allocated)
         return calculator.quantize_currency(shortfall / Decimal(elapsed_months))
 

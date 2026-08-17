@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, ApiError } from "../api/client";
+import { api } from "../api/client";
 import type { IntervalUnit, MaintenanceItem, TimeBasedCost, UsageBasedCost } from "../api/types";
 import { CostDistributionChart } from "../components/CostDistributionChart";
 import { CostHistoryModal, type HistoryTarget, maintHistoryTarget, timeCostHistoryTarget } from "../components/CostHistoryModal";
+import { EditActions, LabeledMoney } from "../components/EditFormControls";
 import { Icon } from "../components/Icon";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { SpatialMap, spatialItems } from "../components/SpatialMap";
@@ -12,6 +13,7 @@ import { useCurrency } from "../utils/currency";
 import { fmtDate, fmtNumber } from "../utils/format";
 import { maintenancePill } from "../utils/maintenanceStatus";
 import { useAsync } from "../utils/useAsync";
+import { useMutation } from "../utils/useMutation";
 
 interface CostsScreenProps {
   assetId: string;
@@ -25,7 +27,6 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
   const { t } = useTranslation();
   const fmt = useCurrency();
   const [tab, setTab] = useState<CostTab>(initialTab ?? "time");
-  const [manualEditing, setManualEditing] = useState(false);
   const [history, setHistory] = useState<HistoryTarget | null>(null);
   const asset = useAsync(() => api.getAsset(assetId), [assetId]);
   const time = useAsync(() => api.listTimeBasedCosts(assetId), [assetId]);
@@ -57,9 +58,6 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
   const assetName = asset.data.name;
   const assetType = asset.data.type;
   const recommendedMonthly = asset.data.recommended_monthly_allocation;
-  const manualExtra = asset.data.manual_extra_monthly;
-  const manualExtraRecommended = asset.data.manual_extra_recommended;
-  const manualExtraRecommendedMonths = asset.data.manual_extra_recommended_months;
   const avgMonthlyUsage = asset.data.average_monthly_usage;
 
   const timeRows = time.data ?? [];
@@ -92,17 +90,7 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
         </div>
       </div>
 
-      {manualEditing && (
-        <ManualExtraEditor
-          assetId={assetId}
-          current={manualExtra}
-          recommended={manualExtraRecommended}
-          onClose={() => setManualEditing(false)}
-          onChanged={reloadAll}
-        />
-      )}
-
-      <div className="kpi-grid kpi-grid-4" style={{ marginBottom: 24 }}>
+      <div className="kpi-grid" style={{ marginBottom: 24 }}>
         <div className="kpi">
           <div className="kpi-label">{t("costs.time_total")}</div>
           <div className="num-lg">
@@ -128,26 +116,6 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
             {fmt(usageRate, { decimals: 3 })}
             {t("costs.per_unit")}
           </div>
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">{t("costs.manual_extra")}</div>
-          <div className="num-lg">
-            {fmt(manualExtra, { decimals: 0 })}
-            <span className="muted" style={{ fontSize: 14 }}>
-              {t("costs.per_mo")}
-            </span>
-          </div>
-          <div className="kpi-sub">
-            {manualExtraRecommended > 0
-              ? t("costs.manual_extra_recommended_sub", {
-                  amount: fmt(manualExtraRecommended, { decimals: 0 }),
-                  count: manualExtraRecommendedMonths,
-                })
-              : t("costs.manual_extra_sub")}
-          </div>
-          <button className="kpi-link" onClick={() => setManualEditing(true)}>
-            <Icon name="edit" size={11} /> {t("costs.manual_extra_edit")}
-          </button>
         </div>
         <div className="kpi" style={{ background: "var(--accent-soft)", borderColor: "transparent" }}>
           <div className="kpi-label">{t("costs.required_allocation")}</div>
@@ -223,92 +191,6 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
       </div>
     </div>
   );
-}
-
-// ── Manual extra ─────────────────────────────────────────────────────────
-function ManualExtraEditor({
-  assetId,
-  current,
-  recommended,
-  onClose,
-  onChanged,
-}: {
-  assetId: string;
-  current: number;
-  recommended: number;
-  onClose: () => void;
-  onChanged: () => void;
-}) {
-  const { t } = useTranslation();
-  const fmt = useCurrency();
-  const [amount, setAmount] = useState(String(current));
-  const { error, busy, run } = useMutation(onChanged);
-
-  const save = () => run(() => api.updateManualExtra(assetId, Number(amount)), onClose);
-
-  return (
-    <div className="card card-pad" style={{ marginBottom: 20, background: "var(--surface-sunk)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
-        <div style={{ maxWidth: 380 }}>
-          <div className="card-title" style={{ marginBottom: 6 }}>
-            {t("costs.manual_extra_panel_title")}
-          </div>
-          <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.5, marginBottom: 12 }}>
-            {t("costs.manual_extra_panel_desc")}
-          </div>
-          <LabeledMoney label={t("costs.field_extra_per_month")} value={amount} onChange={setAmount} />
-        </div>
-        <div style={{ minWidth: 240, borderLeft: "1px solid var(--line)", paddingLeft: 24 }}>
-          <div className="card-title" style={{ marginBottom: 6 }}>
-            {t("costs.manual_extra_recommendation_title")}
-          </div>
-          <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.6 }}>
-            {t("costs.manual_extra_recommendation_desc")}
-          </div>
-          <div style={{ marginTop: 10, display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span className="num-md">
-              {fmt(recommended, { decimals: 0 })}
-              <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>
-                {t("costs.per_mo")}
-              </span>
-            </span>
-            <button className="btn btn-sm btn-primary" onClick={() => setAmount(String(recommended))}>
-              {t("costs.use_this")}
-            </button>
-          </div>
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <EditActions busy={busy} onCancel={onClose} onSave={save} />
-      </div>
-      {error && (
-        <div className="error-banner" style={{ marginTop: 12 }}>
-          {error}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Shared inline error + numeric parsing ──────────────────────────────
-function useMutation(onChanged: () => void) {
-  const { t } = useTranslation();
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const run = async (fn: () => Promise<unknown>, done: () => void) => {
-    setBusy(true);
-    setError(null);
-    try {
-      await fn();
-      done();
-      onChanged();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("costs.save_failed"));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return { error, busy, run };
 }
 
 // ── Time-based ─────────────────────────────────────────────────────────
@@ -836,44 +718,6 @@ function LabeledInput({
     <div className="field">
       <label className="field-label">{label}</label>
       <input className="input" type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
-    </div>
-  );
-}
-
-function LabeledMoney({ label, value, onChange, step }: { label: string; value: string; onChange: (v: string) => void; step?: string }) {
-  return (
-    <div className="field">
-      <label className="field-label">{label}</label>
-      <div className="input-prefix-wrap">
-        <span className="input-prefix">$</span>
-        <input className="input mono" type="number" step={step} value={value} onChange={(e) => onChange(e.target.value)} />
-      </div>
-    </div>
-  );
-}
-
-function EditActions({
-  busy,
-  disabled,
-  onCancel,
-  onSave,
-  saveLabel,
-}: {
-  busy: boolean;
-  disabled?: boolean;
-  onCancel: () => void;
-  onSave: () => void;
-  saveLabel?: string;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div style={{ display: "flex", gap: 8 }}>
-      <button className="btn btn-sm" onClick={onCancel}>
-        {t("costs.cancel")}
-      </button>
-      <button className="btn btn-primary btn-sm" disabled={busy || disabled} onClick={onSave}>
-        {busy ? "…" : (saveLabel ?? t("costs.save"))}
-      </button>
     </div>
   );
 }
