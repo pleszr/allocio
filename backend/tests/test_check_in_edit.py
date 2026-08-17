@@ -191,11 +191,12 @@ def test_editing_older_check_in_without_breaking_later_balance_updates_history(
     assert result.status_code == 200
 
     history = client.get(f"/api/assets/{asset.id}/check-in-history").json()["rows"]
+    # Rows are returned newest-first: check_in_2 comes before check_in_1.
     row1, row2 = history
-    assert row1["check_in_id"] == str(check_in_1.id)
-    assert _dec(row1["expense"]) == Decimal("30.00")
-    assert _dec(row1["balance"]) == Decimal("70.00")
-    assert _dec(row2["balance"]) == Decimal("170.00")
+    assert row2["check_in_id"] == str(check_in_1.id)
+    assert _dec(row2["expense"]) == Decimal("30.00")
+    assert _dec(row2["balance"]) == Decimal("70.00")
+    assert _dec(row1["balance"]) == Decimal("170.00")
 
 
 def test_edit_that_breaks_a_later_periods_balance_is_rejected_and_leaves_no_side_effects(

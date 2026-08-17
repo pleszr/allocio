@@ -441,6 +441,7 @@
     "km_left": "{{km}} km van hátra",
     "months_left": "{{months}} hó van hátra",
     "filter_all": "Összes",
+    "filter_top5": "Top 5",
     "filter_good": "Jó",
     "filter_attention": "Figyelmet igényel",
     "filter_overdue": "Lejárt"

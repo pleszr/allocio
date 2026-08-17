@@ -1324,6 +1324,7 @@ select.input {
 .spatial-list-wrap { display: flex; flex-direction: column; min-height: 0; }
 .spatial-list-head { display: flex; justify-content: flex-end; padding: 0 2px 8px; }
 .spatial-list { padding: 2px; display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; }
+.spatial-list.spatial-list--full { max-height: none; overflow-y: visible; }
 @media (max-width: 860px) { .spatial-map { grid-template-columns: 1fr; } }
 
 /* Maintenance filter tabs (All / Good / Attention / Overdue). */

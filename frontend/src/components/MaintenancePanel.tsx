@@ -38,6 +38,9 @@ export function MaintenancePanel({ maintenanceItems, onManage, onOpenHistory }: 
   if (maintenanceItems.length === 0) return null;
 
   const dueSoon = maintenanceItems.filter((m) => m.status && m.status !== "ok");
+  // The renamed first tab ("Top 5") caps to the 5 most urgent items; the other three tabs
+  // (Good/Attention/Overdue) stay uncapped.
+  const visible = filter === "all" ? filteredSorted.slice(0, 5) : filteredSorted;
   // CarDiagram only glows a region for items present in `mapped`, so passing the raw hovered item
   // (even when unmapped) still shows the talk-box without lighting up the car.
   const hoveredItem = maintenanceItems.find((m) => m.id === hovered) ?? null;
@@ -45,10 +48,10 @@ export function MaintenancePanel({ maintenanceItems, onManage, onOpenHistory }: 
   const list = (
     <div className="spatial-list-wrap">
       <div className="spatial-list-head">
-        <MaintenanceFilterTabs value={filter} onChange={setFilter} />
+        <MaintenanceFilterTabs value={filter} onChange={setFilter} allLabel={t("spatialMap.filter_top5")} />
       </div>
       <div className="spatial-list">
-        {filteredSorted.map((m) => (
+        {visible.map((m) => (
           <MaintenanceCard
             key={m.id}
             item={m}
