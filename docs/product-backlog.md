@@ -248,11 +248,10 @@ Build the per-item detail view with:
 - trailing 12-month average monthly cost from allocations and paid-out-of-pocket amounts
 - nearest active kilometer-based maintenance item and its remaining distance
 - maintenance alerts
-- recent activity
 
 Done when:
 
-- users can quickly understand the non-negative bucket balance and its recent movements
+- users can quickly understand the non-negative bucket balance and its recent trend
 
 #### PM-13 Activity History
 

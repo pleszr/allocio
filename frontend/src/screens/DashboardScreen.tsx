@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
-import type { ActivityItem } from "../api/types";
 import type { CostsTab } from "../routes";
 import {
   CostHistoryModal,
@@ -13,12 +12,11 @@ import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
 import { ManualExtraEditor } from "../components/ManualExtraEditor";
 import { MaintenancePanel } from "../components/MaintenancePanel";
-import { Sparkline } from "../components/Sparkline";
 import { TimeCostPanel } from "../components/TimeCostPanel";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { illoBg, illoKind } from "../utils/assetType";
 import { useCurrency, useCurrencyCode } from "../utils/currency";
-import { fmtDateShort, fmtMonthYear, fmtNumber } from "../utils/format";
+import { fmtNumber } from "../utils/format";
 import { isManualExtraRecommendationApplied } from "../utils/manualExtraRecommendation";
 import { useAsync } from "../utils/useAsync";
 
@@ -27,12 +25,6 @@ interface DashboardScreenProps {
   onTab: (tab: "costs" | "checkin", costsSubTab?: CostsTab) => void;
 }
 
-const RANGES: { label: string; months: number }[] = [
-  { label: "3M", months: 3 },
-  { label: "12M", months: 12 },
-  { label: "All", months: 60 },
-];
-
 export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const { t } = useTranslation();
   const fmt = useCurrency();
@@ -40,9 +32,8 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const detail = useAsync(() => api.getAsset(assetId), [assetId]);
   const timeBased = useAsync(() => api.listTimeBasedCosts(assetId), [assetId]);
   const usageBased = useAsync(() => api.listUsageBasedCosts(assetId), [assetId]);
-  const [months, setMonths] = useState(12);
   const [historyTarget, setHistoryTarget] = useState<HistoryTarget | null>(null);
-  const history = useAsync(() => api.getBalanceHistory(assetId, months), [assetId, months]);
+  const history = useAsync(() => api.getBalanceHistory(assetId, 12), [assetId]);
 
   if (detail.loading) return <LoadingState label={t("dashboard.loading")} />;
   if (detail.error || !detail.data) {
@@ -253,70 +244,6 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
         )}
       </div>
 
-      {/* Recent activity + balance history */}
-      <div className="col-2">
-        <div className="card">
-          <div className="card-hd">
-            <div>
-              <div className="card-title">{t("dashboard.recent_activity")}</div>
-              <div className="card-sub">{t("dashboard.recent_activity_sub")}</div>
-            </div>
-          </div>
-          <div style={{ marginTop: 14, paddingBottom: 6 }}>
-            {e.recent_activity.slice(0, 6).map((tx, i) => (
-              <TxRow key={i} tx={tx} />
-            ))}
-            {e.recent_activity.length === 0 && (
-              <div className="row-meta" style={{ padding: "12px var(--pad)" }}>
-                {t("dashboard.no_activity")}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-hd">
-            <div>
-              <div className="card-title">{t("dashboard.balance_history")}</div>
-              <div className="card-sub">{t("dashboard.balance_history_sub", { name: e.name })}</div>
-            </div>
-            <div className="seg">
-              {RANGES.map((r) => (
-                <button
-                  key={r.months}
-                  className="seg-btn"
-                  aria-pressed={months === r.months}
-                  onClick={() => setMonths(r.months)}
-                >
-                  {r.months === 60 ? t("dashboard.range_all") : r.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div style={{ padding: "20px var(--pad) var(--pad)" }}>
-            {history.loading ? (
-              <div className="row-meta">{t("common.loading")}</div>
-            ) : points.length === 0 ? (
-              <div className="row-meta">{t("dashboard.no_history")}</div>
-            ) : (
-              <>
-                <Sparkline
-                  data={balances}
-                  width={900}
-                  height={130}
-                  padding={12}
-                  months={points.map((p) => fmtMonthYear(p.as_of))}
-                  fmtValue={(v) => fmt(v, { decimals: 0 })}
-                />
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-                  <span className="row-meta">{fmtMonthYear(points[0].as_of)}</span>
-                  <span className="row-meta">{fmtMonthYear(points[points.length - 1].as_of)}</span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
       {historyTarget && (
         <CostHistoryModal
           assetId={assetId}
@@ -327,47 +254,6 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           onClose={() => setHistoryTarget(null)}
         />
       )}
-    </div>
-  );
-}
-
-function TxRow({ tx }: { tx: ActivityItem }) {
-  const { t } = useTranslation();
-  const fmt = useCurrency();
-  const pos = tx.amount >= 0;
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr auto",
-        padding: "12px var(--pad)",
-        borderTop: "1px solid var(--line-soft)",
-        alignItems: "baseline",
-      }}
-    >
-      <div>
-        <div style={{ fontSize: 14 }}>{tx.label}</div>
-        <div className="row-meta" style={{ marginTop: 2 }}>
-          {fmtDateShort(tx.event_date)} · {tx.kind === "allocation" ? t("dashboard.into_bucket") : t("dashboard.from_bucket")}
-        </div>
-        {tx.paid_out_of_pocket > 0 && (
-          <div className="row-meta" style={{ marginTop: 2 }}>
-            {t("dashboard.paid_out_of_pocket", {
-              amount: fmt(tx.paid_out_of_pocket, { decimals: 2 }),
-            })}
-          </div>
-        )}
-      </div>
-      <div
-        style={{
-          fontSize: 15,
-          fontWeight: 600,
-          fontFeatureSettings: '"tnum"',
-          color: pos ? "var(--good)" : "var(--ink)",
-        }}
-      >
-        {fmt(tx.amount, { decimals: 2, sign: true })}
-      </div>
     </div>
   );
 }
