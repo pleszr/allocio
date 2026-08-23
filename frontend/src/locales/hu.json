@@ -424,14 +424,15 @@
   },
   "timeCostPanel": {
     "next_12_months": "Következő 12 hónap",
-    "hover_hint": "vigye rá egy költségre",
-    "focus": "{{label}} · {{amount}} · {{due}}",
-    "in_days": "{{days}} nap múlva",
-    "overdue": "lejárt",
-    "due_date": "esedékes: {{date}}",
-    "no_due_date": "nincs dátum",
-    "no_dates_hint": "Még nincs beállított esedékesség — adj meg egyet egy költséghez, hogy megjelenjen az idővonalon.",
-    "annual_total": "Éves összesen"
+    "this_month": "Ebben a hónapban",
+    "this_year": "Ebben az évben",
+    "share_of_total": "Éves összeg megoszlása",
+    "due_date": "Esedékes: {{date}}",
+    "in_days_one": "{{count}} nap múlva",
+    "in_days_other": "{{count}} nap múlva",
+    "overdue": "Lejárt",
+    "no_due_date": "Nincs esedékesség",
+    "no_dates_hint": "Még nincs beállított esedékesség — adj meg egyet egy költséghez, hogy megjelenjen az idővonalon."
   },
   "templates": {
     "vehicle": {
