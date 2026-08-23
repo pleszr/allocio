@@ -4587,8 +4587,8 @@
           "functions": [
             {
               "name": "Icon",
-              "line_start": 37,
-              "line_end": 56,
+              "line_start": 45,
+              "line_end": 64,
               "hash": "8d090243042b514a"
             }
           ],
@@ -4596,8 +4596,8 @@
           "components": [
             {
               "name": "Icon",
-              "line_start": 37,
-              "line_end": 56,
+              "line_start": 45,
+              "line_end": 64,
               "hash": "8d090243042b514a",
               "kind": "function"
             }
@@ -5032,27 +5032,41 @@
             "../api/types",
             "../utils/currency",
             "../utils/format",
+            "./Icon",
             "react",
             "react-i18next"
           ],
           "exports": [
-            "TimeCostPanel"
+            "TimeCostPanel",
+            "timeCostIcon"
           ],
           "functions": [
             {
               "name": "TimeCostPanel",
-              "line_start": 32,
-              "line_end": 215,
-              "hash": "82376e04576fdbf6"
+              "line_start": 68,
+              "line_end": 242,
+              "hash": "0869643c1763ed1f"
+            },
+            {
+              "name": "timeCostIcon",
+              "line_start": 51,
+              "line_end": 57,
+              "hash": "c4c88624f8a63c0f"
+            },
+            {
+              "name": "tone",
+              "line_start": 27,
+              "line_end": 32,
+              "hash": "82a2cf8779e62821"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "TimeCostPanel",
-              "line_start": 32,
-              "line_end": 215,
-              "hash": "82376e04576fdbf6",
+              "line_start": 68,
+              "line_end": 242,
+              "hash": "0869643c1763ed1f",
               "kind": "function"
             }
           ]
@@ -5493,13 +5507,13 @@
             {
               "name": "DashboardScreen",
               "line_start": 36,
-              "line_end": 333,
-              "hash": "e1cfb3dc5ac4feaa"
+              "line_end": 332,
+              "hash": "36bbf91f4be18616"
             },
             {
               "name": "TxRow",
-              "line_start": 335,
-              "line_end": 374,
+              "line_start": 334,
+              "line_end": 373,
               "hash": "cbb1c90fe6db32dd"
             }
           ],
@@ -5508,14 +5522,14 @@
             {
               "name": "DashboardScreen",
               "line_start": 36,
-              "line_end": 333,
-              "hash": "e1cfb3dc5ac4feaa",
+              "line_end": 332,
+              "hash": "36bbf91f4be18616",
               "kind": "function"
             },
             {
               "name": "TxRow",
-              "line_start": 335,
-              "line_end": 374,
+              "line_start": 334,
+              "line_end": 373,
               "hash": "cbb1c90fe6db32dd",
               "kind": "function"
             }

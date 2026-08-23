@@ -245,7 +245,6 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           <div style={{ padding: "4px 0 4px" }}>
             <TimeCostPanel
               costs={timeCosts}
-              compact
               onOpenHistory={(cost) => setHistoryTarget(timeCostHistoryTarget(cost, t, fmt))}
             />
           </div>

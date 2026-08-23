@@ -424,14 +424,15 @@
   },
   "timeCostPanel": {
     "next_12_months": "Next 12 months",
-    "hover_hint": "hover a cost",
-    "focus": "{{label}} · {{amount}} · {{due}}",
-    "in_days": "in {{days}}d",
-    "overdue": "overdue",
-    "due_date": "due {{date}}",
-    "no_due_date": "no date set",
-    "no_dates_hint": "No due dates set yet — add one to a cost to place it on the timeline.",
-    "annual_total": "Annual total"
+    "this_month": "This month",
+    "this_year": "This year",
+    "share_of_total": "Share of annual total",
+    "due_date": "Due {{date}}",
+    "in_days_one": "in {{count}} day",
+    "in_days_other": "in {{count}} days",
+    "overdue": "Overdue",
+    "no_due_date": "No due date",
+    "no_dates_hint": "No due dates set yet — add one to a cost to place it on the timeline."
   },
   "templates": {
     "vehicle": {
