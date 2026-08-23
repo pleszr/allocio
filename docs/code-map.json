@@ -5482,13 +5482,11 @@
           "language": "typescript",
           "imports": [
             "../api/client",
-            "../api/types",
             "../components/CostHistoryModal",
             "../components/Icon",
             "../components/Illustrations",
             "../components/MaintenancePanel",
             "../components/ManualExtraEditor",
-            "../components/Sparkline",
             "../components/StateView",
             "../components/TimeCostPanel",
             "../routes",
@@ -5506,31 +5504,18 @@
           "functions": [
             {
               "name": "DashboardScreen",
-              "line_start": 36,
-              "line_end": 332,
-              "hash": "36bbf91f4be18616"
-            },
-            {
-              "name": "TxRow",
-              "line_start": 334,
-              "line_end": 373,
-              "hash": "cbb1c90fe6db32dd"
+              "line_start": 28,
+              "line_end": 259,
+              "hash": "9daf5371b086e2cd"
             }
           ],
           "classes": [],
           "components": [
             {
               "name": "DashboardScreen",
-              "line_start": 36,
-              "line_end": 332,
-              "hash": "36bbf91f4be18616",
-              "kind": "function"
-            },
-            {
-              "name": "TxRow",
-              "line_start": 334,
-              "line_end": 373,
-              "hash": "cbb1c90fe6db32dd",
+              "line_start": 28,
+              "line_end": 259,
+              "hash": "9daf5371b086e2cd",
               "kind": "function"
             }
           ]
