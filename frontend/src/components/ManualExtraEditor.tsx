@@ -22,13 +22,13 @@ interface Snapshot {
   left: number;
 }
 
-// Free-form manual-extra editor, opened as a small popover anchored to a trigger. Prefills the
-// amount field with current + recommended (when there's a recommendation) so accepting it is just
-// hitting Save — no separate quick-apply action needed. `current`/`recommended` are frozen into a
-// snapshot at popover-open time (mirrors the old ManualExtraRecommendation confirm-popover), so a
-// save that fulfills the frozen target can be marked applied even if the live props haven't caught
-// up yet — otherwise reopening after saving the recommended amount would prefill current(already
-// bumped) + recommended(still the same, stale, backend value) and keep compounding on every open.
+// Free-form manual-extra editor, opened as a small popover anchored to a trigger. `recommended` is
+// already the full target manual_extra_monthly should reach (average_actual_monthly_cost minus
+// average_allocation, which itself excludes manual extra) — not an incremental top-up on top of
+// `current` — so the amount field prefills with `recommended` directly, and accepting it is just
+// hitting Save. `current`/`recommended` are frozen into a snapshot at popover-open time (mirrors the
+// old ManualExtraRecommendation confirm-popover), so a save that fulfills the frozen target can be
+// marked applied even if the live props haven't caught up yet.
 export function ManualExtraEditor({ assetId, current, recommended, onChanged, renderTrigger }: ManualExtraEditorProps) {
   const { t } = useTranslation();
   const fmt = useCurrency();
@@ -41,7 +41,7 @@ export function ManualExtraEditor({ assetId, current, recommended, onChanged, re
   const open = () => {
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) return;
-    setAmount(recommended > 0 ? (current + recommended).toFixed(2) : String(current));
+    setAmount(recommended > 0 ? recommended.toFixed(2) : String(current));
     setSnapshot({ current, recommended, top: rect.bottom + 8, left: rect.left });
   };
   const close = () => setSnapshot(null);
@@ -49,8 +49,8 @@ export function ManualExtraEditor({ assetId, current, recommended, onChanged, re
     run(
       () => api.updateManualExtra(assetId, Number(amount)),
       () => {
-        if (snapshot && snapshot.recommended > 0 && Number(amount) >= snapshot.current + snapshot.recommended - 0.01) {
-          markManualExtraRecommendationApplied(assetId, snapshot.recommended, snapshot.current + snapshot.recommended);
+        if (snapshot && snapshot.recommended > 0 && Number(amount) >= snapshot.recommended - 0.01) {
+          markManualExtraRecommendationApplied(assetId, snapshot.recommended, snapshot.recommended);
         }
         close();
       },
@@ -86,10 +86,9 @@ export function ManualExtraEditor({ assetId, current, recommended, onChanged, re
             <LabeledMoney label={t("costs.field_extra_per_month")} value={amount} onChange={setAmount} />
             {snapshot.recommended > 0 && (
               <div className="confirm-popover-breakdown" style={{ marginTop: 8 }}>
-                {t("costs.manual_extra_target_breakdown", {
-                  current: fmt(snapshot.current, { decimals: 0 }),
+                {t("costs.manual_extra_recommended_context", {
                   recommended: fmt(snapshot.recommended, { decimals: 0 }),
-                  target: fmt(snapshot.current + snapshot.recommended, { decimals: 0 }),
+                  current: fmt(snapshot.current, { decimals: 0 }),
                 })}
               </div>
             )}

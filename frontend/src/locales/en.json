@@ -130,7 +130,7 @@
     "manual_extra_sub": "Buffer on top of the modeled costs",
     "manual_extra_recommended_amount": "Recommended extra: {{amount}}/mo",
     "manual_extra_set_it": "Set it",
-    "manual_extra_target_breakdown": "{{current}} current + {{recommended}} recommended = {{target}}",
+    "manual_extra_recommended_context": "Recommended {{recommended}} (currently {{current}})",
     "manual_extra_edit": "Edit",
     "field_extra_per_month": "Extra per month",
     "required_allocation": "Required allocation",

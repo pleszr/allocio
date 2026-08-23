@@ -4725,8 +4725,8 @@
             {
               "name": "ManualExtraEditor",
               "line_start": 32,
-              "line_end": 105,
-              "hash": "e8eb729330e9f75b"
+              "line_end": 104,
+              "hash": "51c183735ed9c95c"
             }
           ],
           "classes": [],
@@ -4734,8 +4734,8 @@
             {
               "name": "ManualExtraEditor",
               "line_start": 32,
-              "line_end": 105,
-              "hash": "e8eb729330e9f75b",
+              "line_end": 104,
+              "hash": "51c183735ed9c95c",
               "kind": "function"
             }
           ]
@@ -5494,7 +5494,7 @@
               "name": "DashboardScreen",
               "line_start": 36,
               "line_end": 333,
-              "hash": "712d7722a9df0fbc"
+              "hash": "e1cfb3dc5ac4feaa"
             },
             {
               "name": "TxRow",
@@ -5509,7 +5509,7 @@
               "name": "DashboardScreen",
               "line_start": 36,
               "line_end": 333,
-              "hash": "712d7722a9df0fbc",
+              "hash": "e1cfb3dc5ac4feaa",
               "kind": "function"
             },
             {

@@ -173,7 +173,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
               </div>
               <div className="kpi-copy-line">
                 {t("costs.manual_extra_recommended_amount", {
-                  amount: fmt(e.manual_extra_monthly + e.manual_extra_recommended, { decimals: 0 }),
+                  amount: fmt(e.manual_extra_recommended, { decimals: 0 }),
                 })}{" "}
                 <ManualExtraEditor
                   assetId={assetId}
