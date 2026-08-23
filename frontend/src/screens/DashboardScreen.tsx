@@ -17,7 +17,7 @@ import { Sparkline } from "../components/Sparkline";
 import { TimeCostPanel } from "../components/TimeCostPanel";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { illoBg, illoKind } from "../utils/assetType";
-import { useCurrency } from "../utils/currency";
+import { useCurrency, useCurrencyCode } from "../utils/currency";
 import { fmtDateShort, fmtMonthYear, fmtNumber } from "../utils/format";
 import { isManualExtraRecommendationApplied } from "../utils/manualExtraRecommendation";
 import { useAsync } from "../utils/useAsync";
@@ -36,6 +36,7 @@ const RANGES: { label: string; months: number }[] = [
 export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const { t } = useTranslation();
   const fmt = useCurrency();
+  const currencyCode = useCurrencyCode();
   const detail = useAsync(() => api.getAsset(assetId), [assetId]);
   const timeBased = useAsync(() => api.listTimeBasedCosts(assetId), [assetId]);
   const usageBased = useAsync(() => api.listUsageBasedCosts(assetId), [assetId]);
@@ -64,6 +65,14 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const timePerYear = timeCosts.filter((c) => c.is_active).reduce((sum, row) => sum + row.annualized_amount, 0);
   const usageRate = usageRows.filter((u) => u.is_active).reduce((sum, u) => sum + u.amount_per_unit, 0);
   const usageMonthly = usageRate * e.average_monthly_usage;
+  const usageUnit = usageRows.find((u) => u.is_active)?.usage_unit ?? "";
+  const usagePerDay = e.average_monthly_usage / 30;
+  // HUF rates read naturally per single unit (e.g. "10 Ft/km"); EUR/USD rates are typically
+  // fractional per unit, so scale by 100 and label "/100{unit}" (e.g. "3 USD/100km") instead of
+  // showing a rounded-away "0".
+  const usageRateScale = currencyCode === "HUF" ? 1 : 100;
+  const usageRateDisplay = usageRate * usageRateScale;
+  const usageRateUnitLabel = usageUnit && (usageRateScale === 1 ? usageUnit : `100${usageUnit}`);
 
   return (
     <div className="content fade-in">
@@ -138,13 +147,12 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
               {t("costs.per_mo")}
             </span>
           </div>
+          {usageUnit && (
+            <div className="kpi-sub">{t("costs.usage_per_day", { amount: fmtNumber(usagePerDay), unit: usageUnit })}</div>
+          )}
           <div className="kpi-sub">
-            {fmt(usageMonthly * 12, { decimals: 0 })}
-            {t("costs.per_yr")}
-          </div>
-          <div className="kpi-sub">
-            {fmt(usageRate, { decimals: 3 })}
-            {t("costs.per_unit")}
+            {fmt(usageRateDisplay, { decimals: 0 })}
+            {usageRateUnitLabel && `/${usageRateUnitLabel}`}
           </div>
         </div>
         <div className="kpi">

@@ -166,6 +166,7 @@
     "th_rate": "Rate",
     "th_est_month": "Est. per month",
     "avg_per_month": "avg {{amount}} {{unit}}/mo",
+    "usage_per_day": "{{amount}} {{unit}}/day",
     "th_item": "Item",
     "th_replace_every": "Replace every",
     "th_last_serviced": "Last serviced",

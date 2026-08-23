@@ -166,6 +166,7 @@
     "th_rate": "Díj",
     "th_est_month": "Becsült havi",
     "avg_per_month": "átlag {{amount}} {{unit}}/hó",
+    "usage_per_day": "{{amount}} {{unit}}/nap",
     "th_item": "Tétel",
     "th_replace_every": "Csere gyakorisága",
     "th_last_serviced": "Utolsó szerviz",
