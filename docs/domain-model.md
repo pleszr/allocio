@@ -132,7 +132,7 @@ Rules:
 - one asset has one bucket in MVP
 - `manual_extra_monthly` defaults to `0` and is user-adjustable; it is added to the recommended
   monthly allocation and posts as a dedicated check-in allocation prorated across elapsed days
-- the app may derive a recommended `manual_extra_monthly` from the gap between an asset's last 12 months of posted expenses and posted allocations; that recommendation is derived guidance, not canonical stored truth, and never overwrites the stored value without an explicit user action
+- the app may derive a recommended `manual_extra_monthly` from the gap between an asset's trailing 12-month average real spend and its current base required allocation (today's active time-based + usage-based accrual, excluding manual extra), suppressed below a small per-currency threshold; that recommendation is derived guidance, not canonical stored truth, and never overwrites the stored value without an explicit user action
 
 ### `vehicle_profile`
 

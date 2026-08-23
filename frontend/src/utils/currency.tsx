@@ -56,6 +56,16 @@ export function useCurrencyCode(): CurrencyCode {
   return currency;
 }
 
+// Returns just the glyph + placement (e.g. for a money `<input>`'s prefix/suffix label), without
+// formatting a specific number.
+export function useCurrencySymbol(): CurrencyMeta {
+  const currency = useContext(CurrencyContext);
+  if (currency === null) {
+    throw new Error("useCurrencySymbol() must be used inside a <CurrencyProvider>.");
+  }
+  return CURRENCY_META[currency];
+}
+
 function makeFormatter(currency: CurrencyCode): MoneyFormatter {
   const { symbol, position } = CURRENCY_META[currency];
   return (n, opts = {}) => {

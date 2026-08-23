@@ -1,97 +1,105 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
 import { useCurrency } from "../utils/currency";
 import { useMutation } from "../utils/useMutation";
+import { markManualExtraRecommendationApplied } from "../utils/manualExtraRecommendation";
 import { EditActions, LabeledMoney } from "./EditFormControls";
-import { ManualExtraRecommendation } from "./ManualExtraRecommendation";
 
 interface ManualExtraEditorProps {
   assetId: string;
   current: number;
   recommended: number;
-  averageAllocation: number | null;
-  averageActualCost: number;
-  onClose: () => void;
   onChanged: () => void;
+  renderTrigger: (props: { ref: React.Ref<HTMLButtonElement>; onClick: () => void }) => React.ReactNode;
 }
 
-// Free-form manual-extra editor plus its "apply the recommendation" quick action. Formerly lived on
-// the Costs screen; now opened inline (via a pencil trigger) from the Dashboard, since manual extra
-// is a dashboard-level decision — the required-allocation figure on the Costs screen already folds
-// in whatever value is saved here.
-export function ManualExtraEditor({
-  assetId,
-  current,
-  recommended,
-  averageAllocation,
-  averageActualCost,
-  onClose,
-  onChanged,
-}: ManualExtraEditorProps) {
+interface Snapshot {
+  current: number;
+  recommended: number;
+  top: number;
+  left: number;
+}
+
+// Free-form manual-extra editor, opened as a small popover anchored to a trigger. Prefills the
+// amount field with current + recommended (when there's a recommendation) so accepting it is just
+// hitting Save — no separate quick-apply action needed. `current`/`recommended` are frozen into a
+// snapshot at popover-open time (mirrors the old ManualExtraRecommendation confirm-popover), so a
+// save that fulfills the frozen target can be marked applied even if the live props haven't caught
+// up yet — otherwise reopening after saving the recommended amount would prefill current(already
+// bumped) + recommended(still the same, stale, backend value) and keep compounding on every open.
+export function ManualExtraEditor({ assetId, current, recommended, onChanged, renderTrigger }: ManualExtraEditorProps) {
   const { t } = useTranslation();
   const fmt = useCurrency();
-  const [amount, setAmount] = useState(String(current));
+  const [amount, setAmount] = useState("");
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const { error, busy, run } = useMutation(onChanged);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
-  const save = () => run(() => api.updateManualExtra(assetId, Number(amount)), onClose);
+  const open = () => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setAmount(recommended > 0 ? (current + recommended).toFixed(2) : String(current));
+    setSnapshot({ current, recommended, top: rect.bottom + 8, left: rect.left });
+  };
+  const close = () => setSnapshot(null);
+  const save = () =>
+    run(
+      () => api.updateManualExtra(assetId, Number(amount)),
+      () => {
+        if (snapshot && snapshot.recommended > 0 && Number(amount) >= snapshot.current + snapshot.recommended - 0.01) {
+          markManualExtraRecommendationApplied(assetId, snapshot.recommended, snapshot.current + snapshot.recommended);
+        }
+        close();
+      },
+    );
+
+  useEffect(() => {
+    if (!snapshot) return;
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (!triggerRef.current?.contains(target) && !popoverRef.current?.contains(target)) close();
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [snapshot]);
 
   return (
-    <div className="card card-pad" style={{ marginBottom: 20, background: "var(--surface-sunk)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
-        <div style={{ maxWidth: 380 }}>
-          <div className="card-title" style={{ marginBottom: 6 }}>
-            {t("costs.manual_extra_panel_title")}
-          </div>
-          <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.5, marginBottom: 12 }}>
-            {t("costs.manual_extra_panel_desc")}
-          </div>
-          <LabeledMoney label={t("costs.field_extra_per_month")} value={amount} onChange={setAmount} />
-        </div>
-        {recommended > 0 && (
-          <div style={{ minWidth: 240, borderLeft: "1px solid var(--line)", paddingLeft: 24 }}>
-            <div className="card-title" style={{ marginBottom: 6 }}>
-              {t("costs.manual_extra_recommendation_title")}
-            </div>
-            {averageAllocation !== null && (
-              <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.6 }}>
-                <div>{t("dashboard.extra_context_allocation", { amount: fmt(averageAllocation, { decimals: 0 }) })}</div>
-                <div>{t("dashboard.extra_context_cost", { amount: fmt(averageActualCost, { decimals: 0 }) })}</div>
+    <>
+      {renderTrigger({ ref: triggerRef, onClick: open })}
+      {snapshot &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            className="confirm-popover"
+            style={{ position: "fixed", top: snapshot.top, left: snapshot.left, width: 260 }}
+          >
+            <LabeledMoney label={t("costs.field_extra_per_month")} value={amount} onChange={setAmount} />
+            {snapshot.recommended > 0 && (
+              <div className="confirm-popover-breakdown" style={{ marginTop: 8 }}>
+                {t("costs.manual_extra_target_breakdown", {
+                  current: fmt(snapshot.current, { decimals: 0 }),
+                  recommended: fmt(snapshot.recommended, { decimals: 0 }),
+                  target: fmt(snapshot.current + snapshot.recommended, { decimals: 0 }),
+                })}
               </div>
             )}
-            <div style={{ marginTop: 10, display: "flex", alignItems: "baseline", gap: 8 }}>
-              <span className="num-md">
-                {fmt(recommended, { decimals: 0 })}
-                <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>
-                  {t("costs.per_mo")}
-                </span>
-              </span>
-              <ManualExtraRecommendation
-                assetId={assetId}
-                current={current}
-                recommended={recommended}
-                onApplied={() => {
-                  onChanged();
-                  onClose();
-                }}
-                renderTrigger={({ ref, onClick }) => (
-                  <button ref={ref} className="btn btn-sm btn-primary" onClick={onClick}>
-                    {t("costs.use_this")}
-                  </button>
-                )}
-              />
+            {error && <div className="confirm-popover-error">{error}</div>}
+            <div style={{ marginTop: 12 }}>
+              <EditActions busy={busy} onCancel={close} onSave={save} />
             </div>
-          </div>
+          </div>,
+          document.body,
         )}
-      </div>
-      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <EditActions busy={busy} onCancel={onClose} onSave={save} />
-      </div>
-      {error && (
-        <div className="error-banner" style={{ marginTop: 12 }}>
-          {error}
-        </div>
-      )}
-    </div>
+    </>
   );
 }

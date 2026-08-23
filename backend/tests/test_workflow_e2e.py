@@ -180,13 +180,13 @@ def test_create_bucket_and_check_in_workflow(
     assert final_overview.status_code == 200
     assert any(asset["id"] == asset_id for asset in final_overview.json()["assets"])
 
-    # 11. The Dashboard reads the backend-owned adaptive allocation signal from asset detail.
+    # 11. The Dashboard reads the backend-owned base-allocation signal from asset detail.
     dashboard_detail = client.get(f"/api/assets/{asset_id}")
     assert dashboard_detail.status_code == 200
     dashboard_body = dashboard_detail.json()
-    average_allocation = dashboard_body["average_allocation"]
-    assert average_allocation["months"] == 3
-    assert Decimal(average_allocation["amount"]) == expected_allocated
+    assert Decimal(dashboard_body["average_allocation"]) == Decimal(
+        dashboard_body["recommended_monthly_allocation"]
+    ) - Decimal(dashboard_body["manual_extra_monthly"])
     assert dashboard_body["vehicle_age_years"] == date.today().year - 2020
     assert dashboard_body["tracked_in_app_months"] >= 2
     expected_average_cost = ((expected_allocated + Decimal("100.00")) / 12).quantize(

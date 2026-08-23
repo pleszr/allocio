@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useCurrencySymbol } from "../utils/currency";
 
 export function LabeledMoney({
   label,
@@ -11,12 +12,14 @@ export function LabeledMoney({
   onChange: (v: string) => void;
   step?: string;
 }) {
+  const { symbol, position } = useCurrencySymbol();
   return (
     <div className="field">
       <label className="field-label">{label}</label>
       <div className="input-prefix-wrap">
-        <span className="input-prefix">$</span>
+        {position === "prefix" && <span className="input-prefix">{symbol}</span>}
         <input className="input mono" type="number" step={step} value={value} onChange={(e) => onChange(e.target.value)} />
+        {position === "suffix" && <span className="input-suffix">{symbol}</span>}
       </div>
     </div>
   );

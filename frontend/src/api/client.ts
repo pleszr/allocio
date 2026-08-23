@@ -78,6 +78,7 @@ const DECIMAL_KEYS = new Set([
   "manual_extra_monthly",
   "manual_extra_recommended",
   "average_monthly_usage",
+  "average_allocation",
   "average_monthly_cost",
   "avg_monthly_paid_out_of_pocket",
   "average_actual_monthly_cost",

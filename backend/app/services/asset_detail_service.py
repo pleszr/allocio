@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.common.exceptions import NotFoundError
 from app.domain import calculator
+from app.domain.asset import Asset
 from app.repository import check_in_repository, expense_repository
 from app.services.cost_service import CostService, MaintenanceItemView
 from app.services.workspace_service import WorkspaceService
@@ -23,6 +24,15 @@ from app.services.workspace_service import WorkspaceService
 _ACTIVITY_LIMIT = 20
 _UPCOMING_HORIZON_DAYS = 90
 _MONTH_DAYS = 30
+# Below this per-currency gap, manual_extra_recommended is suppressed to zero rather than nagging
+# the user over noise. HUF/EUR/USD are the app's three supported currencies (see
+# app/api/schemas/requests.py's CurrencyCode); the fallback covers any other value defensively.
+_RECOMMENDATION_VISIBILITY_THRESHOLD: dict[str, Decimal] = {
+    "HUF": Decimal("5000"),
+    "USD": Decimal("15"),
+    "EUR": Decimal("13"),
+}
+_DEFAULT_RECOMMENDATION_VISIBILITY_THRESHOLD = Decimal("15")
 
 
 @dataclass(frozen=True)
@@ -45,14 +55,6 @@ class ActivityItem:
     label: str
     amount: Decimal
     paid_out_of_pocket: Decimal
-
-
-@dataclass(frozen=True)
-class AverageAllocation:
-    """Adaptive trailing average of posted check-in allocation totals for the dashboard."""
-
-    months: Literal[3, 6, 12]
-    amount: Decimal | None
 
 
 @dataclass(frozen=True)
@@ -92,7 +94,7 @@ class AssetDetail:
     manual_extra_recommended: Decimal
     manual_extra_recommended_months: int
     average_monthly_usage: Decimal
-    average_allocation: AverageAllocation
+    average_allocation: Decimal
 
 
 class AssetDetailService:
@@ -116,7 +118,11 @@ class AssetDetailService:
         manual_extra_recommended_months = max(
             1, min(12, calculator.whole_months(asset.created_at.date(), today))
         )
-        total_allocated_365d, total_expense_365d = self._manual_extra_recommendation_inputs(asset_id, today)
+        total_expense_365d = self._trailing_expense_total(asset_id, today)
+        average_actual_monthly_cost = calculator.quantize_currency(
+            total_expense_365d / Decimal(manual_extra_recommended_months)
+        )
+        average_allocation = self._average_allocation(asset)
         return AssetDetail(
             asset_id=asset.id,
             type=summary.type,
@@ -134,9 +140,7 @@ class AssetDetailService:
             tracked_in_app_months=calculator.whole_months(asset.created_at.date(), today),
             average_monthly_cost=self._average_monthly_cost(asset_id, today),
             avg_monthly_paid_out_of_pocket=self._avg_monthly_paid_out_of_pocket(asset_id, today),
-            average_actual_monthly_cost=calculator.quantize_currency(
-                total_expense_365d / Decimal(manual_extra_recommended_months)
-            ),
+            average_actual_monthly_cost=average_actual_monthly_cost,
             next_maintenance=self._next_maintenance(maintenance_items),
             tracks_usage=vehicle_profile is not None,
             current_usage=self._costs.current_asset_usage(user_id, asset_id),
@@ -147,11 +151,11 @@ class AssetDetailService:
             upcoming_expenses=self._upcoming_expenses(user_id, asset_id, maintenance_items),
             manual_extra_monthly=asset.manual_extra_monthly,
             manual_extra_recommended=self._manual_extra_recommendation(
-                total_allocated_365d, total_expense_365d, manual_extra_recommended_months
+                average_actual_monthly_cost, average_allocation, summary.currency
             ),
             manual_extra_recommended_months=manual_extra_recommended_months,
-            average_monthly_usage=self._workspace.monthly_usage_rate(asset_id),
-            average_allocation=self._average_allocation(asset_id, today),
+            average_monthly_usage=self._workspace.monthly_usage_rate(asset_id, today),
+            average_allocation=average_allocation,
         )
 
     def _average_monthly_cost(self, asset_id: uuid.UUID, as_of: date) -> Decimal:
@@ -221,49 +225,32 @@ class AssetDetailService:
         )
         return NextMaintenance(label=nearest.row.label, remaining_km=nearest.remaining_km)
 
-    def _average_allocation(self, asset_id: uuid.UUID, as_of: date) -> AverageAllocation:
-        """Average posted check-in allocation totals over the longest eligible 3/6/12-month window."""
-        check_ins = check_in_repository.list_posted_check_ins(self._session, asset_id)
-        if not check_ins:
-            return AverageAllocation(months=3, amount=None)
+    def _average_allocation(self, asset: Asset) -> Decimal:
+        """Today's base required funding: active time-based + usage-based monthly accrual.
 
-        cutoffs = {months: _subtract_months_clamped(as_of, months) for months in (3, 6, 12)}
-        oldest_period_end = check_ins[0].period_end
-        months: Literal[3, 6, 12] = (
-            12 if oldest_period_end <= cutoffs[12] else 6 if oldest_period_end <= cutoffs[6] else 3
-        )
-        selected = [
-            check_in for check_in in check_ins if cutoffs[months] <= check_in.period_end <= as_of
-        ]
-        if not selected:
-            return AverageAllocation(months=months, amount=None)
-
-        bucket = expense_repository.get_bucket_for_asset(self._session, asset_id)
+        Forward-looking, not historical: unlike the retired adaptive 3/6/12-month average of posted
+        check-in totals, this doesn't depend on check-in history at all and updates immediately when a
+        cost rule or usage rate changes. Equal to `WorkspaceService.recommended_monthly_allocation`
+        minus `manual_extra_monthly`, computed directly rather than by subtraction so it never
+        round-trips through the already-quantized combined total.
+        """
+        bucket = expense_repository.get_bucket_for_asset(self._session, asset.id)
         if bucket is None:
-            return AverageAllocation(months=months, amount=None)
-        totals = check_in_repository.sum_allocation_amounts_by_check_in(self._session, bucket.id)
-        total = sum((totals.get(check_in.id, Decimal(0)) for check_in in selected), Decimal(0))
-        return AverageAllocation(
-            months=months,
-            amount=calculator.quantize_currency(total / Decimal(len(selected))),
-        )
+            return Decimal("0.00")
+        return calculator.quantize_currency(self._workspace.base_required_allocation(asset, bucket))
 
-    def _manual_extra_recommendation_inputs(self, asset_id: uuid.UUID, today: date) -> tuple[Decimal, Decimal]:
-        """Return `(total_allocated, total_expense)` over the trailing 365 days.
+    def _trailing_expense_total(self, asset_id: uuid.UUID, today: date) -> Decimal:
+        """Sum posted expense `amount` over the trailing 365 days, skipping `excluded_from_average` rows.
 
-        Shared raw totals behind both `manual_extra_recommended` (the funding shortfall) and
-        `average_actual_monthly_cost` (the real spend average) — both are derived from these same
-        two sums so they reconcile with each other rather than each computing its own notion of
-        "cost". Skips any expense flagged `excluded_from_average`, same as `_average_monthly_cost`.
+        Feeds `average_actual_monthly_cost`, the real-spend figure compared against `average_allocation`
+        to derive `manual_extra_recommended`.
         """
         bucket = expense_repository.get_bucket_for_asset(self._session, asset_id)
         if bucket is None:
-            return Decimal(0), Decimal(0)
+            return Decimal(0)
         window_start = today - timedelta(days=365)
-        allocations = check_in_repository.list_posted_allocation_events(self._session, bucket.id)
         expenses = expense_repository.list_expenses_for_bucket(self._session, bucket.id)
-        total_allocated = sum((amount for event_date, amount in allocations if event_date >= window_start), Decimal(0))
-        total_expense = sum(
+        return sum(
             (
                 expense.amount
                 for expense in expenses
@@ -271,21 +258,23 @@ class AssetDetailService:
             ),
             Decimal(0),
         )
-        return total_allocated, total_expense
 
     def _manual_extra_recommendation(
-        self, total_allocated: Decimal, total_expense: Decimal, elapsed_months: int
+        self, average_actual_monthly_cost: Decimal, average_allocation: Decimal, currency: str
     ) -> Decimal:
-        """Derive a recommended monthly manual-extra buffer from the trailing expense/allocation gap.
+        """Derive a recommended monthly manual-extra buffer from real spend minus base required funding.
 
-        Divides the shortfall (expenses minus allocations, floored at zero) by `elapsed_months` —
-        the asset's whole calendar months since creation, capped at 12 — rather than a flat /12, so
-        an asset younger than a year isn't understated by a mostly-empty window. Derived guidance
-        only, per docs/domain-model.md — never overwrites the stored `manual_extra_monthly` value on
-        its own.
+        Compares real spend (`average_actual_monthly_cost`) against today's base required allocation
+        (`average_allocation`, itself time-based + usage-based, excluding manual extra) rather than
+        against trailing posted allocations, so a manual extra the user already applied is never
+        double-counted into the gap. Floored at zero (never suggests a negative top-up) and suppressed
+        entirely below a small per-currency noise threshold (see `_RECOMMENDATION_VISIBILITY_THRESHOLD`)
+        so a trivial gap doesn't nag the user. Derived guidance only, per docs/domain-model.md — never
+        overwrites the stored `manual_extra_monthly` value on its own.
         """
-        shortfall = max(Decimal(0), total_expense - total_allocated)
-        return calculator.quantize_currency(shortfall / Decimal(elapsed_months))
+        shortfall = max(Decimal(0), average_actual_monthly_cost - average_allocation)
+        threshold = _RECOMMENDATION_VISIBILITY_THRESHOLD.get(currency, _DEFAULT_RECOMMENDATION_VISIBILITY_THRESHOLD)
+        return calculator.quantize_currency(shortfall) if shortfall >= threshold else Decimal("0.00")
 
     def _recent_activity(self, asset_id: uuid.UUID) -> list[ActivityItem]:
         """Merge posted allocations (inflow) and expenses (outflow) into a newest-first, capped feed."""

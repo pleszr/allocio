@@ -495,15 +495,6 @@ class ManualExtraResponse(BaseModel):
     manual_extra_monthly: Decimal = Field(description="The updated manual extra monthly buffer.")
 
 
-class AverageAllocationResponse(BaseModel):
-    """Adaptive trailing average of posted allocation totals for the dashboard."""
-
-    months: Literal[3, 6, 12] = Field(description="Selected trailing history window in months.")
-    amount: Decimal | None = Field(
-        description="Arithmetic mean of posted check-in allocation totals inside the selected window; null when empty."
-    )
-
-
 class NextMaintenanceResponse(BaseModel):
     """Nearest active kilometer-based maintenance item for the dashboard."""
 
@@ -531,19 +522,21 @@ class AssetDetailResponse(BaseModel):
         description="User-set flat monthly buffer added on top of the modeled time- and usage-based accruals."
     )
     manual_extra_recommended: Decimal = Field(
-        description="Derived per-month guidance for manual_extra_monthly: the last 12 months' expense/allocation "
-        "gap (floored at zero) divided by manual_extra_recommended_months. Informational only — never overwrites "
-        "the stored value."
+        description="Derived per-month guidance for manual_extra_monthly: average_actual_monthly_cost minus "
+        "average_allocation, floored at zero and suppressed to zero below a small per-currency threshold. "
+        "Informational only — never overwrites the stored value."
     )
     manual_extra_recommended_months: int = Field(
         description="Divisor behind manual_extra_recommended: whole calendar months since asset creation, "
         "capped at 12 and floored at 1 so a brand-new asset isn't divided by zero."
     )
     average_monthly_usage: Decimal = Field(
-        description="Trailing average usage per month across all posted check-ins; zero without enough data."
+        description="Trailing average usage per month across posted check-ins in the last 12 months; zero "
+        "without enough data."
     )
-    average_allocation: AverageAllocationResponse = Field(
-        description="Backend-derived adaptive 3/6/12-month average of posted check-in allocation totals."
+    average_allocation: Decimal = Field(
+        description="Today's base required funding: active time-based + usage-based monthly accrual, "
+        "excluding manual_extra_monthly. Forward-looking, not a historical average."
     )
     daily_accrual: Decimal = Field(
         description="Per-day accrual derived as recommended_monthly_allocation * 12 / 365, quantized to currency."
