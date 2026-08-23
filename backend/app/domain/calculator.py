@@ -404,6 +404,14 @@ def whole_months(start: date, end: date) -> int:
     return max(months, 0)
 
 
+def months_before(anchor: date, months: int) -> date:
+    """Return the date `months` whole calendar months before `anchor`, clamped to the target month's last day.
+
+    Sizes trailing-window cutoffs (e.g. "the last 12 months") shared across services.
+    """
+    return _add_months(anchor, -months)
+
+
 def expected_monthly_usage(total_usage: int, months_span: int) -> Decimal:
     """Average usage per month over a trailing window.
 

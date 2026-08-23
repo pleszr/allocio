@@ -207,6 +207,23 @@ def test_usage_based_monthly_uses_trailing_average(client: TestClient, db_sessio
     assert _dec(summary["recommended_monthly_allocation"]) == Decimal("3000.00")
 
 
+def test_usage_based_monthly_ignores_check_ins_older_than_12_months(
+    client: TestClient, db_session: Session
+) -> None:
+    """The trailing usage average only looks at the last 12 months, not the asset's full history."""
+    asset, _bucket = _make_asset(db_session, name="Old usage")
+    _add_usage_based(db_session, asset.id, amount_per_unit="10")
+    # Ancient check-in, years outside the trailing window: must not dilute the average.
+    _add_posted_check_in(db_session, asset.id, usage_amount=100000, period_start=date(2023, 1, 10), period_end=date(2023, 4, 10))
+    # Same in-window check-in as the sibling test above: 900 km over 3 whole months -> 300 km/month.
+    _add_posted_check_in(db_session, asset.id, usage_amount=900, period_start=date(2026, 1, 10), period_end=date(2026, 4, 10))
+
+    body = client.get("/api/assets").json()
+    summary = _asset_by_id(body, asset.id)
+
+    assert _dec(summary["recommended_monthly_allocation"]) == Decimal("3000.00")
+
+
 def test_usage_based_monthly_sums_active_rows(client: TestClient, db_session: Session) -> None:
     # Bare asset (no seeded usage row) with exactly two active usage components, rates 10 and 6.
     asset, _bucket = _make_asset(db_session, name="MultiUsage")

@@ -17,8 +17,9 @@ import { Sparkline } from "../components/Sparkline";
 import { TimeCostPanel } from "../components/TimeCostPanel";
 import { ErrorState, LoadingState } from "../components/StateView";
 import { illoBg, illoKind } from "../utils/assetType";
-import { useCurrency } from "../utils/currency";
+import { useCurrency, useCurrencyCode } from "../utils/currency";
 import { fmtDateShort, fmtMonthYear, fmtNumber } from "../utils/format";
+import { isManualExtraRecommendationApplied } from "../utils/manualExtraRecommendation";
 import { useAsync } from "../utils/useAsync";
 
 interface DashboardScreenProps {
@@ -35,12 +36,12 @@ const RANGES: { label: string; months: number }[] = [
 export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const { t } = useTranslation();
   const fmt = useCurrency();
+  const currencyCode = useCurrencyCode();
   const detail = useAsync(() => api.getAsset(assetId), [assetId]);
   const timeBased = useAsync(() => api.listTimeBasedCosts(assetId), [assetId]);
   const usageBased = useAsync(() => api.listUsageBasedCosts(assetId), [assetId]);
   const [months, setMonths] = useState(12);
   const [historyTarget, setHistoryTarget] = useState<HistoryTarget | null>(null);
-  const [manualExtraEditing, setManualExtraEditing] = useState(false);
   const history = useAsync(() => api.getBalanceHistory(assetId, months), [assetId, months]);
 
   if (detail.loading) return <LoadingState label={t("dashboard.loading")} />;
@@ -54,12 +55,24 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
   const balances = points.map((p) => p.balance);
   const delta = balances.length >= 2 ? balances[balances.length - 1] - balances[balances.length - 2] : 0;
   const activeMaintenance = e.maintenance_items.filter((m) => m.is_active);
-  const averageAllocation = e.average_allocation;
+  const hasManualExtraRecommendation =
+    e.manual_extra_recommended > 0 &&
+    !isManualExtraRecommendationApplied(assetId, e.manual_extra_recommended, e.manual_extra_monthly);
+  const manualExtraRecommended = hasManualExtraRecommendation ? e.manual_extra_recommended : 0;
   const timeCosts = timeBased.data ?? [];
   const hasTimeCosts = timeCosts.some((c) => c.is_active);
   const usageRows = usageBased.data ?? [];
   const timePerYear = timeCosts.filter((c) => c.is_active).reduce((sum, row) => sum + row.annualized_amount, 0);
   const usageRate = usageRows.filter((u) => u.is_active).reduce((sum, u) => sum + u.amount_per_unit, 0);
+  const usageMonthly = usageRate * e.average_monthly_usage;
+  const usageUnit = usageRows.find((u) => u.is_active)?.usage_unit ?? "";
+  const usagePerDay = e.average_monthly_usage / 30;
+  // HUF rates read naturally per single unit (e.g. "10 Ft/km"); EUR/USD rates are typically
+  // fractional per unit, so scale by 100 and label "/100{unit}" (e.g. "3 USD/100km") instead of
+  // showing a rounded-away "0".
+  const usageRateScale = currencyCode === "HUF" ? 1 : 100;
+  const usageRateDisplay = usageRate * usageRateScale;
+  const usageRateUnitLabel = usageUnit && (usageRateScale === 1 ? usageUnit : `100${usageUnit}`);
 
   return (
     <div className="content fade-in">
@@ -103,16 +116,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           </div>
           <div>
             <div className="hero-stat-label">{t("dashboard.average_allocation")}</div>
-            {averageAllocation.amount === null ? (
-              <div className="hero-stat-val">{t("dashboard.no_allocation_history")}</div>
-            ) : (
-              <>
-                <div className="hero-stat-val">{fmt(averageAllocation.amount, { decimals: 0 })}</div>
-                <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
-                  {t("dashboard.average_allocation_meta", { months: averageAllocation.months })}
-                </div>
-              </>
-            )}
+            <div className="hero-stat-val">{fmt(e.average_allocation, { decimals: 0 })}</div>
           </div>
           <button className="btn btn-primary btn-sm" onClick={() => onTab("checkin")} style={{ alignSelf: "flex-start" }}>
             {t("dashboard.run_checkin")} <Icon name="arrowRight" size={12} />
@@ -138,14 +142,17 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
         <div className="kpi">
           <div className="kpi-label">{t("costs.usage_rate")}</div>
           <div className="num-lg">
-            {fmt(usageRate * e.average_monthly_usage, { decimals: 2 })}
+            {fmt(usageMonthly, { decimals: 2 })}
             <span className="muted" style={{ fontSize: 14 }}>
               {t("costs.per_mo")}
             </span>
           </div>
+          {usageUnit && (
+            <div className="kpi-sub">{t("costs.usage_per_day", { amount: fmtNumber(usagePerDay), unit: usageUnit })}</div>
+          )}
           <div className="kpi-sub">
-            {fmt(usageRate, { decimals: 3 })}
-            {t("costs.per_unit")}
+            {fmt(usageRateDisplay, { decimals: 0 })}
+            {usageRateUnitLabel && `/${usageRateUnitLabel}`}
           </div>
         </div>
         <div className="kpi">
@@ -156,17 +163,47 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
               {t("costs.per_mo")}
             </span>
           </div>
-          <div className="kpi-sub">
-            {e.manual_extra_recommended > 0
-              ? t("costs.manual_extra_recommended_sub", {
+          {hasManualExtraRecommendation ? (
+            <div className="kpi-copy" style={{ fontSize: 12.5, marginTop: 6 }}>
+              <div className="kpi-copy-line">
+                {t("dashboard.extra_context_cost", { amount: fmt(e.average_actual_monthly_cost, { decimals: 0 }) })}
+              </div>
+              <div className="kpi-copy-line">
+                {t("dashboard.extra_context_allocation", { amount: fmt(e.average_allocation, { decimals: 0 }) })}
+              </div>
+              <div className="kpi-copy-line">
+                {t("costs.manual_extra_recommended_amount", {
                   amount: fmt(e.manual_extra_recommended, { decimals: 0 }),
-                  count: e.manual_extra_recommended_months,
-                })
-              : t("costs.manual_extra_sub")}
-          </div>
-          <button className="kpi-link" onClick={() => setManualExtraEditing(true)}>
-            <Icon name="edit" size={11} /> {t("costs.manual_extra_edit")}
-          </button>
+                })}{" "}
+                <ManualExtraEditor
+                  assetId={assetId}
+                  current={e.manual_extra_monthly}
+                  recommended={manualExtraRecommended}
+                  onChanged={detail.reload}
+                  renderTrigger={({ ref, onClick }) => (
+                    <button ref={ref} className="kpi-link-inline" onClick={onClick}>
+                      {t("costs.manual_extra_set_it")}
+                    </button>
+                  )}
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="kpi-sub">{t("costs.manual_extra_sub")}</div>
+              <ManualExtraEditor
+                assetId={assetId}
+                current={e.manual_extra_monthly}
+                recommended={manualExtraRecommended}
+                onChanged={detail.reload}
+                renderTrigger={({ ref, onClick }) => (
+                  <button ref={ref} className="kpi-link" onClick={onClick}>
+                    {t("costs.manual_extra_edit")}
+                  </button>
+                )}
+              />
+            </>
+          )}
         </div>
         <div className="kpi" style={{ background: "var(--accent-soft)", borderColor: "transparent" }}>
           <div className="kpi-label">{t("costs.required_allocation")}</div>
@@ -179,18 +216,6 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           <div className="kpi-sub">{t("costs.time_usage_manual")}</div>
         </div>
       </div>
-
-      {manualExtraEditing && (
-        <ManualExtraEditor
-          assetId={assetId}
-          current={e.manual_extra_monthly}
-          recommended={e.manual_extra_recommended}
-          averageAllocation={e.average_allocation.amount}
-          averageActualCost={e.average_actual_monthly_cost}
-          onClose={() => setManualExtraEditing(false)}
-          onChanged={detail.reload}
-        />
-      )}
 
       {/* Merged full-width maintenance panel (car diagram + unified list) */}
       {activeMaintenance.length > 0 && (

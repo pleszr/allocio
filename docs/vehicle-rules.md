@@ -666,20 +666,27 @@ If the user-configured rate is:
   `excluded_from_average` skip as average monthly cost, but sums only expense events'
   `paid_out_of_pocket` portions (no allocation amounts) before dividing by 12. Currency-quantized;
   zero when the window has no qualifying history.
-- **Recommended extra (manual-extra recommendation)** sums the trailing 365 days' expense `amount`
-  (skipping any `excluded_from_average` expense, same as above) minus the trailing 365 days'
-  allocation amounts, floors the gap at zero, then divides by the asset's whole calendar months
-  since creation, clamped to `[1, 12]` — a shorter divisor for an asset under a year old, capped at
-  12 for an older one. Derived guidance only; it never overwrites the stored `manual_extra_monthly`
-  value on its own.
-- **Average actual monthly cost** is the same trailing-365-day expense total used by the manual-extra
-  recommendation (full `amount`, not just `paid_out_of_pocket`, skipping `excluded_from_average`
-  expenses), divided by the same elapsed-months divisor as that recommendation. It is distinct from
-  average monthly cost above, which blends allocated funding with only the out-of-pocket shortfall
-  portion of expenses rather than real spend — a long-lived asset with an accumulated bucket balance
-  can show a small out-of-pocket figure while still running a large structural funding gap, because
-  the balance is absorbing the difference. Average actual monthly cost surfaces that real gap: it
-  minus the trailing allocation total over the same window equals the recommended extra.
+- **Average allocation** is today's base required funding: the same active time-based + usage-based
+  monthly accrual used by `recommended_monthly_allocation` (see Workspace Overview Derivations
+  below), excluding `manual_extra_monthly`. Forward-looking and config-derived, not a historical
+  average of posted activity — it changes the moment a cost rule or the trailing usage rate changes,
+  independent of check-in history.
+- **Recommended extra (manual-extra recommendation)** is average actual monthly cost minus average
+  allocation, floored at zero, then suppressed to zero below a small per-currency visibility
+  threshold (5,000 HUF / 15 USD / 13 EUR, defaulting to 15 for any other currency) so a trivial gap
+  doesn't nag the user. Comparing against average allocation (today's base required funding) rather
+  than trailing posted allocations means a manual extra the user already applied is never
+  double-counted into the gap. Derived guidance only; it never overwrites the stored
+  `manual_extra_monthly` value on its own.
+- **Average actual monthly cost** is the trailing-365-day expense total (full `amount`, not just
+  `paid_out_of_pocket`, skipping `excluded_from_average` expenses) divided by the asset's whole
+  calendar months since creation, clamped to `[1, 12]` — a shorter divisor for an asset under a year
+  old, capped at 12 for an older one. It is distinct from average monthly cost above, which blends
+  allocated funding with only the out-of-pocket shortfall portion of expenses rather than real spend
+  — a long-lived asset with an accumulated bucket balance can show a small out-of-pocket figure while
+  still running a large structural funding gap, because the balance is absorbing the difference.
+  Average actual monthly cost surfaces that real gap: it minus average allocation equals the
+  recommended extra (before threshold suppression).
 - **Next maintenance** is the active maintenance view with the smallest non-null `remaining_km`.
   This excludes month-only rows and kilometer rows without a comparable current-usage/service
   baseline. Overdue distance remains clamped to zero. Equal distances sort by case-insensitive
@@ -730,10 +737,12 @@ month to keep the bucket funded:
 - **Time-based monthly** = for every **active** time-based cost, its reference amount (after
   latest-cost rollover) annualized over its interval and spread across twelve months:
   `reference_amount / interval_years / 12`. Inactive rows are excluded. Sum across active rows.
-- **Usage-based monthly** = `amount_per_unit × trailing-average monthly usage`, where the average
-  is `total_posted_usage / whole_months(first_period_start, last_period_end)` (a span of zero
-  months divides by one, and zero usage yields zero).
-- **Recommended monthly allocation** = `quantize_currency(time_based_monthly + usage_based_monthly)`.
+- **Usage-based monthly** = `amount_per_unit × trailing-average monthly usage`, where the average is
+  `total_posted_usage / whole_months(first_period_start, last_period_end)` over posted check-ins in
+  the trailing 12 calendar months only (older check-ins don't count; a span of zero months divides
+  by one, and zero usage yields zero).
+- **Recommended monthly allocation** =
+  `quantize_currency(time_based_monthly + usage_based_monthly + manual_extra_monthly)`.
 
 Workspace totals are plain sums of the per-asset balances and recommended monthly allocations
 (single-currency MVP — all buckets are HUF today).

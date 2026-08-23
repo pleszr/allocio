@@ -69,15 +69,29 @@ class WorkspaceService:
             raise NotFoundError("Asset not found.")
         return self._summarize(asset)
 
-    def monthly_usage_rate(self, asset_id: uuid.UUID) -> Decimal:
-        """Average usage per month across all posted check-ins, or zero without enough data.
+    def monthly_usage_rate(self, asset_id: uuid.UUID, as_of: date | None = None) -> Decimal:
+        """Average usage per month across posted check-ins in the trailing 12 months, or zero.
 
         Shared by `_usage_based_monthly`'s accrual math and by callers (e.g. the Costs screen's
-        "Est. per month" usage-based estimate) that need the raw trailing-average figure itself.
+        "Est. per month" usage-based estimate, and the dashboard's `average_monthly_usage`) that need
+        the raw trailing-average figure itself.
         """
-        total_usage, first_start, last_end = check_in_repository.get_posted_usage_totals(self._session, asset_id)
+        today = as_of or date.today()
+        window_start = calculator.months_before(today, 12)
+        total_usage, first_start, last_end = check_in_repository.get_posted_usage_totals_since(
+            self._session, asset_id, window_start
+        )
         months = 0 if first_start is None else calculator.whole_months(first_start, last_end)
         return calculator.expected_monthly_usage(total_usage, months)
+
+    def base_required_allocation(self, asset: Asset, bucket: Bucket) -> Decimal:
+        """Today's active time-based + usage-based monthly accrual, excluding manual extra.
+
+        The forward-looking counterpart to `recommended_monthly_allocation` minus `manual_extra_monthly`
+        — exposed separately so `AssetDetailService` can show it (as `average_allocation`) without
+        double-quantizing through the already-rounded combined total.
+        """
+        return self._time_based_monthly(asset, bucket) + self._usage_based_monthly(asset)
 
     def _summarize(self, asset: Asset) -> AssetSummary:
         """Compose one asset's balance and recommended monthly allocation."""
@@ -124,9 +138,7 @@ class WorkspaceService:
         check-in accrual, where each allocation line is quantized before summing (`Σ quantize` — see
         `check_in_calc.compute_check_in`). Both are pre-existing, internally-correct patterns.
         """
-        time_based = self._time_based_monthly(asset, bucket)
-        usage_based = self._usage_based_monthly(asset)
-        return calculator.quantize_currency(time_based + usage_based + asset.manual_extra_monthly)
+        return calculator.quantize_currency(self.base_required_allocation(asset, bucket) + asset.manual_extra_monthly)
 
     def _time_based_monthly(self, asset: Asset, bucket: Bucket) -> Decimal:
         """Accrue the monthly total across active time-based costs, applying latest-cost rollover."""

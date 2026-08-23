@@ -66,8 +66,11 @@ def test_detail_composes_derived_figures_and_usage(
     # balance = sum(posted allocations) - the 100 expense.
     allocated = sum(Decimal(a["amount"]) for a in posted["allocation_events"])
     assert Decimal(body["balance"]) == allocated - Decimal("100")
-    assert body["average_allocation"]["months"] == 3
-    assert Decimal(body["average_allocation"]["amount"]) == allocated
+    # average_allocation is time-based + usage-based only; the vehicle template sets no manual
+    # extra, so it must equal the full recommended monthly allocation.
+    assert Decimal(body["average_allocation"]) == Decimal(body["recommended_monthly_allocation"]) - Decimal(
+        body["manual_extra_monthly"]
+    )
 
 
 def test_detail_maintenance_items_carry_status(
@@ -136,7 +139,7 @@ def test_detail_non_vehicle_has_null_usage(client: TestClient) -> None:
     assert detail["maintenance_items"] == []
     assert detail["recent_activity"] == []
     assert detail["upcoming_expenses"] == []
-    assert detail["average_allocation"] == {"months": 3, "amount": None}
+    assert Decimal(detail["average_allocation"]) == Decimal("0.00")
     assert detail["vehicle_age_years"] is None
     assert Decimal(detail["average_monthly_cost"]) == Decimal("0.00")
     assert detail["next_maintenance"] is None
@@ -947,127 +950,6 @@ def test_next_maintenance_is_null_without_eligible_candidate(
     assert detail.next_maintenance is None
 
 
-def _average_for_rows(
-    client: TestClient,
-    db_session: Session,
-    as_of: date,
-    rows: list[tuple[date, str | None]],
-) -> tuple[int, Decimal | None]:
-    asset_id = client.post("/api/assets", json={"name": "Average test", "type": "house"}).json()["asset"]["id"]
-    asset_uuid = uuid.UUID(asset_id)
-    bucket_id = _bucket_id(db_session, asset_id)
-    for period_end, amount in rows:
-        check_in = _add_posted_check_in(
-            db_session,
-            asset_uuid,
-            period_end - timedelta(days=30),
-            period_end,
-        )
-        if amount is not None:
-            _add_allocation(db_session, bucket_id, check_in.id, amount, period_end)
-
-    asset = db_session.get(Asset, asset_uuid)
-    assert asset is not None
-    average = AssetDetailService(db_session).get_detail(asset.user_id, asset_uuid, as_of=as_of).average_allocation
-    return average.months, average.amount
-
-
-@pytest.mark.parametrize(
-    ("rows", "expected_months", "expected_amount"),
-    [
-        (
-            [
-                (date(2026, 2, 28), "900.00"),
-                (date(2026, 5, 31), "100.00"),
-                (date(2026, 7, 31), "300.00"),
-            ],
-            3,
-            Decimal("200.00"),
-        ),
-        (
-            [
-                (date(2026, 1, 31), "600.00"),
-                (date(2026, 5, 31), "1200.00"),
-                (date(2026, 7, 31), "1800.00"),
-            ],
-            6,
-            Decimal("1200.00"),
-        ),
-        (
-            [
-                (date(2025, 7, 31), "1200.00"),
-                (date(2026, 2, 28), "2400.00"),
-                (date(2026, 7, 31), "3600.00"),
-            ],
-            12,
-            Decimal("2400.00"),
-        ),
-    ],
-)
-def test_average_allocation_selects_longest_eligible_window(
-    client: TestClient,
-    db_session: Session,
-    rows: list[tuple[date, str | None]],
-    expected_months: int,
-    expected_amount: Decimal,
-) -> None:
-    months, amount = _average_for_rows(client, db_session, date(2026, 7, 31), rows)
-
-    assert months == expected_months
-    assert amount == expected_amount
-
-
-def test_average_allocation_clamps_month_end_and_includes_cutoff(
-    client: TestClient, db_session: Session
-) -> None:
-    months, amount = _average_for_rows(
-        client,
-        db_session,
-        date(2026, 3, 31),
-        [(date(2025, 9, 30), "100.00"), (date(2026, 3, 31), "300.00")],
-    )
-
-    assert months == 6
-    assert amount == Decimal("200.00")
-
-
-def test_average_allocation_is_empty_without_posted_history(
-    client: TestClient, db_session: Session
-) -> None:
-    months, amount = _average_for_rows(client, db_session, date(2026, 7, 31), [])
-
-    assert months == 3
-    assert amount is None
-
-
-def test_average_allocation_counts_posted_check_in_without_allocations_as_zero(
-    client: TestClient, db_session: Session
-) -> None:
-    months, amount = _average_for_rows(
-        client,
-        db_session,
-        date(2026, 7, 31),
-        [(date(2026, 5, 31), "300.00"), (date(2026, 7, 31), None)],
-    )
-
-    assert months == 3
-    assert amount == Decimal("150.00")
-
-
-def test_average_allocation_is_empty_when_all_history_predates_selected_window(
-    client: TestClient, db_session: Session
-) -> None:
-    months, amount = _average_for_rows(
-        client,
-        db_session,
-        date(2026, 7, 31),
-        [(date(2024, 1, 31), "300.00")],
-    )
-
-    assert months == 12
-    assert amount is None
-
-
 def test_manual_extra_monthly_defaults_to_zero(client: TestClient, backdate_asset_creation: Callable[[str], None]) -> None:
     asset_id = _create_bare_vehicle(client, backdate_asset_creation)
 
@@ -1088,15 +970,15 @@ def test_manual_extra_recommended_divides_12_month_gap_by_elapsed_months_capped_
     assert asset is not None
     asset.created_at = datetime(2024, 1, 1, tzinfo=UTC)  # well over 12 months before as_of
     db_session.flush()
-    check_in = _add_posted_check_in(db_session, asset_uuid, as_of - timedelta(days=90), as_of)
     bucket_id = _bucket_id(db_session, asset_id)
-    _add_allocation(db_session, bucket_id, check_in.id, "1000.00", as_of - timedelta(days=30))
-    _add_expense(db_session, bucket_id, "4000.00", as_of - timedelta(days=20))
+    # A bare house has no active cost rows, so average_allocation is zero — the full expense total
+    # becomes the shortfall. Large enough to clear the per-currency visibility threshold.
+    _add_expense(db_session, bucket_id, "72000.00", as_of - timedelta(days=20))
 
     detail = _service_detail(db_session, asset_id, as_of)
 
     assert detail.manual_extra_recommended_months == 12
-    assert detail.manual_extra_recommended == Decimal("250.00")
+    assert detail.manual_extra_recommended == Decimal("6000.00")
 
 
 def test_average_actual_monthly_cost_uses_real_expense_total_not_allocated_plus_out_of_pocket(
@@ -1134,12 +1016,14 @@ def test_manual_extra_recommended_divides_by_elapsed_months_for_asset_younger_th
     asset.created_at = datetime(2026, 4, 25, tzinfo=UTC)  # exactly 3 whole months before as_of
     db_session.flush()
     bucket_id = _bucket_id(db_session, asset_id)
-    _add_expense(db_session, bucket_id, "1500.00", as_of - timedelta(days=10))
+    # No active cost rows on this bare house, so average_allocation is zero; the expense total,
+    # divided by the 3-month divisor, clears the visibility threshold on its own.
+    _add_expense(db_session, bucket_id, "18000.00", as_of - timedelta(days=10))
 
     detail = _service_detail(db_session, asset_id, as_of)
 
     assert detail.manual_extra_recommended_months == 3
-    assert detail.manual_extra_recommended == Decimal("500.00")
+    assert detail.manual_extra_recommended == Decimal("6000.00")
 
 
 def test_manual_extra_recommended_months_floors_at_one_for_brand_new_asset(
@@ -1149,25 +1033,27 @@ def test_manual_extra_recommended_months_floors_at_one_for_brand_new_asset(
     asset_id = client.post("/api/assets", json={"name": "Brand new", "type": "house"}).json()["asset"]["id"]
     as_of = date.today()  # same day as creation, so whole_months(created_at, as_of) is 0
     bucket_id = _bucket_id(db_session, asset_id)
-    _add_expense(db_session, bucket_id, "600.00", as_of)
+    _add_expense(db_session, bucket_id, "6000.00", as_of)
 
     detail = _service_detail(db_session, asset_id, as_of)
 
     assert detail.manual_extra_recommended_months == 1
-    assert detail.manual_extra_recommended == Decimal("600.00")
+    assert detail.manual_extra_recommended == Decimal("6000.00")
 
 
-def test_manual_extra_recommended_floors_at_zero(
+def test_manual_extra_recommended_floors_at_zero_when_cost_is_below_allocation(
     client: TestClient, db_session: Session, backdate_asset_creation: Callable[[str], None]
 ) -> None:
+    """Real spend under the base required allocation floors the shortfall at zero, not negative."""
     asset_id = _create_bare_vehicle(client, backdate_asset_creation)
-    check_in = _add_posted_check_in(db_session, uuid.UUID(asset_id), date.today() - timedelta(days=90), date.today())
+    # amount / interval_years / 12 = 120000.00 / 1 / 12 = 10000.00/mo base allocation.
+    _add_time_based(client, asset_id, label="Insurance", amount="120000.00", interval_value=1, interval_unit="years")
     bucket_id = _bucket_id(db_session, asset_id)
-    _add_allocation(db_session, bucket_id, check_in.id, "5000.00", date.today() - timedelta(days=30))
     _add_expense(db_session, bucket_id, "1000.00", date.today() - timedelta(days=20))
 
     body = client.get(f"/api/assets/{asset_id}").json()
 
+    assert Decimal(body["average_allocation"]) == Decimal("10000.00")
     assert Decimal(body["manual_extra_recommended"]) == Decimal("0")
 
 
@@ -1197,7 +1083,7 @@ def test_manual_extra_recommendation_skips_expenses_excluded_from_average(
     asset.created_at = datetime(2026, 4, 25, tzinfo=UTC)  # exactly 3 whole months before as_of
     db_session.flush()
     bucket_id = _bucket_id(db_session, asset_id)
-    _add_expense(db_session, bucket_id, "1500.00", as_of - timedelta(days=10))
+    _add_expense(db_session, bucket_id, "18000.00", as_of - timedelta(days=10))
     # A known one-time catch-up cost, excluded from the shortfall gap that drives this recommendation.
     _add_expense(
         db_session,
@@ -1211,7 +1097,38 @@ def test_manual_extra_recommendation_skips_expenses_excluded_from_average(
     detail = _service_detail(db_session, asset_id, as_of)
 
     assert detail.manual_extra_recommended_months == 3
-    assert detail.manual_extra_recommended == Decimal("500.00")
+    assert detail.manual_extra_recommended == Decimal("6000.00")
+
+
+def test_manual_extra_recommended_suppressed_below_huf_visibility_threshold(
+    client: TestClient, db_session: Session
+) -> None:
+    """A positive shortfall under the HUF visibility threshold is hidden, not just floored at zero."""
+    asset_id = client.post("/api/assets", json={"name": "Small gap", "type": "house"}).json()["asset"]["id"]
+    as_of = date.today()
+    bucket_id = _bucket_id(db_session, asset_id)
+    _add_expense(db_session, bucket_id, "3000.00", as_of)  # shortfall 3000 < 5000 HUF threshold
+
+    detail = _service_detail(db_session, asset_id, as_of)
+
+    assert detail.average_actual_monthly_cost == Decimal("3000.00")
+    assert detail.manual_extra_recommended == Decimal("0.00")
+
+
+def test_manual_extra_recommended_visibility_threshold_is_lower_in_usd(
+    client: TestClient, db_session: Session
+) -> None:
+    """The same small numeric shortfall clears the (lower) USD threshold that hides it in HUF."""
+    assert client.put("/api/users/me/settings", json={"default_currency": "USD", "language": "en"}).status_code == 200
+    asset_id = client.post("/api/assets", json={"name": "Small gap USD", "type": "house"}).json()["asset"]["id"]
+    as_of = date.today()
+    bucket_id = _bucket_id(db_session, asset_id)
+    _add_expense(db_session, bucket_id, "20.00", as_of)  # shortfall 20 clears 15 USD, would not clear 5000 HUF
+
+    detail = _service_detail(db_session, asset_id, as_of)
+
+    assert detail.currency == "USD"
+    assert detail.manual_extra_recommended == Decimal("20.00")
 
 
 def test_update_manual_extra_persists_and_folds_into_recommended_allocation(

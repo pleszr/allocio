@@ -186,6 +186,27 @@ def get_posted_usage_totals(
     return int(total_usage), first_start, last_end
 
 
+def get_posted_usage_totals_since(
+    session: Session, asset_id: uuid.UUID, window_start: date
+) -> tuple[int, date | None, date | None]:
+    """Same as `get_posted_usage_totals`, but only over check-ins ending on or after `window_start`.
+
+    Sizes the trailing-12-month usage window for the workspace overview's usage-based monthly accrual
+    and the dashboard's `average_monthly_usage`.
+
+    Returns:
+        ``(total_usage, first_period_start, last_period_end)``; ``(0, None, None)`` when no posted
+        check-in in the asset's history falls inside the window.
+    """
+    stmt = select(
+        func.coalesce(func.sum(CheckIn.usage_amount), 0),
+        func.min(CheckIn.period_start),
+        func.max(CheckIn.period_end),
+    ).where(CheckIn.asset_id == asset_id, CheckIn.status == "posted", CheckIn.period_end >= window_start)
+    total_usage, first_start, last_end = session.execute(stmt).one()
+    return int(total_usage), first_start, last_end
+
+
 def add_and_flush(session: Session, row: CheckIn | AllocationEvent | ExpenseEvent) -> None:
     """Add a newly built check-in or event and flush so its server-generated id is populated.
 
