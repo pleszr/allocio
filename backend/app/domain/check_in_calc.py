@@ -114,6 +114,7 @@ def compute_check_in(
     expense_drafts: Sequence[ExpenseDraftInput],
     prior_allocation_amounts: Sequence[Decimal],
     prior_expense_amounts: Sequence[Decimal],
+    currency: str,
 ) -> CheckInComputation:
     """Compute a period's allocation lines, expense lines, and balance totals from stored state.
 
@@ -142,6 +143,7 @@ def compute_check_in(
             split.
         prior_allocation_amounts: Amounts of already-posted allocation events (for the opening balance).
         prior_expense_amounts: Bucket-covered amounts of already-posted expenses (for the opening balance).
+        currency: The bucket's currency; determines rounding precision for accrual lines.
 
     Returns:
         The assembled `CheckInComputation`.
@@ -149,9 +151,9 @@ def compute_check_in(
     elapsed_days = (period_end - period_start).days
     usage_amount = usage_end - usage_start
 
-    allocation_lines = _time_based_lines(time_based_costs, period_start, elapsed_days)
-    allocation_lines.extend(_usage_based_lines(usage_based_costs, usage_amount))
-    manual_extra_line = _manual_extra_line(manual_extra_monthly, elapsed_days)
+    allocation_lines = _time_based_lines(time_based_costs, period_start, elapsed_days, currency)
+    allocation_lines.extend(_usage_based_lines(usage_based_costs, usage_amount, currency))
+    manual_extra_line = _manual_extra_line(manual_extra_monthly, elapsed_days, currency)
     if manual_extra_line is not None:
         allocation_lines.append(manual_extra_line)
 
@@ -267,7 +269,7 @@ def first_balance_break(
 
 
 def _time_based_lines(
-    costs: Sequence[TimeBasedCostInput], period_start: date, elapsed_days: int
+    costs: Sequence[TimeBasedCostInput], period_start: date, elapsed_days: int, currency: str
 ) -> list[AllocationLine]:
     """Build one rounded allocation line per active time-based cost, applying the reference-amount rollover."""
     lines: list[AllocationLine] = []
@@ -279,13 +281,15 @@ def _time_based_lines(
                 source_type="time_based_cost",
                 source_id=cost.source_id,
                 label=cost.label,
-                amount=quantize_currency(accrual),
+                amount=quantize_currency(accrual, currency),
             )
         )
     return lines
 
 
-def _usage_based_lines(costs: Sequence[UsageBasedCostInput], usage_amount: int) -> list[AllocationLine]:
+def _usage_based_lines(
+    costs: Sequence[UsageBasedCostInput], usage_amount: int, currency: str
+) -> list[AllocationLine]:
     """Build one independently-rounded allocation line per active usage-based component (`Σ quantize`)."""
     lines: list[AllocationLine] = []
     for cost in costs:
@@ -295,18 +299,18 @@ def _usage_based_lines(costs: Sequence[UsageBasedCostInput], usage_amount: int) 
                 source_type="usage_based_cost",
                 source_id=cost.source_id,
                 label=cost.label,
-                amount=quantize_currency(accrual),
+                amount=quantize_currency(accrual, currency),
             )
         )
     return lines
 
 
-def _manual_extra_line(manual_extra_monthly: Decimal, elapsed_days: int) -> AllocationLine | None:
+def _manual_extra_line(manual_extra_monthly: Decimal, elapsed_days: int, currency: str) -> AllocationLine | None:
     """Prorate the configured monthly buffer over the period and emit one auditable line."""
     if manual_extra_monthly <= 0 or elapsed_days <= 0:
         return None
     annualized_amount = manual_extra_monthly * Decimal(12)
-    amount = quantize_currency(time_based_period_accrual(annualized_amount, 1, "years", elapsed_days))
+    amount = quantize_currency(time_based_period_accrual(annualized_amount, 1, "years", elapsed_days), currency)
     return AllocationLine(source_type="manual_extra", source_id=None, label="Manual extra", amount=amount)
 
 

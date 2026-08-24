@@ -64,7 +64,7 @@ export function Sidebar({ assets, route, onNavigate, user, settings, onSettingsS
               <span>
                 <span className="entity-name">{a.name}</span>
               </span>
-              <span className="entity-balance">{fmt(a.balance, { decimals: 0 })}</span>
+              <span className="entity-balance">{fmt(a.balance)}</span>
             </button>
           ))}
           <button className="side-item" onClick={() => onNavigate({ kind: "new" })}>

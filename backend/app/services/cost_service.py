@@ -291,9 +291,9 @@ class CostService:
             views.append(
                 TimeBasedCostView(
                     row=row,
-                    reference_amount=calculator.quantize_currency(reference),
-                    annualized_amount=calculator.quantize_currency(annualized),
-                    daily_rate=calculator.quantize_currency(daily),
+                    reference_amount=calculator.quantize_currency(reference, bucket.currency),
+                    annualized_amount=calculator.quantize_currency(annualized, bucket.currency),
+                    daily_rate=calculator.quantize_currency(daily, bucket.currency),
                     next_due_date=self._resolve_next_due(
                         row, [event_date for event_date, _ in linked_by_source.get(row.id, [])], as_of
                     ),

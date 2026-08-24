@@ -1814,146 +1814,146 @@
           "functions": [
             {
               "name": "_add_months",
-              "line_start": 465,
-              "line_end": 474,
+              "line_start": 470,
+              "line_end": 479,
               "hash": "d45f684906a9e9a3"
             },
             {
               "name": "_month_as_of",
-              "line_start": 451,
-              "line_end": 462,
+              "line_start": 456,
+              "line_end": 467,
               "hash": "8b78f0e10c245324"
             },
             {
               "name": "_ratio",
-              "line_start": 477,
-              "line_end": 481,
+              "line_start": 482,
+              "line_end": 486,
               "hash": "4308470497ed3cb2"
             },
             {
               "name": "balance_at_dates",
-              "line_start": 251,
-              "line_end": 265,
+              "line_start": 252,
+              "line_end": 266,
               "hash": "45b73998ef83338a"
             },
             {
               "name": "bucket_balance",
-              "line_start": 202,
-              "line_end": 214,
+              "line_start": 203,
+              "line_end": 215,
               "hash": "881192114eeeeeee"
             },
             {
               "name": "expected_monthly_usage",
-              "line_start": 415,
-              "line_end": 432,
+              "line_start": 420,
+              "line_end": 437,
               "hash": "ef0cc32638e070d3"
             },
             {
               "name": "interval_years",
-              "line_start": 36,
-              "line_end": 55,
+              "line_start": 37,
+              "line_end": 56,
               "hash": "059bcbb6ca6ede5d"
             },
             {
               "name": "maintenance_progress",
-              "line_start": 283,
-              "line_end": 306,
+              "line_start": 288,
+              "line_end": 311,
               "hash": "bad0f691b243f09b"
             },
             {
               "name": "maintenance_status",
-              "line_start": 309,
-              "line_end": 330,
+              "line_start": 314,
+              "line_end": 335,
               "hash": "eb60c0fb7f0e2c12"
             },
             {
               "name": "month_anchor_dates",
-              "line_start": 217,
-              "line_end": 248,
+              "line_start": 218,
+              "line_end": 249,
               "hash": "3121265776436d3c"
             },
             {
               "name": "months_before",
-              "line_start": 407,
-              "line_end": 412,
+              "line_start": 412,
+              "line_end": 417,
               "hash": "f3ca9fab9f7caaa6"
             },
             {
               "name": "next_due_date",
-              "line_start": 58,
-              "line_end": 90,
+              "line_start": 59,
+              "line_end": 91,
               "hash": "6122ca3e7bf8891f"
             },
             {
               "name": "next_due_from_start",
-              "line_start": 93,
-              "line_end": 119,
+              "line_start": 94,
+              "line_end": 120,
               "hash": "6775fc46bfe5b0c3"
             },
             {
               "name": "quantize_currency",
-              "line_start": 268,
-              "line_end": 280,
-              "hash": "e942fba4d0a21afa"
+              "line_start": 269,
+              "line_end": 285,
+              "hash": "5f4b24c9964febed"
             },
             {
               "name": "reference_amount",
-              "line_start": 122,
-              "line_end": 141,
+              "line_start": 123,
+              "line_end": 142,
               "hash": "ad33a75ed83fb529"
             },
             {
               "name": "reserve_guidance",
-              "line_start": 348,
-              "line_end": 365,
+              "line_start": 353,
+              "line_end": 370,
               "hash": "c7f297ed92c2c61c"
             },
             {
               "name": "reserve_recommendation",
-              "line_start": 333,
-              "line_end": 345,
+              "line_start": 338,
+              "line_end": 350,
               "hash": "c8a2c3cab5b8802e"
             },
             {
               "name": "time_based_annualized_amount",
-              "line_start": 170,
-              "line_end": 174,
+              "line_start": 171,
+              "line_end": 175,
               "hash": "2a33ff4d6a1ff81b"
             },
             {
               "name": "time_based_daily_rate",
-              "line_start": 177,
-              "line_end": 181,
+              "line_start": 178,
+              "line_end": 182,
               "hash": "bc3df901a769571c"
             },
             {
               "name": "time_based_monthly_accrual",
-              "line_start": 368,
-              "line_end": 385,
+              "line_start": 373,
+              "line_end": 390,
               "hash": "a312be7d153f3595"
             },
             {
               "name": "time_based_period_accrual",
-              "line_start": 144,
-              "line_end": 167,
+              "line_start": 145,
+              "line_end": 168,
               "hash": "7c203524de15ed32"
             },
             {
               "name": "usage_based_monthly_accrual",
-              "line_start": 435,
-              "line_end": 448,
+              "line_start": 440,
+              "line_end": 453,
               "hash": "6ba584a523efe15d"
             },
             {
               "name": "usage_based_period_accrual",
-              "line_start": 184,
-              "line_end": 199,
+              "line_start": 185,
+              "line_end": 200,
               "hash": "61cd8f219d55a499"
             },
             {
               "name": "whole_months",
-              "line_start": 388,
-              "line_end": 404,
+              "line_start": 393,
+              "line_end": 409,
               "hash": "70b7398db9072109"
             }
           ],
@@ -2025,50 +2025,50 @@
           "functions": [
             {
               "name": "_expense_lines",
-              "line_start": 313,
-              "line_end": 343,
+              "line_start": 317,
+              "line_end": 347,
               "hash": "0b227b2388849bf6"
             },
             {
               "name": "_manual_extra_line",
-              "line_start": 304,
-              "line_end": 310,
-              "hash": "9807ddeec5ec3efa"
+              "line_start": 308,
+              "line_end": 314,
+              "hash": "04f4487eba8e38a9"
             },
             {
               "name": "_time_based_lines",
-              "line_start": 269,
-              "line_end": 285,
-              "hash": "83407f05c76c7163"
+              "line_start": 271,
+              "line_end": 287,
+              "hash": "0a57186ec822aee7"
             },
             {
               "name": "_usage_based_lines",
-              "line_start": 288,
-              "line_end": 301,
-              "hash": "0c54b7cb13e831a0"
+              "line_start": 290,
+              "line_end": 305,
+              "hash": "fd8b74b21f1c2714"
             },
             {
               "name": "compute_check_in",
               "line_start": 105,
-              "line_end": 180,
-              "hash": "711d318cf2b69849"
+              "line_end": 182,
+              "hash": "b59c36676cc24b21"
             },
             {
               "name": "compute_check_in_edit",
-              "line_start": 195,
-              "line_end": 236,
+              "line_start": 197,
+              "line_end": 238,
               "hash": "d5146f6b347cd927"
             },
             {
               "name": "first_balance_break",
-              "line_start": 239,
-              "line_end": 266,
+              "line_start": 241,
+              "line_end": 268,
               "hash": "c4587ac847c1c083"
             },
             {
               "name": "resolve_paid_out_of_pocket",
-              "line_start": 346,
-              "line_end": 354,
+              "line_start": 350,
+              "line_end": 358,
               "hash": "641f315aecd34638"
             }
           ],
@@ -2089,8 +2089,8 @@
             },
             {
               "name": "CheckInEditComputation",
-              "line_start": 184,
-              "line_end": 192,
+              "line_start": 186,
+              "line_end": 194,
               "hash": "0ccb6ee87a4f8344",
               "methods": []
             },
@@ -2786,13 +2786,13 @@
                   "name": "_line",
                   "line_start": 226,
                   "line_end": 237,
-                  "hash": "9c0e4e0d2003203e"
+                  "hash": "e8b1ee4deee88148"
                 },
                 {
                   "name": "_manual_extra_line",
                   "line_start": 239,
                   "line_end": 249,
-                  "hash": "4cf19fa962452417"
+                  "hash": "abfb82607a2aec7e"
                 },
                 {
                   "name": "_owner_currency",
@@ -2840,7 +2840,7 @@
                   "name": "estimate",
                   "line_start": 66,
                   "line_end": 104,
-                  "hash": "78290219b62a4b0f"
+                  "hash": "8417fc340c1bc317"
                 }
               ]
             },
@@ -2882,8 +2882,8 @@
           "functions": [
             {
               "name": "_subtract_months_clamped",
-              "line_start": 445,
-              "line_end": 450,
+              "line_start": 449,
+              "line_end": 454,
               "hash": "93b9023d1d0998c8"
             }
           ],
@@ -2905,7 +2905,7 @@
             {
               "name": "AssetDetailService",
               "line_start": 100,
-              "line_end": 442,
+              "line_end": 446,
               "hash": "c65708019479c220",
               "methods": [
                 {
@@ -2916,105 +2916,105 @@
                 },
                 {
                   "name": "_allocation_items",
-                  "line_start": 288,
-                  "line_end": 300,
+                  "line_start": 292,
+                  "line_end": 304,
                   "hash": "4610d6a9125c12e3"
                 },
                 {
                   "name": "_allocation_label",
-                  "line_start": 317,
-                  "line_end": 325,
+                  "line_start": 321,
+                  "line_end": 329,
                   "hash": "b87552229381efd7"
                 },
                 {
                   "name": "_average_allocation",
-                  "line_start": 228,
-                  "line_end": 240,
-                  "hash": "2a42978f28ca7fe4"
+                  "line_start": 230,
+                  "line_end": 244,
+                  "hash": "94c783eef9614e44"
                 },
                 {
                   "name": "_average_monthly_cost",
-                  "line_start": 161,
-                  "line_end": 185,
-                  "hash": "72c4a8534bde5a0c"
+                  "line_start": 163,
+                  "line_end": 187,
+                  "hash": "01440a74e677e4c9"
                 },
                 {
                   "name": "_avg_monthly_paid_out_of_pocket",
-                  "line_start": 187,
-                  "line_end": 205,
-                  "hash": "bf06941bef67edff"
+                  "line_start": 189,
+                  "line_end": 207,
+                  "hash": "5e75a5935f8a3e97"
                 },
                 {
                   "name": "_expense_items",
-                  "line_start": 302,
-                  "line_end": 315,
+                  "line_start": 306,
+                  "line_end": 319,
                   "hash": "8db35bc628980551"
                 },
                 {
                   "name": "_forecast_average_monthly_usage",
-                  "line_start": 415,
-                  "line_end": 442,
+                  "line_start": 419,
+                  "line_end": 446,
                   "hash": "ceb6b724e833e3d2"
                 },
                 {
                   "name": "_maintenance_trigger_days",
-                  "line_start": 399,
-                  "line_end": 413,
+                  "line_start": 403,
+                  "line_end": 417,
                   "hash": "a2bf91de3bc5b257"
                 },
                 {
                   "name": "_manual_extra_recommendation",
-                  "line_start": 262,
-                  "line_end": 277,
-                  "hash": "e56dede63deddc4e"
+                  "line_start": 266,
+                  "line_end": 281,
+                  "hash": "857cd53ea8e99384"
                 },
                 {
                   "name": "_next_maintenance",
-                  "line_start": 207,
-                  "line_end": 226,
+                  "line_start": 209,
+                  "line_end": 228,
                   "hash": "c9f5771700b94a04"
                 },
                 {
                   "name": "_recent_activity",
-                  "line_start": 279,
-                  "line_end": 286,
+                  "line_start": 283,
+                  "line_end": 290,
                   "hash": "d9fc6103a5be9cca"
                 },
                 {
                   "name": "_trailing_expense_total",
-                  "line_start": 242,
-                  "line_end": 260,
+                  "line_start": 246,
+                  "line_end": 264,
                   "hash": "a77be749fce829f6"
                 },
                 {
                   "name": "_upcoming_expenses",
-                  "line_start": 327,
-                  "line_end": 337,
+                  "line_start": 331,
+                  "line_end": 341,
                   "hash": "4338a3ce1ce3afbb"
                 },
                 {
                   "name": "_upcoming_maintenance",
-                  "line_start": 357,
-                  "line_end": 369,
+                  "line_start": 361,
+                  "line_end": 373,
                   "hash": "d800b84bbaacb31a"
                 },
                 {
                   "name": "_upcoming_maintenance_candidate",
-                  "line_start": 371,
-                  "line_end": 397,
+                  "line_start": 375,
+                  "line_end": 401,
                   "hash": "94e8d6092e84d6b3"
                 },
                 {
                   "name": "_upcoming_time_based",
-                  "line_start": 339,
-                  "line_end": 355,
+                  "line_start": 343,
+                  "line_end": 359,
                   "hash": "b2ee95eeffc10d20"
                 },
                 {
                   "name": "get_detail",
                   "line_start": 108,
-                  "line_end": 159,
-                  "hash": "67a54d51a2060d98"
+                  "line_end": 161,
+                  "hash": "7908a7452d3354da"
                 }
               ]
             },
@@ -3413,7 +3413,7 @@
             {
               "name": "CheckInService",
               "line_start": 111,
-              "line_end": 647,
+              "line_end": 648,
               "hash": "94ed875258913601",
               "methods": [
                 {
@@ -3424,8 +3424,8 @@
                 },
                 {
                   "name": "_affected_maintenance_item_ids",
-                  "line_start": 530,
-                  "line_end": 538,
+                  "line_start": 531,
+                  "line_end": 539,
                   "hash": "481c864fd16dd717"
                 },
                 {
@@ -3436,27 +3436,27 @@
                 },
                 {
                   "name": "_build_allocation_events",
-                  "line_start": 583,
-                  "line_end": 601,
+                  "line_start": 584,
+                  "line_end": 602,
                   "hash": "588ce0010e6a4722"
                 },
                 {
                   "name": "_build_check_in",
-                  "line_start": 560,
-                  "line_end": 581,
+                  "line_start": 561,
+                  "line_end": 582,
                   "hash": "ad1d29b5c2dd6381"
                 },
                 {
                   "name": "_build_expense_events",
-                  "line_start": 603,
-                  "line_end": 626,
+                  "line_start": 604,
+                  "line_end": 627,
                   "hash": "efb2f3703a3b3428"
                 },
                 {
                   "name": "_compute",
                   "line_start": 393,
-                  "line_end": 415,
-                  "hash": "301c4f2d4280b632"
+                  "line_end": 416,
+                  "hash": "422d7c3ab7a83a06"
                 },
                 {
                   "name": "_compute_edit",
@@ -3472,8 +3472,8 @@
                 },
                 {
                   "name": "_expense_inputs",
-                  "line_start": 449,
-                  "line_end": 464,
+                  "line_start": 450,
+                  "line_end": 465,
                   "hash": "9928fc8017003fe7"
                 },
                 {
@@ -3490,20 +3490,20 @@
                 },
                 {
                   "name": "_persist",
-                  "line_start": 474,
-                  "line_end": 497,
+                  "line_start": 475,
+                  "line_end": 498,
                   "hash": "7e9c247bfb73ea3c"
                 },
                 {
                   "name": "_persist_edit",
-                  "line_start": 499,
-                  "line_end": 528,
+                  "line_start": 500,
+                  "line_end": 529,
                   "hash": "44614750098de364"
                 },
                 {
                   "name": "_rederive_maintenance_baselines",
-                  "line_start": 540,
-                  "line_end": 558,
+                  "line_start": 541,
+                  "line_end": 559,
                   "hash": "bc9044124096f2c6"
                 },
                 {
@@ -3514,8 +3514,8 @@
                 },
                 {
                   "name": "_require_expense_sources_exist",
-                  "line_start": 466,
-                  "line_end": 472,
+                  "line_start": 467,
+                  "line_end": 473,
                   "hash": "cc0083308320dc1e"
                 },
                 {
@@ -3532,8 +3532,8 @@
                 },
                 {
                   "name": "_reset_maintenance_baselines",
-                  "line_start": 628,
-                  "line_end": 647,
+                  "line_start": 629,
+                  "line_end": 648,
                   "hash": "7166f8ab01abcd59"
                 },
                 {
@@ -3544,14 +3544,14 @@
                 },
                 {
                   "name": "_time_based_inputs",
-                  "line_start": 417,
-                  "line_end": 440,
+                  "line_start": 418,
+                  "line_end": 441,
                   "hash": "f4258e69bc76996b"
                 },
                 {
                   "name": "_usage_based_inputs",
-                  "line_start": 442,
-                  "line_end": 447,
+                  "line_start": 443,
+                  "line_end": 448,
                   "hash": "1f8454e9430629c1"
                 },
                 {
@@ -3777,7 +3777,7 @@
                   "name": "_time_based_views",
                   "line_start": 267,
                   "line_end": 302,
-                  "hash": "09580c0bea39e68c"
+                  "hash": "3573fb128055add1"
                 },
                 {
                   "name": "create_maintenance_item",
@@ -4145,7 +4145,7 @@
             {
               "name": "WorkspaceService",
               "line_start": 50,
-              "line_end": 180,
+              "line_end": 182,
               "hash": "6c32011f5dc35254",
               "methods": [
                 {
@@ -4163,8 +4163,8 @@
                 {
                   "name": "_recommended_monthly_allocation",
                   "line_start": 134,
-                  "line_end": 141,
-                  "hash": "1d71f6e4cf3fe143"
+                  "line_end": 143,
+                  "hash": "a277d924dc83efe0"
                 },
                 {
                   "name": "_summarize",
@@ -4180,20 +4180,20 @@
                 },
                 {
                   "name": "_time_based_monthly",
-                  "line_start": 143,
-                  "line_end": 157,
+                  "line_start": 145,
+                  "line_end": 159,
                   "hash": "5103ebdb1011f91f"
                 },
                 {
                   "name": "_totals",
-                  "line_start": 170,
-                  "line_end": 180,
+                  "line_start": 172,
+                  "line_end": 182,
                   "hash": "bf8511947ae6d1db"
                 },
                 {
                   "name": "_usage_based_monthly",
-                  "line_start": 159,
-                  "line_end": 168,
+                  "line_start": 161,
+                  "line_end": 170,
                   "hash": "b849f77d6d693d99"
                 },
                 {
@@ -4440,7 +4440,7 @@
               "name": "CostDistributionChart",
               "line_start": 36,
               "line_end": 202,
-              "hash": "88c812c1fd759b50"
+              "hash": "aeecf36b34f0332b"
             },
             {
               "name": "arcPath",
@@ -4473,7 +4473,7 @@
               "name": "CostDistributionChart",
               "line_start": 36,
               "line_end": 202,
-              "hash": "88c812c1fd759b50",
+              "hash": "aeecf36b34f0332b",
               "kind": "function"
             }
           ]
@@ -4507,19 +4507,19 @@
               "name": "CostHistoryModal",
               "line_start": 103,
               "line_end": 194,
-              "hash": "d95b7e4f65c6e524"
+              "hash": "9371dcd0606312ea"
             },
             {
               "name": "maintHistoryTarget",
               "line_start": 57,
               "line_end": 84,
-              "hash": "8bfd91d5778f25d0"
+              "hash": "13838dcc229639b9"
             },
             {
               "name": "timeCostHistoryTarget",
               "line_start": 34,
               "line_end": 52,
-              "hash": "1852acc503221345"
+              "hash": "0b9993285cff1a8d"
             }
           ],
           "classes": [],
@@ -4528,7 +4528,7 @@
               "name": "CostHistoryModal",
               "line_start": 103,
               "line_end": 194,
-              "hash": "d95b7e4f65c6e524",
+              "hash": "9371dcd0606312ea",
               "kind": "function"
             }
           ]
@@ -4726,7 +4726,7 @@
               "name": "ManualExtraEditor",
               "line_start": 32,
               "line_end": 104,
-              "hash": "51c183735ed9c95c"
+              "hash": "65374193612e4703"
             }
           ],
           "classes": [],
@@ -4735,7 +4735,7 @@
               "name": "ManualExtraEditor",
               "line_start": 32,
               "line_end": 104,
-              "hash": "51c183735ed9c95c",
+              "hash": "65374193612e4703",
               "kind": "function"
             }
           ]
@@ -4760,7 +4760,7 @@
               "name": "Sidebar",
               "line_start": 18,
               "line_end": 82,
-              "hash": "eee6806ef044559f"
+              "hash": "8b758cbfd49d801b"
             },
             {
               "name": "initials",
@@ -4775,7 +4775,7 @@
               "name": "Sidebar",
               "line_start": 18,
               "line_end": 82,
-              "hash": "eee6806ef044559f",
+              "hash": "8b758cbfd49d801b",
               "kind": "function"
             }
           ]
@@ -5045,7 +5045,7 @@
               "name": "TimeCostPanel",
               "line_start": 68,
               "line_end": 242,
-              "hash": "0869643c1763ed1f"
+              "hash": "bfe5f5f064877742"
             },
             {
               "name": "timeCostIcon",
@@ -5066,7 +5066,7 @@
               "name": "TimeCostPanel",
               "line_start": 68,
               "line_end": 242,
-              "hash": "0869643c1763ed1f",
+              "hash": "bfe5f5f064877742",
               "kind": "function"
             }
           ]
@@ -5214,13 +5214,13 @@
               "name": "CheckInScreen",
               "line_start": 103,
               "line_end": 788,
-              "hash": "6914466116e7516b"
+              "hash": "3fb64796d15128c0"
             },
             {
               "name": "ExpenseRow",
               "line_start": 829,
               "line_end": 956,
-              "hash": "58391f510b5b995c"
+              "hash": "2f17d5e573cf17fd"
             },
             {
               "name": "FlagRow",
@@ -5232,7 +5232,7 @@
               "name": "PostedState",
               "line_start": 790,
               "line_end": 827,
-              "hash": "48fc708995dcfe61"
+              "hash": "5f8052aa4a371b9c"
             },
             {
               "name": "draftsFromExpenseLines",
@@ -5265,14 +5265,14 @@
               "name": "CheckInScreen",
               "line_start": 103,
               "line_end": 788,
-              "hash": "6914466116e7516b",
+              "hash": "3fb64796d15128c0",
               "kind": "function"
             },
             {
               "name": "ExpenseRow",
               "line_start": 829,
               "line_end": 956,
-              "hash": "58391f510b5b995c",
+              "hash": "2f17d5e573cf17fd",
               "kind": "function"
             },
             {
@@ -5286,7 +5286,7 @@
               "name": "PostedState",
               "line_start": 790,
               "line_end": 827,
-              "hash": "48fc708995dcfe61",
+              "hash": "5f8052aa4a371b9c",
               "kind": "function"
             }
           ]
@@ -5326,7 +5326,7 @@
               "name": "CostsScreen",
               "line_start": 26,
               "line_end": 194,
-              "hash": "4e62cb88f66a3b8c"
+              "hash": "ea2e7d87eb3494be"
             },
             {
               "name": "LabeledInput",
@@ -5368,7 +5368,7 @@
               "name": "TimeTable",
               "line_start": 197,
               "line_end": 274,
-              "hash": "bda90fdf40815a7f"
+              "hash": "1db484f049eb2eca"
             },
             {
               "name": "UsageCreateRow",
@@ -5386,7 +5386,7 @@
               "name": "UsageTable",
               "line_start": 380,
               "line_end": 466,
-              "hash": "984e2bbecec5008a"
+              "hash": "9be4f7669d84eae7"
             }
           ],
           "classes": [],
@@ -5402,7 +5402,7 @@
               "name": "CostsScreen",
               "line_start": 26,
               "line_end": 194,
-              "hash": "4e62cb88f66a3b8c",
+              "hash": "ea2e7d87eb3494be",
               "kind": "function"
             },
             {
@@ -5451,7 +5451,7 @@
               "name": "TimeTable",
               "line_start": 197,
               "line_end": 274,
-              "hash": "bda90fdf40815a7f",
+              "hash": "1db484f049eb2eca",
               "kind": "function"
             },
             {
@@ -5472,7 +5472,7 @@
               "name": "UsageTable",
               "line_start": 380,
               "line_end": 466,
-              "hash": "984e2bbecec5008a",
+              "hash": "9be4f7669d84eae7",
               "kind": "function"
             }
           ]
@@ -5506,7 +5506,7 @@
               "name": "DashboardScreen",
               "line_start": 28,
               "line_end": 259,
-              "hash": "9daf5371b086e2cd"
+              "hash": "7a31080c37d989e6"
             }
           ],
           "classes": [],
@@ -5515,7 +5515,7 @@
               "name": "DashboardScreen",
               "line_start": 28,
               "line_end": 259,
-              "hash": "9daf5371b086e2cd",
+              "hash": "7a31080c37d989e6",
               "kind": "function"
             }
           ]
@@ -5542,7 +5542,7 @@
               "name": "HistoryRow",
               "line_start": 109,
               "line_end": 217,
-              "hash": "5620c87cdd44c4df"
+              "hash": "bb2f7855f3f5c2c9"
             },
             {
               "name": "HistoryScreen",
@@ -5575,7 +5575,7 @@
               "name": "HistoryRow",
               "line_start": 109,
               "line_end": 217,
-              "hash": "5620c87cdd44c4df",
+              "hash": "bb2f7855f3f5c2c9",
               "kind": "function"
             },
             {
@@ -5606,13 +5606,13 @@
               "name": "BucketCard",
               "line_start": 74,
               "line_end": 102,
-              "hash": "30cc062b5b0edc1b"
+              "hash": "69bc46799b13e381"
             },
             {
               "name": "HomeScreen",
               "line_start": 14,
               "line_end": 72,
-              "hash": "1fdf81ffc952690c"
+              "hash": "3ee488227ce1668a"
             }
           ],
           "classes": [],
@@ -5621,14 +5621,14 @@
               "name": "BucketCard",
               "line_start": 74,
               "line_end": 102,
-              "hash": "30cc062b5b0edc1b",
+              "hash": "69bc46799b13e381",
               "kind": "function"
             },
             {
               "name": "HomeScreen",
               "line_start": 14,
               "line_end": 72,
-              "hash": "1fdf81ffc952690c",
+              "hash": "3ee488227ce1668a",
               "kind": "function"
             }
           ]
@@ -5667,8 +5667,8 @@
             {
               "name": "CostRow",
               "line_start": 1127,
-              "line_end": 1161,
-              "hash": "945615c280622273"
+              "line_end": 1163,
+              "hash": "d341941b72bd2d6f"
             },
             {
               "name": "EditableCatalogRow",
@@ -5680,12 +5680,12 @@
               "name": "NewBucketScreen",
               "line_start": 174,
               "line_end": 617,
-              "hash": "2fb8a68592fe8391"
+              "hash": "882771d2a76614ae"
             },
             {
               "name": "StepAskCheckin",
-              "line_start": 1204,
-              "line_end": 1224,
+              "line_start": 1206,
+              "line_end": 1226,
               "hash": "00d4940260a9484c"
             },
             {
@@ -5702,21 +5702,21 @@
             },
             {
               "name": "StepFirstCheckin",
-              "line_start": 1226,
-              "line_end": 1294,
+              "line_start": 1228,
+              "line_end": 1296,
               "hash": "58976a066b0f0732"
             },
             {
               "name": "StepReview",
-              "line_start": 1296,
-              "line_end": 1470,
-              "hash": "0b62bd8397d40e63"
+              "line_start": 1298,
+              "line_end": 1472,
+              "hash": "f272db49f2e46753"
             },
             {
               "name": "StepSafety",
-              "line_start": 1163,
-              "line_end": 1202,
-              "hash": "4b1598dad41c6241"
+              "line_start": 1165,
+              "line_end": 1204,
+              "hash": "29996ec82b6fa65e"
             },
             {
               "name": "StepType",
@@ -5810,8 +5810,8 @@
             {
               "name": "CostRow",
               "line_start": 1127,
-              "line_end": 1161,
-              "hash": "945615c280622273",
+              "line_end": 1163,
+              "hash": "d341941b72bd2d6f",
               "kind": "function"
             },
             {
@@ -5825,13 +5825,13 @@
               "name": "NewBucketScreen",
               "line_start": 174,
               "line_end": 617,
-              "hash": "2fb8a68592fe8391",
+              "hash": "882771d2a76614ae",
               "kind": "function"
             },
             {
               "name": "StepAskCheckin",
-              "line_start": 1204,
-              "line_end": 1224,
+              "line_start": 1206,
+              "line_end": 1226,
               "hash": "00d4940260a9484c",
               "kind": "function"
             },
@@ -5851,23 +5851,23 @@
             },
             {
               "name": "StepFirstCheckin",
-              "line_start": 1226,
-              "line_end": 1294,
+              "line_start": 1228,
+              "line_end": 1296,
               "hash": "58976a066b0f0732",
               "kind": "function"
             },
             {
               "name": "StepReview",
-              "line_start": 1296,
-              "line_end": 1470,
-              "hash": "0b62bd8397d40e63",
+              "line_start": 1298,
+              "line_end": 1472,
+              "hash": "f272db49f2e46753",
               "kind": "function"
             },
             {
               "name": "StepSafety",
-              "line_start": 1163,
-              "line_end": 1202,
-              "hash": "4b1598dad41c6241",
+              "line_start": 1165,
+              "line_end": 1204,
+              "hash": "29996ec82b6fa65e",
               "kind": "function"
             },
             {
@@ -5965,32 +5965,32 @@
           "functions": [
             {
               "name": "CurrencyProvider",
-              "line_start": 35,
-              "line_end": 37,
+              "line_start": 40,
+              "line_end": 42,
               "hash": "85a4cebdd0dd6c5a"
             },
             {
               "name": "makeFormatter",
-              "line_start": 69,
-              "line_end": 81,
-              "hash": "dfb878b672daae2b"
+              "line_start": 74,
+              "line_end": 86,
+              "hash": "6d66f4c2c2a943f6"
             },
             {
               "name": "useCurrency",
-              "line_start": 41,
-              "line_end": 47,
+              "line_start": 46,
+              "line_end": 52,
               "hash": "b966102e4f65d95f"
             },
             {
               "name": "useCurrencyCode",
-              "line_start": 51,
-              "line_end": 57,
+              "line_start": 56,
+              "line_end": 62,
               "hash": "43bef6eefe85f8fc"
             },
             {
               "name": "useCurrencySymbol",
-              "line_start": 61,
-              "line_end": 67,
+              "line_start": 66,
+              "line_end": 72,
               "hash": "47fa43f40ff825f8"
             }
           ],
@@ -5998,8 +5998,8 @@
           "components": [
             {
               "name": "CurrencyProvider",
-              "line_start": 35,
-              "line_end": 37,
+              "line_start": 40,
+              "line_end": 42,
               "hash": "85a4cebdd0dd6c5a",
               "kind": "function"
             }

@@ -121,7 +121,7 @@ export function CostDistributionChart({ slices, total }: CostDistributionChartPr
                 {centerSlice ? centerSlice.label : t("costs.distribution_total")}
               </div>
               <div style={{ fontSize: 20, fontWeight: 600, color: "var(--ink)", lineHeight: 1.2 }}>
-                {fmt(centerSlice ? centerSlice.amount : visibleTotal, { decimals: 0 })}
+                {fmt(centerSlice ? centerSlice.amount : visibleTotal)}
               </div>
               {centerSlice && (
                 <div className="muted" style={{ fontSize: 11.5 }}>
@@ -187,7 +187,7 @@ export function CostDistributionChart({ slices, total }: CostDistributionChartPr
                   {slice.label}
                 </span>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
-                  {fmt(slice.amount, { decimals: 0 })}
+                  {fmt(slice.amount)}
                 </span>
                 <span className="muted" style={{ fontSize: 12, minWidth: 34, textAlign: "right" }}>
                   {pct != null ? `${pct}%` : "—"}

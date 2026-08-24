@@ -278,7 +278,7 @@ test("create a pet bucket from the Pet template without a safety-buffer follow-u
   await page.getByRole("button", { name: "No", exact: true }).click();
 
   await expect(page.locator(".wizard-footer")).toContainText("4,167 Ft/mo");
-  await expect(page.locator(".allocation-callout")).toContainText("136.99 Ft/day · 50,000 Ft/year");
+  await expect(page.locator(".allocation-callout")).toContainText("137 Ft/day · 50,000 Ft/year");
   await expect(page.getByText("Pet insurance", { exact: true })).toBeVisible();
   await expect(page.getByText("Annual vaccinations", { exact: true })).toBeVisible();
 
@@ -427,7 +427,7 @@ test("editing a template row's amount and interval on the costs step persists th
   const liabilityRow = page.getByRole("row", { name: /Mandatory liability insurance/ });
   await expect(liabilityRow).toContainText("60,000");
   await expect(liabilityRow).toContainText("6");
-  await expect(liabilityRow).toContainText("328.77");
+  await expect(liabilityRow).toContainText("329");
 });
 
 test("allocation estimate retries through the backend and preserves wizard input", async ({ page }) => {

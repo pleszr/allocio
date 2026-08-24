@@ -52,14 +52,14 @@ export function HomeScreen({ overview, onOpenAsset, onNew }: HomeScreenProps) {
           <div className="summary">
             <div className="summary-cell">
               <div className="summary-label">{t("home.total_to_allocate")}</div>
-              <div className="num-lg">{fmt(totals.total_recommended_monthly_allocation, { decimals: 0 })}</div>
+              <div className="num-lg">{fmt(totals.total_recommended_monthly_allocation)}</div>
               <div className="row-meta" style={{ marginTop: 4 }}>
                 {t("home.recommended_across")}
               </div>
             </div>
             <div className="summary-cell">
               <div className="summary-label">{t("home.combined_balance")}</div>
-              <div className="num-lg">{fmt(totals.total_balance, { decimals: 0 })}</div>
+              <div className="num-lg">{fmt(totals.total_balance)}</div>
               <div className="row-meta" style={{ marginTop: 4 }}>
                 {t("home.across_buckets", { count: assets.length })}
               </div>
@@ -93,7 +93,7 @@ function BucketCard({ asset, onOpen }: { asset: AssetSummary; onOpen: () => void
           </div>
           <div className="bucket-row">
             <span className="bucket-row-label">{t("home.next_allocation")}</span>
-            <span className="bucket-row-val">{fmt(asset.recommended_monthly_allocation, { decimals: 0 })}</span>
+            <span className="bucket-row-val">{fmt(asset.recommended_monthly_allocation)}</span>
           </div>
         </div>
       </div>

@@ -412,6 +412,7 @@ class CheckInService:
             expense_drafts=self._expense_inputs(expenses),
             prior_allocation_amounts=check_in_repository.list_posted_allocation_amounts(self._session, bucket.id),
             prior_expense_amounts=[row.bucket_amount for row in posted_expenses],
+            currency=bucket.currency,
         )
 
     def _time_based_inputs(

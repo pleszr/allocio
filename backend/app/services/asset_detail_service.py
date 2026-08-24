@@ -120,7 +120,7 @@ class AssetDetailService:
         )
         total_expense_365d = self._trailing_expense_total(asset_id, today)
         average_actual_monthly_cost = calculator.quantize_currency(
-            total_expense_365d / Decimal(manual_extra_recommended_months)
+            total_expense_365d / Decimal(manual_extra_recommended_months), summary.currency
         )
         average_allocation = self._average_allocation(asset)
         return AssetDetail(
@@ -131,7 +131,9 @@ class AssetDetailService:
             currency=summary.currency,
             balance=summary.balance,
             recommended_monthly_allocation=summary.recommended_monthly_allocation,
-            daily_accrual=calculator.quantize_currency(summary.recommended_monthly_allocation * 12 / 365),
+            daily_accrual=calculator.quantize_currency(
+                summary.recommended_monthly_allocation * 12 / 365, summary.currency
+            ),
             vehicle_age_years=(
                 today.year - vehicle_profile.manufacture_year
                 if vehicle_profile is not None and vehicle_profile.manufacture_year is not None
@@ -182,7 +184,7 @@ class AssetDetailService:
             ),
             Decimal(0),
         )
-        return calculator.quantize_currency((allocated + out_of_pocket) / Decimal(12))
+        return calculator.quantize_currency((allocated + out_of_pocket) / Decimal(12), bucket.currency)
 
     def _avg_monthly_paid_out_of_pocket(self, asset_id: uuid.UUID, as_of: date) -> Decimal:
         """Average trailing 12-month out-of-pocket expense funding, excluding bucket-covered allocations.
@@ -202,7 +204,7 @@ class AssetDetailService:
             ),
             Decimal(0),
         )
-        return calculator.quantize_currency(out_of_pocket / Decimal(12))
+        return calculator.quantize_currency(out_of_pocket / Decimal(12), bucket.currency)
 
     def _next_maintenance(
         self, maintenance_items: list[MaintenanceItemView]
@@ -237,7 +239,9 @@ class AssetDetailService:
         bucket = expense_repository.get_bucket_for_asset(self._session, asset.id)
         if bucket is None:
             return Decimal("0.00")
-        return calculator.quantize_currency(self._workspace.base_required_allocation(asset, bucket))
+        return calculator.quantize_currency(
+            self._workspace.base_required_allocation(asset, bucket), bucket.currency
+        )
 
     def _trailing_expense_total(self, asset_id: uuid.UUID, today: date) -> Decimal:
         """Sum posted expense `amount` over the trailing 365 days, skipping `excluded_from_average` rows.
@@ -274,7 +278,7 @@ class AssetDetailService:
         """
         shortfall = max(Decimal(0), average_actual_monthly_cost - average_allocation)
         threshold = _RECOMMENDATION_VISIBILITY_THRESHOLD.get(currency, _DEFAULT_RECOMMENDATION_VISIBILITY_THRESHOLD)
-        return calculator.quantize_currency(shortfall) if shortfall >= threshold else Decimal("0.00")
+        return calculator.quantize_currency(shortfall, currency) if shortfall >= threshold else Decimal("0.00")
 
     def _recent_activity(self, asset_id: uuid.UUID) -> list[ActivityItem]:
         """Merge posted allocations (inflow) and expenses (outflow) into a newest-first, capped feed."""

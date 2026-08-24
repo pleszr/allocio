@@ -175,11 +175,11 @@ export function TimeCostPanel({ costs, today = new Date(), onOpenHistory }: Time
       <div className="tcp-body">
         <div className="tcp-rail">
           <div className="tcp-stat-lbl">{t("timeCostPanel.this_month")}</div>
-          <div className="tcp-stat-big">{fmt(monthlyTotal, { decimals: 0 })}</div>
+          <div className="tcp-stat-big">{fmt(monthlyTotal)}</div>
           <div className="tcp-stat-lbl" style={{ marginTop: 14 }}>
             {t("timeCostPanel.this_year")}
           </div>
-          <div className="tcp-stat-mid">{fmt(annualTotal, { decimals: 0 })}</div>
+          <div className="tcp-stat-mid">{fmt(annualTotal)}</div>
 
           <div className="tcp-divider" />
           <div className="tcp-stat-lbl">{t("timeCostPanel.share_of_total")}</div>
@@ -220,7 +220,7 @@ export function TimeCostPanel({ costs, today = new Date(), onOpenHistory }: Time
                 <span className="tcp-item-body">
                   <span className="tcp-item-head">
                     <span className="tcp-item-name">{it.label}</span>
-                    <span className="tcp-item-amt">{fmt(it.reference_amount, { decimals: 0 })}</span>
+                    <span className="tcp-item-amt">{fmt(it.reference_amount)}</span>
                   </span>
                   <span className="tcp-item-meta">
                     {it.next_due_date && (

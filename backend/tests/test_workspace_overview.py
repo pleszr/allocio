@@ -144,7 +144,7 @@ def test_created_vehicle_recommended_matches_seeded_time_based(client: TestClien
         ),
         Decimal(0),
     )
-    assert _dec(summary["recommended_monthly_allocation"]) == quantize_currency(expected_time_based)
+    assert _dec(summary["recommended_monthly_allocation"]) == quantize_currency(expected_time_based, "HUF")
 
 
 def test_created_house_recommended_includes_template_manual_extra(
@@ -236,7 +236,7 @@ def test_usage_based_monthly_sums_active_rows(client: TestClient, db_session: Se
     summary = _asset_by_id(body, asset.id)
 
     # No time-based rows on this bare asset, so recommended monthly is the usage sum across both rows.
-    assert _dec(summary["recommended_monthly_allocation"]) == quantize_currency(Decimal("300") * Decimal("16"))
+    assert _dec(summary["recommended_monthly_allocation"]) == quantize_currency(Decimal("300") * Decimal("16"), "HUF")
 
 
 def test_health_and_alert_fields_are_absent(client: TestClient, db_session: Session) -> None:

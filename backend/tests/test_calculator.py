@@ -37,7 +37,7 @@ def test_interval_years_rejects_bad_input():
 @pytest.mark.parametrize(
     ("amount", "interval_value", "interval_unit", "expected"),
     [
-        # docs/vehicle-rules.md Example 2, elapsed_days = 30, quantized to 2dp.
+        # docs/vehicle-rules.md Example 2, elapsed_days = 30, quantized to 2dp (a USD/EUR bucket).
         (Decimal("49900"), 1, "years", Decimal("4101.37")),
         (Decimal("14000"), 6, "months", Decimal("2301.37")),
         (Decimal("41500"), 2, "years", Decimal("1705.48")),
@@ -45,7 +45,23 @@ def test_interval_years_rejects_bad_input():
 )
 def test_time_based_accrual_matches_workbook_example_2(amount, interval_value, interval_unit, expected):
     accrual = calculator.time_based_period_accrual(amount, interval_value, interval_unit, 30)
-    assert calculator.quantize_currency(accrual) == expected
+    assert calculator.quantize_currency(accrual, "USD") == expected
+
+
+@pytest.mark.parametrize(
+    ("currency", "expected"),
+    [
+        # HUF has no practical subunit, so it rounds to whole units instead of 2dp.
+        ("HUF", Decimal("4101")),
+        ("EUR", Decimal("4101.37")),
+        ("USD", Decimal("4101.37")),
+        # An unrecognized currency falls back to 2dp.
+        ("GBP", Decimal("4101.37")),
+    ],
+)
+def test_quantize_currency_rounds_per_currency_decimal_places(currency, expected):
+    accrual = calculator.time_based_period_accrual(Decimal("49900"), 1, "years", 30)
+    assert calculator.quantize_currency(accrual, currency) == expected
 
 
 def test_time_based_accrual_rejects_negative_days():

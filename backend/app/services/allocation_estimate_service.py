@@ -82,9 +82,9 @@ class AllocationEstimateService:
         )
         self._validate_inputs(inputs)
         manual_extra = self._resolve_manual_extra(template, currency, manual_extra_monthly)
-        lines = [self._line(cost) for cost in inputs]
+        lines = [self._line(cost, currency) for cost in inputs]
         if manual_extra > 0:
-            lines.append(self._manual_extra_line(manual_extra))
+            lines.append(self._manual_extra_line(manual_extra, currency))
 
         yearly = sum(
             (
@@ -98,9 +98,9 @@ class AllocationEstimateService:
         return AllocationEstimate(
             currency=currency,
             lines=lines,
-            daily_total=calculator.quantize_currency(yearly / calculator.DAYS_PER_YEAR),
-            monthly_total=calculator.quantize_currency(yearly / Decimal(12)),
-            yearly_total=calculator.quantize_currency(yearly),
+            daily_total=calculator.quantize_currency(yearly / calculator.DAYS_PER_YEAR, currency),
+            monthly_total=calculator.quantize_currency(yearly / Decimal(12), currency),
+            yearly_total=calculator.quantize_currency(yearly, currency),
         )
 
     def _owner_currency(self, user_id: uuid.UUID) -> str:
@@ -223,27 +223,27 @@ class AllocationEstimateService:
                 f"Template '{template.key}' has no manual extra default for currency '{currency}'."
             ) from exc
 
-    def _line(self, cost: EstimateCostInput) -> AllocationEstimateLine:
+    def _line(self, cost: EstimateCostInput, currency: str) -> AllocationEstimateLine:
         annualized = calculator.time_based_annualized_amount(
             cost.amount, cost.interval_value, cost.interval_unit
         )
         return AllocationEstimateLine(
             key=cost.client_key,
             label=cost.label,
-            reference_amount=calculator.quantize_currency(cost.amount),
-            annualized_amount=calculator.quantize_currency(annualized),
-            monthly_amount=calculator.quantize_currency(annualized / Decimal(12)),
-            daily_rate=calculator.quantize_currency(annualized / calculator.DAYS_PER_YEAR),
+            reference_amount=calculator.quantize_currency(cost.amount, currency),
+            annualized_amount=calculator.quantize_currency(annualized, currency),
+            monthly_amount=calculator.quantize_currency(annualized / Decimal(12), currency),
+            daily_rate=calculator.quantize_currency(annualized / calculator.DAYS_PER_YEAR, currency),
         )
 
-    def _manual_extra_line(self, monthly_amount: Decimal) -> AllocationEstimateLine:
+    def _manual_extra_line(self, monthly_amount: Decimal, currency: str) -> AllocationEstimateLine:
         """Build the final estimate line for a positive flat monthly safety buffer."""
         annualized = monthly_amount * Decimal(12)
         return AllocationEstimateLine(
             key="manual_extra",
             label="Manual extra",
-            reference_amount=calculator.quantize_currency(monthly_amount),
-            annualized_amount=calculator.quantize_currency(annualized),
-            monthly_amount=calculator.quantize_currency(monthly_amount),
-            daily_rate=calculator.quantize_currency(annualized / calculator.DAYS_PER_YEAR),
+            reference_amount=calculator.quantize_currency(monthly_amount, currency),
+            annualized_amount=calculator.quantize_currency(annualized, currency),
+            monthly_amount=calculator.quantize_currency(monthly_amount, currency),
+            daily_rate=calculator.quantize_currency(annualized / calculator.DAYS_PER_YEAR, currency),
         )

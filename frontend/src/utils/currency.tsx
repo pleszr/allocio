@@ -10,20 +10,25 @@ import type { CurrencyCode } from "../api/types";
 interface CurrencyMeta {
   symbol: string;
   position: "prefix" | "suffix";
+  // Decimal places money in this currency is always shown with. HUF has no practical subunit and
+  // rounds to whole units; EUR/USD round to cents. Currency decides this, not the call site.
+  decimals: number;
 }
 
-// Relabel map: symbol + placement per currency. HUF suffixes "Ft"; EUR/USD prefix their glyph.
+// Relabel map: symbol + placement + decimals per currency. HUF suffixes "Ft"; EUR/USD prefix their glyph.
 const CURRENCY_META: Record<CurrencyCode, CurrencyMeta> = {
-  HUF: { symbol: "Ft", position: "suffix" },
-  EUR: { symbol: "€", position: "prefix" },
-  USD: { symbol: "$", position: "prefix" },
+  HUF: { symbol: "Ft", position: "suffix", decimals: 0 },
+  EUR: { symbol: "€", position: "prefix", decimals: 2 },
+  USD: { symbol: "$", position: "prefix", decimals: 2 },
 };
 
 export interface MoneyOptions {
-  // Decimal places to show; preserve each call site's existing count (0 or 2, sometimes 3).
-  decimals?: number;
   // When true, prefix a non-negative value with "+". Negatives always show the "−" glyph.
   sign?: boolean;
+  // Override the currency's default decimal count. Reserved for per-unit rates (e.g. HUF/km),
+  // which are not currency amounts and keep their own fixed precision; money amounts must not
+  // pass this and should let the currency decide.
+  decimals?: number;
 }
 
 // A formatter bound to the current display currency. Mirrors the old `fmtMoney` number handling
@@ -67,9 +72,9 @@ export function useCurrencySymbol(): CurrencyMeta {
 }
 
 function makeFormatter(currency: CurrencyCode): MoneyFormatter {
-  const { symbol, position } = CURRENCY_META[currency];
+  const { symbol, position, decimals: currencyDecimals } = CURRENCY_META[currency];
   return (n, opts = {}) => {
-    const { decimals = 2, sign = false } = opts;
+    const { sign = false, decimals = currencyDecimals } = opts;
     const abs = Math.abs(n).toLocaleString("en-US", {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,

@@ -13,9 +13,11 @@ in `conftest.py`, so it stays fast and leaves no residue. The browser Playwright
 
 from collections.abc import Callable
 from datetime import date, timedelta
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 
 from fastapi.testclient import TestClient
+
+from app.domain import calculator
 
 # The browser sends these exact payloads. Keep them mirrored with the frontend client.
 # `cost_overrides` mirrors what the New Bucket wizard now always sends for a selected time-based
@@ -189,9 +191,7 @@ def test_create_bucket_and_check_in_workflow(
     ) - Decimal(dashboard_body["manual_extra_monthly"])
     assert dashboard_body["vehicle_age_years"] == date.today().year - 2020
     assert dashboard_body["tracked_in_app_months"] >= 2
-    expected_average_cost = ((expected_allocated + Decimal("100.00")) / 12).quantize(
-        Decimal("0.01"), rounding=ROUND_HALF_UP
-    )
+    expected_average_cost = calculator.quantize_currency((expected_allocated + Decimal("100.00")) / 12, "HUF")
     assert Decimal(dashboard_body["average_monthly_cost"]) == expected_average_cost
     assert dashboard_body["next_maintenance"] is None
 
@@ -278,8 +278,8 @@ def test_create_pet_template_workflow(client: TestClient) -> None:
     estimate_body = estimate.json()
     assert [line["key"] for line in estimate_body["lines"]] == PET_KEYS
     assert Decimal(estimate_body["yearly_total"]) == Decimal("50000.00")
-    assert Decimal(estimate_body["monthly_total"]) == Decimal("4166.67")
-    assert Decimal(estimate_body["daily_total"]) == Decimal("136.99")
+    assert Decimal(estimate_body["monthly_total"]) == Decimal("4167")
+    assert Decimal(estimate_body["daily_total"]) == Decimal("137")
     assert all(line["key"] != "manual_extra" for line in estimate_body["lines"])
 
     created = client.post(

@@ -99,6 +99,22 @@ Rules:
 - `usage_amount` must be greater than or equal to `0`
 - odometer is always stored in kilometers in MVP
 
+## Currency Rounding
+
+Every derived accrual, allocation, and estimate amount is quantized once, at the boundary, by
+`quantize_currency(value, currency)` — the single rounding function shared by preview, posting,
+the allocation estimate, and the workspace/dashboard derivations below. It rounds half-up to a
+number of decimal places that depends on the bucket's (or estimate's) currency, not a fixed 2dp:
+
+- `HUF` — 0 decimal places (whole units); HUF has no practical subunit
+- `EUR`, `USD` — 2 decimal places
+- any other currency — defaults to 2 decimal places
+
+This means the same unrounded accrual renders differently by currency: `4,101.369863...` quantizes
+to `4,101 HUF` but `4,101.37 EUR`/`4,101.37 USD`. The underlying calculation engine (interval years,
+daily rates, elapsed-day proration) is unrounded and currency-agnostic throughout; only the final
+`quantize_currency` call is currency-aware.
+
 ## Time-Based Accrual
 
 ### What accrues
@@ -597,9 +613,9 @@ Derived:
 - KGFB annualized = `49,900 HUF/year`
 - Tire change annualized = `28,000 HUF/year`
 - Inspection annualized = `20,750 HUF/year`
-- Period KGFB accrual = `49,900 / 365 * 30 = 4,101.37 HUF`
-- Period tire-change accrual = `28,000 / 365 * 30 = 2,301.37 HUF`
-- Period inspection accrual = `20,750 / 365 * 30 = 1,705.48 HUF`
+- Period KGFB accrual = `49,900 / 365 * 30 = 4,101 HUF` (unrounded `4,101.37`, quantized to whole HUF)
+- Period tire-change accrual = `28,000 / 365 * 30 = 2,301 HUF` (unrounded `2,301.37`)
+- Period inspection accrual = `20,750 / 365 * 30 = 1,705 HUF` (unrounded `1,705.48`)
 
 ### Example 3: maintenance status
 

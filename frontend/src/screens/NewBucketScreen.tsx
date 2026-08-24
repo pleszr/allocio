@@ -13,7 +13,7 @@ import type {
 import { Icon } from "../components/Icon";
 import { Illo } from "../components/Illustrations";
 import type { IlloKind } from "../utils/assetType";
-import { useCurrency, useCurrencyCode } from "../utils/currency";
+import { useCurrency, useCurrencyCode, useCurrencySymbol } from "../utils/currency";
 import { fmtNumber, todayIso } from "../utils/format";
 
 interface NewBucketScreenProps {
@@ -357,7 +357,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
             ? `${fmtNumber(line.reference_amount)}${intervalLabel(intervalValue, intervalUnit)}`
             : customRow
               ? t("newBucket.review_per_period", {
-                  amount: fmt(line.reference_amount, { decimals: 2 }),
+                  amount: fmt(line.reference_amount),
                   period: periodLabel(customRow.period),
                 })
               : "",
@@ -588,7 +588,7 @@ export function NewBucketScreen({ onCancel, onCreated }: NewBucketScreenProps) {
                   {t("newBucket.estimated_allocation")}
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 600, fontFeatureSettings: '"tnum"' }}>
-                  {estimate ? fmt(displayedMonthlyTotal, { decimals: 0 }) : "—"}
+                  {estimate ? fmt(displayedMonthlyTotal) : "—"}
                   <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>
                     {t("newBucket.per_mo")}
                   </span>
@@ -1126,17 +1126,19 @@ function EditableCatalogRow({
 
 function CostRow({ cost, onUpdate, onRemove }: { cost: DraftCost; onUpdate: (p: Partial<DraftCost>) => void; onRemove: () => void }) {
   const { t } = useTranslation();
+  const { symbol, position } = useCurrencySymbol();
   return (
     <div className="cost-row">
       <input className="input" placeholder={t("newBucket.cost_name_ph")} value={cost.name} onChange={(e) => onUpdate({ name: e.target.value })} />
       <div className="input-prefix-wrap">
-        <span className="input-prefix">$</span>
+        {position === "prefix" && <span className="input-prefix">{symbol}</span>}
         <input
           className="input mono"
           type="number"
           value={cost.amount}
           onChange={(e) => onUpdate({ amount: Number(e.target.value) })}
         />
+        {position === "suffix" && <span className="input-suffix">{symbol}</span>}
       </div>
       <select className="input" value={cost.period} onChange={(e) => onUpdate({ period: e.target.value as Period })}>
         <option value="month">{t("newBucket.period_month")}</option>
@@ -1191,7 +1193,7 @@ function StepSafety({
             <div className="safety-card-label">{copy[p.id].label}</div>
             <div className="safety-card-desc">{copy[p.id].desc}</div>
             <div className="safety-card-amount">
-              +{fmt(p.amount, { decimals: 0 })}
+              +{fmt(p.amount)}
               {t("newBucket.per_mo")}
             </div>
           </button>
@@ -1329,12 +1331,12 @@ function StepReview({
       <div className="allocation-callout">
         <div>
           <div className="label">{t("newBucket.estimated_monthly")}</div>
-          <div className="num">{estimate ? fmt(displayedMonthlyTotal, { decimals: 0 }) : "—"}</div>
+          <div className="num">{estimate ? fmt(displayedMonthlyTotal) : "—"}</div>
           {estimate && (
             <div className="sub">
               {t("newBucket.est_sub", {
-                perDay: fmt(estimate.daily_total, { decimals: 2 }),
-                yearly: fmt(estimate.yearly_total, { decimals: 0 }),
+                perDay: fmt(estimate.daily_total),
+                yearly: fmt(estimate.yearly_total),
               })}
             </div>
           )}
@@ -1382,7 +1384,7 @@ function StepReview({
               </div>
             </div>
             <div className="review-row-amt">
-              {fmt(c.monthly ?? 0, { decimals: 0 })}
+              {fmt(c.monthly ?? 0)}
               <span className="muted" style={{ fontSize: 11.5, fontWeight: 400 }}>
                 {t("newBucket.per_mo")}
               </span>
@@ -1418,7 +1420,7 @@ function StepReview({
               t("newBucket.review_safety_none")
             ) : (
               <>
-                +{fmt(safetyAmount, { decimals: 0 })}
+                +{fmt(safetyAmount)}
                 <span className="muted" style={{ fontSize: 11.5, fontWeight: 400 }}>
                   {t("newBucket.per_mo")}
                 </span>
@@ -1458,7 +1460,7 @@ function StepReview({
             <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.55 }}>
               {t("newBucket.accruing_prefix")}{" "}
               <strong style={{ color: "var(--ink)" }}>
-                {estimate ? `${fmt(estimate.daily_total, { decimals: 2 })}/day` : "—"}
+                {estimate ? `${fmt(estimate.daily_total)}/day` : "—"}
               </strong>{" "}
               {t("newBucket.accruing_suffix")}
             </div>

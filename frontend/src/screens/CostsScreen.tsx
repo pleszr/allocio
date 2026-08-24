@@ -94,20 +94,20 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
         <div className="kpi">
           <div className="kpi-label">{t("costs.time_total")}</div>
           <div className="num-lg">
-            {fmt(timePerYear / 12, { decimals: 0 })}
+            {fmt(timePerYear / 12)}
             <span className="muted" style={{ fontSize: 14 }}>
               {t("costs.per_mo")}
             </span>
           </div>
           <div className="kpi-sub">
-            {fmt(timePerYear, { decimals: 0 })}
+            {fmt(timePerYear)}
             {t("costs.per_yr")}
           </div>
         </div>
         <div className="kpi">
           <div className="kpi-label">{t("costs.usage_rate")}</div>
           <div className="num-lg">
-            {fmt(usageRate * avgMonthlyUsage, { decimals: 2 })}
+            {fmt(usageRate * avgMonthlyUsage)}
             <span className="muted" style={{ fontSize: 14 }}>
               {t("costs.per_mo")}
             </span>
@@ -120,7 +120,7 @@ export function CostsScreen({ assetId, onChanged, initialTab }: CostsScreenProps
         <div className="kpi" style={{ background: "var(--accent-soft)", borderColor: "transparent" }}>
           <div className="kpi-label">{t("costs.required_allocation")}</div>
           <div className="num-lg">
-            {fmt(recommendedMonthly, { decimals: 0 })}
+            {fmt(recommendedMonthly)}
             <span className="muted" style={{ fontSize: 14 }}>
               {t("costs.per_mo")}
             </span>
@@ -247,11 +247,11 @@ function TimeTable({
                   {row.label}
                   {!row.is_active && <span className="pill" style={{ marginLeft: 8 }}>{t("costs.inactive")}</span>}
                 </td>
-                <td className="col-num">{fmt(row.amount, { decimals: 0 })}</td>
+                <td className="col-num">{fmt(row.amount)}</td>
                 <td className="row-meta">
                   {t("costs.every_interval", { value: row.interval_value, unit: t(`costs.unit_${row.interval_unit}`) })}
                 </td>
-                <td className="col-num">{fmt(row.daily_rate, { decimals: 2 })}</td>
+                <td className="col-num">{fmt(row.daily_rate)}</td>
                 <td className="row-meta">{row.next_due_date ? fmtDate(row.next_due_date) : "—"}</td>
                 <td onClick={(e) => e.stopPropagation()}>
                   <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(row.id)}>
@@ -404,7 +404,7 @@ function UsageTable({
         { label: t("costs.th_rate"), value: `${fmt(row.amount_per_unit, { decimals: 3 })}/${row.usage_unit}` },
         {
           label: t("costs.th_est_month"),
-          value: fmt(row.amount_per_unit * avgMonthlyUsage, { decimals: 2 }),
+          value: fmt(row.amount_per_unit * avgMonthlyUsage),
         },
       ],
     });
@@ -440,7 +440,7 @@ function UsageTable({
                   {fmt(u.amount_per_unit, { decimals: 3 })}/{u.usage_unit}
                 </td>
                 <td className="col-num">
-                  {fmt(u.amount_per_unit * avgMonthlyUsage, { decimals: 2 })}
+                  {fmt(u.amount_per_unit * avgMonthlyUsage)}
                   <div className="row-meta">
                     {t("costs.avg_per_month", { amount: fmtNumber(avgMonthlyUsage, 0), unit: u.usage_unit })}
                   </div>
