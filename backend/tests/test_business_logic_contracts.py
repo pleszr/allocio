@@ -29,7 +29,7 @@ def test_monthly_cost_annualizes_exactly_and_latest_modeled_expense_rolls_refere
     row = created.json()
     assert Decimal(row["reference_amount"]) == Decimal("100.00")
     assert Decimal(row["annualized_amount"]) == Decimal("1200.00")
-    assert Decimal(row["daily_rate"]) == Decimal("3.29")
+    assert Decimal(row["daily_rate"]) == Decimal("3")
 
     bucket = db_session.scalars(select(Bucket).where(Bucket.asset_id == uuid.UUID(asset_id))).one()
     db_session.add(
@@ -48,7 +48,7 @@ def test_monthly_cost_annualizes_exactly_and_latest_modeled_expense_rolls_refere
     listed = client.get(f"/api/assets/{asset_id}/time-based-costs").json()[0]
     assert Decimal(listed["reference_amount"]) == Decimal("150.00")
     assert Decimal(listed["annualized_amount"]) == Decimal("1800.00")
-    assert Decimal(listed["daily_rate"]) == Decimal("4.93")
+    assert Decimal(listed["daily_rate"]) == Decimal("5")
 
     updated = client.patch(
         f"/api/assets/{asset_id}/time-based-costs/{row['id']}",
@@ -129,7 +129,7 @@ def test_allocation_estimate_combines_template_override_and_custom_row_without_p
     ]
     assert Decimal(estimate["yearly_total"]) == Decimal("2400.00")
     assert Decimal(estimate["monthly_total"]) == Decimal("200.00")
-    assert Decimal(estimate["daily_total"]) == Decimal("6.58")
+    assert Decimal(estimate["daily_total"]) == Decimal("7")
     assert {model: _count(db_session, model) for model in models} == before
 
 
@@ -203,7 +203,7 @@ def test_house_allocation_estimate_defaults_overrides_and_template_isolation_are
     assert [line["key"] for line in payload["lines"]] == [*house_keys, "manual_extra"]
     assert Decimal(payload["yearly_total"]) == Decimal("414000.00")
     assert Decimal(payload["monthly_total"]) == Decimal("34500.00")
-    assert Decimal(payload["daily_total"]) == Decimal("1134.25")
+    assert Decimal(payload["daily_total"]) == Decimal("1134")
     assert {model: _count(db_session, model) for model in models} == before
 
     without_buffer = client.post(
@@ -273,8 +273,8 @@ def test_pet_allocation_estimate_defaults_overrides_and_template_isolation_are_p
         payload = response.json()
         assert [line["key"] for line in payload["lines"]] == pet_keys
         assert Decimal(payload["yearly_total"]) == Decimal("50000.00")
-        assert Decimal(payload["monthly_total"]) == Decimal("4166.67")
-        assert Decimal(payload["daily_total"]) == Decimal("136.99")
+        assert Decimal(payload["monthly_total"]) == Decimal("4167")
+        assert Decimal(payload["daily_total"]) == Decimal("137")
         assert {model: _count(db_session, model) for model in models} == before
 
     overridden = client.post(
@@ -298,7 +298,7 @@ def test_pet_allocation_estimate_defaults_overrides_and_template_isolation_are_p
     assert Decimal(payload["lines"][0]["reference_amount"]) == Decimal("24000.00")
     assert Decimal(payload["yearly_total"]) == Decimal("48000.00")
     assert Decimal(payload["monthly_total"]) == Decimal("4000.00")
-    assert Decimal(payload["daily_total"]) == Decimal("131.51")
+    assert Decimal(payload["daily_total"]) == Decimal("132")
     assert {model: _count(db_session, model) for model in models} == before
 
     for body in (

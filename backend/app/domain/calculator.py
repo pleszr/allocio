@@ -25,7 +25,8 @@ DAYS_PER_YEAR: Decimal = Decimal(365)
 INTERVAL_UNITS: frozenset[str] = frozenset({"months", "years"})
 
 _MONTHS_PER_YEAR: Decimal = Decimal(12)
-_CENT: Decimal = Decimal("0.01")
+_CURRENCY_DECIMAL_PLACES: dict[str, int] = {"HUF": 0, "EUR": 2, "USD": 2}
+_DEFAULT_DECIMAL_PLACES = 2
 _OVERDUE_RATIO: Decimal = Decimal("1.05")
 _DUE_RATIO: Decimal = Decimal("0.90")
 _SOON_RATIO: Decimal = Decimal("0.80")
@@ -265,19 +266,23 @@ def balance_at_dates(events: Sequence[tuple[date, Decimal]], as_of_dates: Sequen
     ]
 
 
-def quantize_currency(value: Decimal) -> Decimal:
-    """Round a raw accrual to a 2-decimal currency amount using half-up rounding.
+def quantize_currency(value: Decimal, currency: str) -> Decimal:
+    """Round a raw accrual to a currency amount using half-up rounding.
 
     The engine returns unrounded values; callers apply this only when building preview lines
-    or posted event amounts.
+    or posted event amounts. Decimal places depend on the currency: HUF has no practical
+    subunit and rounds to whole units, while EUR and USD round to cents.
 
     Args:
         value: An unrounded monetary value.
+        currency: The three-letter currency code the value is denominated in.
 
     Returns:
-        ``value`` rounded to two decimal places, half-up.
+        ``value`` rounded to that currency's decimal places, half-up.
     """
-    return value.quantize(_CENT, rounding=ROUND_HALF_UP)
+    places = _CURRENCY_DECIMAL_PLACES.get(currency, _DEFAULT_DECIMAL_PLACES)
+    quantum = Decimal(1).scaleb(-places)
+    return value.quantize(quantum, rounding=ROUND_HALF_UP)
 
 
 def maintenance_progress(

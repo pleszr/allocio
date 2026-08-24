@@ -509,8 +509,9 @@ they do not calculate FX or call an exchange-rate service.
 
 Pet's template-specific monthly safety-buffer fallback is zero in HUF, EUR, and USD. With both HUF
 rows selected and no explicit buffer, its recurring baseline is `50,000 HUF/year`,
-`4,166.67 HUF/month`, and `136.99 HUF/day`. The asset, bucket, selected Pet rows, and resolved
-zero buffer are created atomically.
+`4,167 HUF/month`, and `137 HUF/day` — HUF has no practical subunit, so quantization rounds to
+whole units rather than 2 decimal places (see "Currency Rounding" in `docs/vehicle-rules.md`). The
+asset, bucket, selected Pet rows, and resolved zero buffer are created atomically.
 
 Pet is a creation template, not a hardcoded first-class type or profile capability. It adds no
 profile, usage-based rows, maintenance rows, vaccination schedule, or reminders. Only the

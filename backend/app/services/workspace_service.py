@@ -138,7 +138,9 @@ class WorkspaceService:
         check-in accrual, where each allocation line is quantized before summing (`Σ quantize` — see
         `check_in_calc.compute_check_in`). Both are pre-existing, internally-correct patterns.
         """
-        return calculator.quantize_currency(self.base_required_allocation(asset, bucket) + asset.manual_extra_monthly)
+        return calculator.quantize_currency(
+            self.base_required_allocation(asset, bucket) + asset.manual_extra_monthly, bucket.currency
+        )
 
     def _time_based_monthly(self, asset: Asset, bucket: Bucket) -> Decimal:
         """Accrue the monthly total across active time-based costs, applying latest-cost rollover."""

@@ -164,15 +164,15 @@ function HistoryRow({
         >
           {rate != null ? rate.toFixed(1) : "—"}
         </td>
-        <td className="col-num row-meta">{fmt(row.allocated, { decimals: 2, sign: true })}</td>
-        <td className="col-num row-meta">{fmt(-row.expense, { decimals: 2 })}</td>
-        <td className="col-num row-meta">{fmt(-row.bucket_expense, { decimals: 2 })}</td>
-        <td className="col-num row-meta">{fmt(row.paid_out_of_pocket, { decimals: 2 })}</td>
+        <td className="col-num row-meta">{fmt(row.allocated, { sign: true })}</td>
+        <td className="col-num row-meta">{fmt(-row.expense)}</td>
+        <td className="col-num row-meta">{fmt(-row.bucket_expense)}</td>
+        <td className="col-num row-meta">{fmt(row.paid_out_of_pocket)}</td>
         <td className="col-num" style={{ fontWeight: 500, color: row.net >= 0 ? "var(--good)" : "var(--bad)" }}>
-          {fmt(row.net, { decimals: 2, sign: true })}
+          {fmt(row.net, { sign: true })}
         </td>
         <td className="col-num" style={{ fontWeight: 600 }}>
-          {fmt(row.balance, { decimals: 2 })}
+          {fmt(row.balance)}
         </td>
         <td onClick={(e) => e.stopPropagation()}>
           <button
@@ -198,11 +198,11 @@ function HistoryRow({
                       {t("history.excluded_from_average_badge")}
                     </span>
                   )}
-                  <span className="history-expense-amount">{fmt(-line.amount, { decimals: 2 })}</span>
+                  <span className="history-expense-amount">{fmt(-line.amount)}</span>
                   {line.paid_out_of_pocket > 0 && (
                     <span className="history-expense-split">
-                      {t("history.th_bucket_expense")}: {fmt(line.bucket_amount, { decimals: 2 })} ·{" "}
-                      {t("history.th_paid_out_of_pocket")}: {fmt(line.paid_out_of_pocket, { decimals: 2 })}
+                      {t("history.th_bucket_expense")}: {fmt(line.bucket_amount)} ·{" "}
+                      {t("history.th_paid_out_of_pocket")}: {fmt(line.paid_out_of_pocket)}
                     </span>
                   )}
                   <span className="history-expense-date">{fmtDate(line.event_date)}</span>

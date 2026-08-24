@@ -87,8 +87,8 @@ export function ManualExtraEditor({ assetId, current, recommended, onChanged, re
             {snapshot.recommended > 0 && (
               <div className="confirm-popover-breakdown" style={{ marginTop: 8 }}>
                 {t("costs.manual_extra_recommended_context", {
-                  recommended: fmt(snapshot.recommended, { decimals: 0 }),
-                  current: fmt(snapshot.current, { decimals: 0 }),
+                  recommended: fmt(snapshot.recommended),
+                  current: fmt(snapshot.current),
                 })}
               </div>
             )}

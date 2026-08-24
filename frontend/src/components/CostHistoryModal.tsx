@@ -41,7 +41,7 @@ export function timeCostHistoryTarget(
     costId: row.id,
     label: row.label,
     meta: [
-      { label: t("costs.th_amount"), value: fmt(row.reference_amount, { decimals: 0 }) },
+      { label: t("costs.th_amount"), value: fmt(row.reference_amount) },
       {
         label: t("costs.th_every"),
         value: t("costs.every_interval", { value: row.interval_value, unit: t(`costs.unit_${row.interval_unit}`) }),
@@ -77,7 +77,7 @@ export function maintHistoryTarget(
       { label: t("costs.th_replace_every"), value: intervalText },
       { label: t("costs.th_last_serviced"), value: lastServicedText },
       ...(item.estimated_cost !== null
-        ? [{ label: t("costs.field_amount"), value: fmt(item.estimated_cost, { decimals: 0 }) }]
+        ? [{ label: t("costs.field_amount"), value: fmt(item.estimated_cost) }]
         : []),
     ],
   };
@@ -164,7 +164,7 @@ export function CostHistoryModal({ assetId, kind, costId, label, meta, onClose }
                   data={amounts}
                   months={dates}
                   height={90}
-                  fmtValue={(v) => fmt(v, { decimals: 0 })}
+                  fmtValue={(v) => fmt(v)}
                 />
               </div>
             )}
@@ -173,12 +173,12 @@ export function CostHistoryModal({ assetId, kind, costId, label, meta, onClose }
                 <li key={r.id} className="cost-history-line">
                   <span className="cost-history-date">{fmtDate(r.event_date)}</span>
                   <span className="cost-history-comment">{r.comment ?? ""}</span>
-                  <span className="cost-history-amount">{fmt(r.amount, { decimals: 0 })}</span>
+                  <span className="cost-history-amount">{fmt(r.amount)}</span>
                   {r.paid_out_of_pocket > 0 && (
                     <span className="cost-history-split">
                       {t("costHistory.split", {
-                        bucket: fmt(r.bucket_amount, { decimals: 0 }),
-                        pocket: fmt(r.paid_out_of_pocket, { decimals: 0 }),
+                        bucket: fmt(r.bucket_amount),
+                        pocket: fmt(r.paid_out_of_pocket),
                       })}
                     </span>
                   )}

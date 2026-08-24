@@ -145,14 +145,14 @@ test("out-of-pocket amount requires bilingual confirmation and stays out of the 
 
   await previewed;
   await expect(page.getByRole("button", { name: "Confirm and post" })).toBeEnabled();
-  await expect(page.getByText("5,000.00 Ft", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("5,000 Ft", { exact: true }).first()).toBeVisible();
 
   await page.getByRole("button", { name: "Confirm and post" }).click();
   const englishDialog = page.getByRole("dialog");
   await expect(englishDialog.getByRole("heading", { name: "Paid out of pocket" })).toBeVisible();
   await expect(
     englishDialog.getByText(
-      "This expense is larger than the money available in this bucket. 5,000.00 Ft will be recorded as paid out of pocket, and the bucket balance will stay at zero.",
+      "This expense is larger than the money available in this bucket. 5,000 Ft will be recorded as paid out of pocket, and the bucket balance will stay at zero.",
     ),
   ).toBeVisible();
   await englishDialog.getByRole("button", { name: "Back" }).click();
@@ -170,7 +170,7 @@ test("out-of-pocket amount requires bilingual confirmation and stays out of the 
   await expect(hungarianDialog.getByRole("heading", { name: "Kifizettük zsebből" })).toBeVisible();
   await expect(
     hungarianDialog.getByText(
-      "Ez a kiadás nagyobb, mint a zsebben elérhető összeg. 5,000.00 Ft zsebből fizetett összegként lesz rögzítve, a zseb egyenlege pedig nulla marad.",
+      "Ez a kiadás nagyobb, mint a zsebben elérhető összeg. 5,000 Ft zsebből fizetett összegként lesz rögzítve, a zseb egyenlege pedig nulla marad.",
     ),
   ).toBeVisible();
 
@@ -193,10 +193,10 @@ test("out-of-pocket amount requires bilingual confirmation and stays out of the 
   await expect(page.getByRole("columnheader", { name: "Covered by bucket" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Paid out of pocket" })).toBeVisible();
   const historyRow = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "120,000" }) });
-  await expect(historyRow.locator("td").nth(5)).toContainText("−5,000.00 Ft");
-  await expect(historyRow.locator("td").nth(6)).toContainText("0.00 Ft");
-  await expect(historyRow.locator("td").nth(7)).toContainText("5,000.00 Ft");
-  await expect(historyRow.locator("td").nth(9)).toContainText("0.00 Ft");
+  await expect(historyRow.locator("td").nth(5)).toContainText("−5,000 Ft");
+  await expect(historyRow.locator("td").nth(6)).toContainText("0 Ft");
+  await expect(historyRow.locator("td").nth(7)).toContainText("5,000 Ft");
+  await expect(historyRow.locator("td").nth(9)).toContainText("0 Ft");
 });
 
 test("paid-out-of-pocket override forces the full expense out of the bucket in the preview", async ({ page }) => {
@@ -243,9 +243,9 @@ test("paid-out-of-pocket override forces the full expense out of the bucket in t
   // expenses -> review, where the per-line breakdown renders.
   await page.getByRole("button", { name: "Continue" }).click();
   const pocketLine = page.locator(".checkin-line").filter({ hasText: "Paid out of pocket" });
-  await expect(pocketLine.locator(".checkin-line-amt")).toHaveText("3,000.00 Ft");
+  await expect(pocketLine.locator(".checkin-line-amt")).toHaveText("3,000 Ft");
   const bucketLine = page.locator(".checkin-line").filter({ hasText: "Covered by bucket" });
-  await expect(bucketLine.locator(".checkin-line-amt")).toHaveText("0.00 Ft");
+  await expect(bucketLine.locator(".checkin-line-amt")).toHaveText("0 Ft");
 });
 
 test("a failed automatic preview can be retried without changing the form", async ({ page }) => {

@@ -73,7 +73,7 @@ test("editing a posted check-in's expense from History updates the ledger with n
 
   await page.getByRole("tab", { name: "History" }).click();
   const historyRow = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "120,000" }) });
-  await expect(historyRow.locator("td").nth(5)).toContainText("−5,000.00 Ft");
+  await expect(historyRow.locator("td").nth(5)).toContainText("−5,000 Ft");
 
   const editTargetFetched = page.waitForResponse((r) => /\/check-ins\/[^/]+$/.test(r.url()) && r.ok());
   const initialEditPreviewed = page.waitForResponse(
@@ -115,7 +115,7 @@ test("editing a posted check-in's expense from History updates the ledger with n
 
   await expect(page.getByRole("heading", { name: "History" })).toBeVisible();
   const updatedRow = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "120,000" }) });
-  await expect(updatedRow.locator("td").nth(5)).toContainText("−8,000.00 Ft");
+  await expect(updatedRow.locator("td").nth(5)).toContainText("−8,000 Ft");
   // Locked-in decision: no "edited" indicator anywhere in the History row.
   await expect(updatedRow.getByText(/edited/i)).toHaveCount(0);
 });

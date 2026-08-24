@@ -663,11 +663,11 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
                 <div className="allocation-callout" style={{ marginBottom: 16 }}>
                   <div>
                     <div className="label">{t("checkin.net_change")}</div>
-                    <div className="num">{fmt(preview.net_bucket_change, { decimals: 2, sign: true })}</div>
+                    <div className="num">{fmt(preview.net_bucket_change, { sign: true })}</div>
                     <div className="sub">
                       {t("checkin.from_to", {
-                        from: fmt(preview.balance_before, { decimals: 2 }),
-                        to: fmt(preview.balance_after, { decimals: 2 }),
+                        from: fmt(preview.balance_before),
+                        to: fmt(preview.balance_after),
                       })}
                     </div>
                   </div>
@@ -690,7 +690,7 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
                     </div>
                     <span></span>
                     <span className="checkin-line-amt" style={{ color: "var(--good)" }}>
-                      {fmt(preview.total_allocation, { decimals: 2, sign: true })}
+                      {fmt(preview.total_allocation, { sign: true })}
                     </span>
                   </div>
                   <div className="checkin-line">
@@ -702,18 +702,18 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
                     </div>
                     <span></span>
                     <span className="checkin-line-amt" style={{ color: "var(--bad)" }}>
-                      {fmt(-preview.total_expense, { decimals: 2 })}
+                      {fmt(-preview.total_expense)}
                     </span>
                   </div>
                   <div className="checkin-line">
                     <div>{t("checkin.covered_by_bucket")}</div>
                     <span></span>
-                    <span className="checkin-line-amt">{fmt(-preview.total_bucket_expense, { decimals: 2 })}</span>
+                    <span className="checkin-line-amt">{fmt(-preview.total_bucket_expense)}</span>
                   </div>
                   <div className="checkin-line">
                     <div>{t("checkin.paid_out_of_pocket")}</div>
                     <span></span>
-                    <span className="checkin-line-amt">{fmt(preview.paid_out_of_pocket, { decimals: 2 })}</span>
+                    <span className="checkin-line-amt">{fmt(preview.paid_out_of_pocket)}</span>
                   </div>
                 </div>
                 {editIsInvalid && editValidity?.first_invalid_period_end && (
@@ -769,7 +769,7 @@ export function CheckInScreen({ assetId, editCheckInId, onSaved, onEditSaved }: 
             </h2>
             <p id="paid-out-of-pocket-description" className="muted" style={{ lineHeight: 1.6, marginTop: 12 }}>
               {t("checkin.out_of_pocket_dialog_body", {
-                amount: fmt(preview.paid_out_of_pocket, { decimals: 2 }),
+                amount: fmt(preview.paid_out_of_pocket),
               })}
             </p>
             <div className="modal-actions">
@@ -813,10 +813,10 @@ function PostedState({
           {t("checkin.posted_sub", { name })}
         </div>
         <div className="num-xl" style={{ marginTop: 18, color: netChange >= 0 ? "var(--good)" : "var(--bad)" }}>
-          {fmt(netChange, { decimals: 2, sign: true })}
+          {fmt(netChange, { sign: true })}
         </div>
         <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
-          {t("checkin.posted_new_balance", { amount: fmt(balanceAfter, { decimals: 2 }) })}
+          {t("checkin.posted_new_balance", { amount: fmt(balanceAfter) })}
         </div>
         <button className="btn btn-primary" style={{ marginTop: 22 }} onClick={onDone}>
           {t("checkin.posted_done")}
@@ -940,7 +940,7 @@ function ExpenseRow({
           onChange={(ev) => onChange({ pocketOverride: ev.target.value })}
         />
         {adjustedAmount !== null && (
-          <div className="row-meta">{t("checkin.expense_pocket_adjusted", { amount: fmt(adjustedAmount, { decimals: 2 }) })}</div>
+          <div className="row-meta">{t("checkin.expense_pocket_adjusted", { amount: fmt(adjustedAmount) })}</div>
         )}
       </div>
       <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>

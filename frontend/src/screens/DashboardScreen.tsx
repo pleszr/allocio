@@ -81,10 +81,10 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           <div className="muted" style={{ fontSize: 13.5, marginBottom: 4 }}>
             {t("dashboard.bucket_balance")}
           </div>
-          <div className="num-xl">{fmt(e.balance, { decimals: 2 })}</div>
+          <div className="num-xl">{fmt(e.balance)}</div>
           <div style={{ marginTop: 10, fontSize: 13.5, color: "var(--muted)" }}>
             <span className={delta >= 0 ? "delta-up" : "delta-down"} style={{ fontWeight: 600 }}>
-              {delta >= 0 ? "↑" : "↓"} {fmt(Math.abs(delta), { decimals: 0 })}
+              {delta >= 0 ? "↑" : "↓"} {fmt(Math.abs(delta))}
             </span>{" "}
             {t("dashboard.this_month")}
           </div>
@@ -97,7 +97,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
             <div className="hero-stat-val">
               {e.tracks_usage && e.current_usage !== null
                 ? `${fmtNumber(e.current_usage)} km`
-                : fmt(e.daily_accrual, { decimals: 2 })}
+                : fmt(e.daily_accrual)}
               {e.tracks_usage && e.usage_since_last_check_in !== null && (
                 <span className="muted" style={{ fontSize: 12, fontWeight: 400, marginLeft: 8 }}>
                   {t("dashboard.usage_since_last", { km: fmtNumber(e.usage_since_last_check_in) })}
@@ -107,7 +107,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           </div>
           <div>
             <div className="hero-stat-label">{t("dashboard.average_allocation")}</div>
-            <div className="hero-stat-val">{fmt(e.average_allocation, { decimals: 0 })}</div>
+            <div className="hero-stat-val">{fmt(e.average_allocation)}</div>
           </div>
           <button className="btn btn-primary btn-sm" onClick={() => onTab("checkin")} style={{ alignSelf: "flex-start" }}>
             {t("dashboard.run_checkin")} <Icon name="arrowRight" size={12} />
@@ -120,20 +120,20 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
         <div className="kpi">
           <div className="kpi-label">{t("costs.time_total")}</div>
           <div className="num-lg">
-            {fmt(timePerYear / 12, { decimals: 0 })}
+            {fmt(timePerYear / 12)}
             <span className="muted" style={{ fontSize: 14 }}>
               {t("costs.per_mo")}
             </span>
           </div>
           <div className="kpi-sub">
-            {fmt(timePerYear, { decimals: 0 })}
+            {fmt(timePerYear)}
             {t("costs.per_yr")}
           </div>
         </div>
         <div className="kpi">
           <div className="kpi-label">{t("costs.usage_rate")}</div>
           <div className="num-lg">
-            {fmt(usageMonthly, { decimals: 2 })}
+            {fmt(usageMonthly)}
             <span className="muted" style={{ fontSize: 14 }}>
               {t("costs.per_mo")}
             </span>
@@ -142,14 +142,14 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
             <div className="kpi-sub">{t("costs.usage_per_day", { amount: fmtNumber(usagePerDay), unit: usageUnit })}</div>
           )}
           <div className="kpi-sub">
-            {fmt(usageRateDisplay, { decimals: 0 })}
+            {fmt(usageRateDisplay)}
             {usageRateUnitLabel && `/${usageRateUnitLabel}`}
           </div>
         </div>
         <div className="kpi">
           <div className="kpi-label">{t("costs.manual_extra")}</div>
           <div className="num-lg">
-            {fmt(e.manual_extra_monthly, { decimals: 0 })}
+            {fmt(e.manual_extra_monthly)}
             <span className="muted" style={{ fontSize: 14 }}>
               {t("costs.per_mo")}
             </span>
@@ -157,14 +157,14 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
           {hasManualExtraRecommendation ? (
             <div className="kpi-copy" style={{ fontSize: 12.5, marginTop: 6 }}>
               <div className="kpi-copy-line">
-                {t("dashboard.extra_context_cost", { amount: fmt(e.average_actual_monthly_cost, { decimals: 0 }) })}
+                {t("dashboard.extra_context_cost", { amount: fmt(e.average_actual_monthly_cost) })}
               </div>
               <div className="kpi-copy-line">
-                {t("dashboard.extra_context_allocation", { amount: fmt(e.average_allocation, { decimals: 0 }) })}
+                {t("dashboard.extra_context_allocation", { amount: fmt(e.average_allocation) })}
               </div>
               <div className="kpi-copy-line">
                 {t("costs.manual_extra_recommended_amount", {
-                  amount: fmt(e.manual_extra_recommended, { decimals: 0 }),
+                  amount: fmt(e.manual_extra_recommended),
                 })}{" "}
                 <ManualExtraEditor
                   assetId={assetId}
@@ -199,7 +199,7 @@ export function DashboardScreen({ assetId, onTab }: DashboardScreenProps) {
         <div className="kpi" style={{ background: "var(--accent-soft)", borderColor: "transparent" }}>
           <div className="kpi-label">{t("costs.required_allocation")}</div>
           <div className="num-lg">
-            {fmt(e.recommended_monthly_allocation, { decimals: 0 })}
+            {fmt(e.recommended_monthly_allocation)}
             <span className="muted" style={{ fontSize: 14 }}>
               {t("costs.per_mo")}
             </span>

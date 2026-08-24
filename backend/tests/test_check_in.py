@@ -1,10 +1,11 @@
 import uuid
 from collections.abc import Callable
 from datetime import date, timedelta
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 
 from fastapi.testclient import TestClient
 
+from app.domain import calculator
 from app.domain.vehicle_defaults import vehicle_catalog_keys
 
 # These scenarios exercise check-in accrual over the full seeded cost set, so select every
@@ -103,8 +104,8 @@ def test_preview_covers_every_active_cost(client: TestClient, backdate_asset_cre
     assert _dec(usage_lines[0]["amount"]) == Decimal("9000.00")
     # Seasonal tire change: 14000 every 6 months annualized over elapsed days (vehicle-rules Example 2).
     tire = next(line for line in time_based_lines if line["label"] == "Seasonal tire change")
-    expected_tire = (Decimal("28000") / Decimal(365) * Decimal(preview["elapsed_days"])).quantize(
-        Decimal("0.01"), rounding=ROUND_HALF_UP
+    expected_tire = calculator.quantize_currency(
+        Decimal("28000") / Decimal(365) * Decimal(preview["elapsed_days"]), "HUF"
     )
     assert _dec(tire["amount"]) == expected_tire
     # total_allocation is exactly the sum of the line amounts.
@@ -125,9 +126,7 @@ def test_preview_prorates_manual_extra_into_the_check_in_allocation(
     ).json()
 
     manual_line = next(line for line in preview["allocation_lines"] if line["source_type"] == "manual_extra")
-    expected = (Decimal("1000.00") * 12 / 365 * preview["elapsed_days"]).quantize(
-        Decimal("0.01"), rounding=ROUND_HALF_UP
-    )
+    expected = calculator.quantize_currency(Decimal("1000.00") * 12 / 365 * preview["elapsed_days"], "HUF")
     assert manual_line["source_id"] is None
     assert _dec(manual_line["amount"]) == expected
     assert _dec(preview["total_allocation"]) == sum(

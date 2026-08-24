@@ -3,12 +3,13 @@ import uuid
 from calendar import monthrange
 from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.domain import calculator
 from app.domain.asset import Asset, Bucket
 from app.domain.check_in import AllocationEvent, CheckIn, ExpenseEvent
 from app.domain.vehicle_defaults import vehicle_catalog_keys
@@ -58,9 +59,9 @@ def test_detail_composes_derived_figures_and_usage(
     assert body["last_check_in_date"] == PERIOD_END
     assert "health" not in body
 
-    # daily_accrual = recommended_monthly_allocation * 12 / 365, quantized to cents.
+    # daily_accrual = recommended_monthly_allocation * 12 / 365, quantized to the bucket's currency.
     monthly = Decimal(body["recommended_monthly_allocation"])
-    expected_daily = (monthly * 12 / 365).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    expected_daily = calculator.quantize_currency(monthly * 12 / 365, body["currency"])
     assert Decimal(body["daily_accrual"]) == expected_daily
 
     # balance = sum(posted allocations) - the 100 expense.
@@ -1001,7 +1002,7 @@ def test_average_actual_monthly_cost_uses_real_expense_total_not_allocated_plus_
 
     detail = _service_detail(db_session, asset_id, as_of)
 
-    assert detail.average_actual_monthly_cost == Decimal("333.33")
+    assert detail.average_actual_monthly_cost == Decimal("333")
 
 
 def test_manual_extra_recommended_divides_by_elapsed_months_for_asset_younger_than_a_year(
