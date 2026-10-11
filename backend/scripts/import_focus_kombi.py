@@ -8,9 +8,11 @@ Backdates the new asset's `created_at` directly in the DB (mirroring
 `tests/conftest.py::backdate_asset_creation`) so the first check-in's period_start lands on the
 real 2025-06-25 acquisition date, then replays the sheet's 14 real monthly check-ins in order
 through the normal service layer so balances/maintenance timers reconstruct exactly like the
-spreadsheet, plus one further real check-in (2026-08-01, casco own-risk payout for a rear door
-repair) posted live through the app on 2026-08-09 -- not sourced from the spreadsheet, read
-directly from Postgres instead (see the last `Period` in `build_periods`). Also replays the sheet's
+spreadsheet, plus three further real check-ins posted live through the app -- 2026-08-01 (casco
+own-risk payout for a rear door repair, posted 2026-08-09), 2026-09-01 (no expenses, posted
+2026-09-15), and 2026-10-01 (annual service, fully covered by the bucket, posted 2026-10-11) --
+none sourced from the spreadsheet, all read directly from Postgres instead (see the last three
+`Period` entries in `build_periods`). Also replays the sheet's
 'Extra safety' (AI) column as `manual_extra_monthly` and,
 via `apply_pocket_overrides`, distributes each period's 'Kifizettük zsebből' (AJ) total across
 that period's expense lines as a `paid_out_of_pocket_override` (see issue #95) -- filling lines in
@@ -154,7 +156,7 @@ def modeled(
     amount: str,
     source_map: SourceMap,
     event_date: date,
-    usage_km: int,
+    usage_km: int | None,
     excluded_from_average: bool = False,
 ) -> ExpenseDraft:
     """Build a 'modeled' expense draft linked to a cost/maintenance row by its technical_key."""
@@ -324,6 +326,21 @@ def build_periods(source_map: SourceMap) -> list[Period]:
             Decimal("15000"),
             Decimal("143000"),
             Decimal("143000"),
+        ),
+        # Real check-in posted live through the app on 2026-09-15 (not from the spreadsheet --
+        # read directly from Postgres). No expenses this period.
+        Period(date(2026, 9, 1), 187628, "summer", [], Decimal("15000"), Decimal("0"), None),
+        # Real check-in posted live through the app on 2026-10-11 (not from the spreadsheet --
+        # read directly from Postgres). Annual service, fully covered by the bucket (no
+        # paid-out-of-pocket amount); the app posted this expense without a usage counter.
+        Period(
+            date(2026, 10, 1),
+            189654,
+            "summer",
+            [modeled("annual_service", "82000", source_map, date(2026, 10, 11), None)],
+            Decimal("15000"),
+            Decimal("82000"),
+            Decimal("0"),
         ),
     ]
 
