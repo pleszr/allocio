@@ -6,7 +6,7 @@ Read this file before finalizing the first plan in a thread.
 
 Read these unless the issue is obviously unrelated:
 
-- `CLAUDE.md`
+- `AGENTS.md`
 - `docs/technical-stack.md`
 
 Read these when the issue touches vehicle rules, money logic, persistence shape, or user-facing domain terminology:
@@ -68,7 +68,7 @@ Implications for planning:
 
 ## Existing Repo Conventions
 
-- Backend Python files are governed by `CLAUDE.md` and `.claude/rules/python-*.md`.
+- Backend Python files are governed by `AGENTS.md` and `.claude/rules/python-*.md`.
 - Backend plans should preserve the current layering:
   - router -> service -> repository/domain
 - New backend service classes should use `Depends` providers in `backend/app/services/dependencies.py`.

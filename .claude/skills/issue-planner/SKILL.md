@@ -41,7 +41,7 @@ Do not use this skill for direct implementation unless the user explicitly asks 
    - If the user gives a GitHub issue number, inspect it with `gh issue view <number>`.
    - If the issue clearly depends on a parent epic or linked issue, inspect that context too. Use it to shape naming and boundaries, not to silently widen scope.
 2. Gather repo context.
-   - Read `CLAUDE.md`.
+   - Read `AGENTS.md`.
    - Read only the relevant docs from [references/repo-context.md](references/repo-context.md).
    - Inspect the relevant frontend and backend modules before writing requirements.
 3. Validate the ask.
@@ -103,7 +103,7 @@ Return sections in this exact order:
 
 - `Skills and rules`
   - Name the relevant repo instructions, docs, and skills the executing agent must use.
-  - If backend files are in scope, explicitly call out `CLAUDE.md` and the Python rules under `.claude/rules/`.
+  - If backend files are in scope, explicitly call out `AGENTS.md` and the Python rules under `.claude/rules/`.
 - `Goal`
   - One outcome sentence.
 - `Scope`

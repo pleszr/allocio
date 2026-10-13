@@ -2,7 +2,7 @@
 
 Use this file to route explicit "save this", "remember this", or "update the rules" requests to the right repo-local instruction file.
 
-This repo uses `.claude/` for Claude-facing memory, `.claude/skills/` for specialized workflows, and `CLAUDE.md` files for lightweight repo guidance. It does not use `.github/memory-structure.md`.
+This repo uses `.claude/` for Claude-facing memory, `.claude/skills/` for specialized workflows, and `AGENTS.md` files for lightweight repo guidance. It does not use `.github/memory-structure.md`.
 
 ## Routing Principles
 
@@ -13,7 +13,7 @@ This repo uses `.claude/` for Claude-facing memory, `.claude/skills/` for specia
 
 ## Existing Memory Targets
 
-### Codex-specific collaboration guidance
+### Repo-wide collaboration guidance
 
 Target:
 
@@ -21,27 +21,17 @@ Target:
 
 Use for:
 
-- lightweight Codex and other non-Claude entrypoint guidance
-- narrowly scoped overrides that differ from the shared `CLAUDE.md` workflow, such as the
-  isolated local stack used by a parallel `allocio-codex` checkout
-
-### Repo-wide collaboration guidance
-
-Target:
-
-- `CLAUDE.md`
-
-Use for:
-
 - top-level repo structure
 - repo-wide workflow order
 - shared constraints that apply across backend, frontend, and database work
+- narrowly scoped checkout- or agent-specific overrides, such as the isolated local stack
+  used by a parallel `allocio-codex` checkout (`## Parallel allocio-codex checkout`)
 
 ### Backend module guidance
 
 Target:
 
-- `backend/CLAUDE.md`
+- `backend/AGENTS.md`
 
 Use for:
 
@@ -53,7 +43,7 @@ Use for:
 
 Target:
 
-- `frontend/CLAUDE.md`
+- `frontend/AGENTS.md`
 
 Use for:
 
@@ -65,7 +55,7 @@ Use for:
 
 Target:
 
-- `backend/alembic/CLAUDE.md`
+- `backend/alembic/AGENTS.md`
 
 Use for:
 
@@ -165,7 +155,7 @@ Use for:
 
 Targets:
 
-- `CLAUDE.md` (`Git Workflow` and `Secret Scanning` sections) for policy
+- `AGENTS.md` (`Git Workflow` and `Secret Scanning` sections) for policy
 - `.claude/hooks/*.py` and `.claude/settings.json` for enforcement
 
 Use for:
@@ -181,7 +171,7 @@ Note: hook files are executable code; when policy changes, update both the polic
 Targets:
 
 - `tools/` (the code-map generator and TS symbol extractor)
-- `CLAUDE.md` (`Structural Code Map` section) for the workflow policy
+- `AGENTS.md` (`Structural Code Map` section) for the workflow policy
 
 Use for:
 
@@ -209,7 +199,7 @@ Examples:
 
 If feedback does not fit the files above:
 
-1. Propose the most likely new file under `.claude/rules/`, `.claude/skills/`, or the relevant `CLAUDE.md`.
+1. Propose the most likely new file under `.claude/rules/`, `.claude/skills/`, or the relevant `AGENTS.md`.
 2. Explain why the existing files are not a good fit.
 3. Ask before creating the new file.
 

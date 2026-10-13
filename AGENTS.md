@@ -26,9 +26,9 @@ Predictive cost-allocation app for smoothing irregular future asset costs (e.g. 
 
 ## Modules
 
-- `backend/` — FastAPI API, services, repositories, domain models, and backend tests. See `backend/CLAUDE.md`.
-- `frontend/` — React 18 + TypeScript + Vite product app. See `frontend/CLAUDE.md`.
-- `backend/alembic/` plus `docker-compose.yml` — PostgreSQL migrations and local database runtime. See `backend/alembic/CLAUDE.md`.
+- `backend/` — FastAPI API, services, repositories, domain models, and backend tests. See `backend/AGENTS.md`.
+- `frontend/` — React 18 + TypeScript + Vite product app. See `frontend/AGENTS.md`.
+- `backend/alembic/` plus `docker-compose.yml` — PostgreSQL migrations and local database runtime. See `backend/alembic/AGENTS.md`.
 - `docs/` — source-of-truth product, domain, and architecture docs.
 - `tools/` — deterministic source-derived code map (`code_map.py`) and TypeScript symbol extractor (`ts_symbol_map.mjs`).
 
@@ -48,7 +48,7 @@ Predictive cost-allocation app for smoothing irregular future asset costs (e.g. 
 
 ## Build And Run
 
-See the referenced module `CLAUDE.md` files for exact commands. The normal local development and full-stack verification order is:
+See the referenced module `AGENTS.md` files for exact commands. The normal local development and full-stack verification order is:
 
 1. Start Postgres.
 2. Apply database migrations.
@@ -91,8 +91,20 @@ Do not paste `Structural Changes` or `Architecture overview` sections into the P
 
 ## Agent Guidance
 
-- `AGENTS.md` is the lightweight entrypoint for Codex and other non-Claude agents. Keep shared
-  guidance in the `CLAUDE.md` files, but allow narrow agent-specific overrides there when required,
-  such as isolated ports for a parallel checkout.
+- The root and module `AGENTS.md` files are the shared instructions for every coding agent
+  (Claude Code, Codex, and others). Claude Code also loads `.claude/rules/` and `.claude/skills/`
+  automatically; other agents should read `.claude/memory-structure.md` and the relevant
+  `.claude/skills/*/SKILL.md` directly.
 - Use `.claude/memory-structure.md` for explicit memory routing and long-lived instruction updates.
 - Specialized workflows such as issue planning, code review, feedback routing, and PR prep live under `.claude/skills/`.
+
+## Parallel allocio-codex checkout
+
+When this checkout directory is named `allocio-codex`, use the isolated stack:
+
+- PostgreSQL: `allocio-codex-postgres` on port `5433`, database `allocio-codex`.
+- Backend: port `8002`.
+- Frontend: port `5175`, proxying `/api` to backend port `8002`.
+- Playwright, when isolated concurrently: backend `8003`, frontend `5176`.
+- Do not use ports `5432`, `8000`, or `5173`; they belong to the parallel `allocio` checkout.
+- Use the checkout's ignored `.env` files for runtime configuration.

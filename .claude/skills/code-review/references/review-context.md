@@ -4,7 +4,7 @@ Read this file before finalizing the first review in a thread.
 
 ## Repo Docs To Check
 
-- `CLAUDE.md`
+- `AGENTS.md`
 - `.claude/rules/python-style.md`
 - `.claude/rules/python-patterns.md`
 - `.claude/rules/python-anti-patterns.md`

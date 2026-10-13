@@ -1,6 +1,6 @@
 ---
 name: pr-prep
-description: Mandatory before opening a PR in this repository (before `gh pr create`). Audits staged changes and proposes updates to repo-local instruction files such as `CLAUDE.md`, `.claude/rules/*.md`, and `.claude/memory-structure.md`. Also flags skill drift and broader documentation drift. Applies the drift fixes directly to those instruction/doc files; it is conservative (adds or corrects stale guidance, and does not delete existing guidance unless the diff plainly contradicts it).
+description: Mandatory before opening a PR in this repository (before `gh pr create`). Audits staged changes and proposes updates to repo-local instruction files such as `AGENTS.md`, `.claude/rules/*.md`, and `.claude/memory-structure.md`. Also flags skill drift and broader documentation drift. Applies the drift fixes directly to those instruction/doc files; it is conservative (adds or corrects stale guidance, and does not delete existing guidance unless the diff plainly contradicts it).
 ---
 
 # Allocio PR Prep
@@ -9,7 +9,7 @@ description: Mandatory before opening a PR in this repository (before `gh pr cre
 
 Audit staged changes before opening a PR and check whether the repository's instruction files still match the codebase. This skill applies memory and documentation maintenance directly to instruction and documentation files.
 
-This audit is the step between committing on a feature branch and running `gh pr create` (see `CLAUDE.md` Git Workflow). It applies its edits directly; the surrounding workflow then commits and pushes them and creates the PR.
+This audit is the step between committing on a feature branch and running `gh pr create` (see `AGENTS.md` Git Workflow). It applies its edits directly; the surrounding workflow then commits and pushes them and creates the PR.
 
 Read `.claude/memory-structure.md` first.
 
@@ -66,10 +66,10 @@ Identify:
 
 Audit these first because they are the closest equivalent to module instructions in this repository:
 
-- `CLAUDE.md`
-- `backend/CLAUDE.md`
-- `frontend/CLAUDE.md`
-- `backend/alembic/CLAUDE.md`
+- `AGENTS.md`
+- `backend/AGENTS.md`
+- `frontend/AGENTS.md`
+- `backend/alembic/AGENTS.md`
 - `.claude/rules/python-style.md`
 - `.claude/rules/python-patterns.md`
 - `.claude/rules/python-anti-patterns.md`
@@ -138,7 +138,7 @@ After editing, report what you changed, grouped by file:
 ## Flagged skill drift (not auto-edited): .claude/skills/code-review/SKILL.md
 - References a file path that no longer exists
 
-## Existing repo drift: CLAUDE.md
+## Existing repo drift: AGENTS.md
 - Mentions a startup command that no longer matches the current backend entrypoint
 ```
 
@@ -153,7 +153,7 @@ Skill files are flagged, not auto-edited (see section 5). If no update is needed
 
 The surrounding workflow creates the PR after this audit is approved. The PR body it produces must include:
 
-- A `## Requirements` section containing the full contents of any issue-planner requirements file used for the implementation (see `CLAUDE.md`). That temporary file under `.claude/plans/` must be deleted before the final commit or PR unless Roland asks to keep it.
+- A `## Requirements` section containing the full contents of any issue-planner requirements file used for the implementation (see `AGENTS.md`). That temporary file under `.claude/plans/` must be deleted before the final commit or PR unless Roland asks to keep it.
 
 ## What This Skill Does Not Do
 
@@ -166,4 +166,4 @@ The surrounding workflow creates the PR after this audit is approved. The PR bod
 
 - `Use $pr-prep before I open a PR for these staged changes.`
 - `Use $pr-prep to audit the staged diff for memory or doc drift.`
-- `Use $pr-prep to tell me whether CLAUDE.md or .claude rules need updates before PR.`
+- `Use $pr-prep to tell me whether AGENTS.md or .claude rules need updates before PR.`
