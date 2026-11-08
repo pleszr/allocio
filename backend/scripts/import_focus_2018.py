@@ -9,10 +9,11 @@ Backdates the new asset's `created_at` directly in the DB (mirroring
 period_start lands on 2018-08-22 (sheet row 6, starting odometer 242429), then replays the
 remaining 98 real sheet rows through 2026-07-01 as check-ins in chronological order, irregularly
 spaced exactly as recorded (not monthly -- unlike `import_focus_kombi.py`, whose 14 rows happened
-to all be ~monthly), plus three further real check-ins posted live through the app -- 2026-08-01
+to all be ~monthly), plus four further real check-ins posted live through the app -- 2026-08-01
 (mandatory_liability_insurance renewal, posted 2026-08-09), 2026-09-01 (no expenses, posted
-2026-09-15), and 2026-10-11 (no expenses, posted 2026-10-11) -- none sourced from the spreadsheet,
-all read directly from Postgres instead (see the last three `Period` entries in `build_periods`).
+2026-09-15), 2026-10-11 (no expenses, posted 2026-10-11), and 2026-11-08 (no expenses, posted
+2026-11-08) -- none sourced from the spreadsheet, all read directly from Postgres instead (see the
+last four `Period` entries in `build_periods`).
 Also replays the sheet's
 'Extra safety' (AJ) column as `manual_extra_monthly`
 (resetting to 0 on every row that leaves AJ blank -- confirmed against the sheet's own `AL`/`AO`
@@ -751,6 +752,9 @@ def build_periods(source_map: SourceMap) -> list[Period]:
         # Real check-in posted live through the app on 2026-10-11 (not from the spreadsheet --
         # read directly from Postgres). No expenses this period.
         Period(date(2026, 10, 11), 349182, "all_season", [], zero, None),
+        # Real check-in posted live through the app on 2026-11-08 (not from the spreadsheet --
+        # read directly from Postgres). No expenses this period.
+        Period(date(2026, 11, 8), 349482, "all_season", [], zero, None),
     ]
 
 
