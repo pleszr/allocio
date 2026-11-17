@@ -113,6 +113,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (text ? JSON.parse(text, decimalReviver) : undefined) as T;
 }
 
+// File downloads bypass `request`, which always parses JSON; errors mirror it exactly.
+async function downloadBlob(path: string): Promise<Blob> {
+  let res: Response;
+  try {
+    res = await fetch(`/api${path}`);
+  } catch {
+    throw new ApiError(0, "Can't reach the server. Is the backend running?");
+  }
+  if (!res.ok) {
+    throw new ApiError(res.status, await errorDetail(res));
+  }
+  return await res.blob();
+}
+
 async function errorDetail(res: Response): Promise<string> {
   try {
     const body = (await res.json()) as { detail?: unknown };
@@ -152,6 +166,7 @@ export const api = {
   getBalanceHistory: (id: string, months = 12) =>
     request<BalanceHistory>(`/assets/${id}/balance-history?months=${months}`),
   getCheckInHistory: (id: string) => request<CheckInHistory>(`/assets/${id}/check-in-history`),
+  downloadCheckInHistoryCsv: (id: string) => downloadBlob(`/assets/${id}/check-in-history.csv`),
   getCostDistribution: (id: string, months = 12) =>
     request<CostDistribution>(`/assets/${id}/cost-distribution?months=${months}`),
 

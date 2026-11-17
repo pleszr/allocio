@@ -17,6 +17,8 @@ export function HistoryScreen({ assetId, onEditCheckIn }: HistoryScreenProps) {
   const { t } = useTranslation();
   const asset = useAsync(() => api.getAsset(assetId), [assetId]);
   const history = useAsync(() => api.getCheckInHistory(assetId), [assetId]);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   if (asset.loading || history.loading) return <LoadingState label={t("history.loading")} />;
   if (asset.error || history.error || !asset.data || !history.data) {
@@ -33,6 +35,25 @@ export function HistoryScreen({ assetId, onEditCheckIn }: HistoryScreenProps) {
 
   const rows = history.data.rows;
   const avgRate = averageKmPerDay(rows);
+  const assetName = asset.data.name;
+
+  async function handleDownload() {
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      const blob = await api.downloadCheckInHistoryCsv(assetId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = historyCsvFilename(assetName, new Date());
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : t("history.download_failed"));
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <div className="content fade-in">
@@ -43,7 +64,18 @@ export function HistoryScreen({ assetId, onEditCheckIn }: HistoryScreenProps) {
             {t("history.subtitle", { name: asset.data.name, avgRate: avgRate.toFixed(1) })}
           </div>
         </div>
+        {rows.length > 0 && (
+          <button type="button" className="btn btn-outline btn-sm" disabled={downloading} onClick={handleDownload}>
+            <Icon name="download" />
+            {downloading ? t("history.downloading") : t("history.download_csv")}
+          </button>
+        )}
       </div>
+      {downloadError && (
+        <div className="muted" role="alert" style={{ marginBottom: 12 }}>
+          {t("history.download_failed")} {downloadError}
+        </div>
+      )}
 
       {rows.length === 0 ? (
         <div className="muted">{t("history.empty")}</div>
@@ -77,6 +109,17 @@ export function HistoryScreen({ assetId, onEditCheckIn }: HistoryScreenProps) {
       )}
     </div>
   );
+}
+
+// `allocio-history-<asset slug>-<YYYY-MM-DD>.csv`, using today's local date.
+function historyCsvFilename(assetName: string, today: Date): string {
+  const slug = assetName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const date = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  return `allocio-history-${slug}-${date}.csv`;
 }
 
 // Mean km/day across rows with both a usage delta and a positive elapsed period; 0 when no row

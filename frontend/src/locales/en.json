@@ -290,7 +290,10 @@
     "irregular_cadence": "{{days}} days since previous check-in — outside the usual ~30-day cadence",
     "expand_expenses": "Show expense breakdown",
     "collapse_expenses": "Hide expense breakdown",
-    "edit_check_in": "Edit this check-in"
+    "edit_check_in": "Edit this check-in",
+    "download_csv": "Download CSV",
+    "downloading": "Preparing…",
+    "download_failed": "Could not download the CSV."
   },
   "newBucket": {
     "title": "New bucket",

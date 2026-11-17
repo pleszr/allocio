@@ -10,6 +10,7 @@ const ICONS: Record<string, string> = {
   bell: "M6 8a6 6 0 1 1 12 0c0 5 2 7 2 7H4s2-2 2-7zm4 11a2 2 0 0 0 4 0",
   arrowRight: "M5 12h14m-5-5 5 5-5 5",
   plus: "M12 5v14M5 12h14",
+  download: "M12 4v11M7 10l5 5 5-5M5 20h14",
   chevronRight: "M9 6l6 6-6 6",
   close: "M6 6l12 12M18 6 6 18",
   alert: "M12 9v4m0 4h.01M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.4 0z",
