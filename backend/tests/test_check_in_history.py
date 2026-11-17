@@ -1,3 +1,4 @@
+import csv
 import uuid
 from datetime import date, timedelta
 from decimal import Decimal
@@ -247,3 +248,106 @@ def test_unowned_asset_returns_404(client: TestClient, db_session: Session) -> N
 
 def test_unknown_asset_returns_404(client: TestClient) -> None:
     assert _get_history(client, uuid.uuid4()).status_code == 404
+
+
+CSV_HEADER_ROW = (
+    "Date,Odometer,Since last,Days,km/day,Allocated,Expense,Covered by bucket,"
+    "Paid out of pocket,Net,Balance,Currency"
+)
+
+
+def _get_csv(client: TestClient, asset_id: uuid.UUID):
+    return client.get(f"/api/assets/{asset_id}/check-in-history.csv")
+
+
+def _parse_csv(text: str) -> list[dict[str, str]]:
+    return list(csv.DictReader(text.removeprefix("\ufeff").splitlines()))
+
+
+def test_csv_empty_history_returns_header_only(client: TestClient, db_session: Session) -> None:
+    asset, _bucket = _make_asset(db_session, name="EmptyCsv")
+
+    response = _get_csv(client, asset.id)
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    assert response.text.startswith("\ufeff")
+    lines = response.text.removeprefix("\ufeff").splitlines()
+    assert lines == [CSV_HEADER_ROW]
+
+
+def test_csv_rows_match_json_history(client: TestClient, db_session: Session) -> None:
+    asset, bucket = _make_asset(db_session, name="CsvRows")
+    period1_start = date.today() - timedelta(days=60)
+    period1_end = date.today() - timedelta(days=30)
+    period2_end = date.today()
+    check_in_1 = _add_posted_check_in(
+        db_session, asset.id, period_start=period1_start, period_end=period1_end, usage_start=0, usage_end=500
+    )
+    _add_allocation(db_session, bucket.id, check_in_1.id, "300.00", period1_end)
+    check_in_2 = _add_posted_check_in(
+        db_session, asset.id, period_start=period1_end, period_end=period2_end, usage_start=500, usage_end=900
+    )
+    _add_allocation(db_session, bucket.id, check_in_2.id, "250.00", period2_end)
+    _add_expense(db_session, bucket.id, check_in_2.id, "100.00", period2_end, paid_out_of_pocket="20.00")
+
+    csv_rows = _parse_csv(_get_csv(client, asset.id).text)
+    # JSON is newest-first; the CSV is oldest-first.
+    json_rows = list(reversed(_get_history(client, asset.id).json()["rows"]))
+
+    assert len(csv_rows) == 2
+    assert [row["Date"] for row in csv_rows] == [period1_end.isoformat(), period2_end.isoformat()]
+    column_to_field = {
+        "Allocated": "allocated",
+        "Expense": "expense",
+        "Covered by bucket": "bucket_expense",
+        "Paid out of pocket": "paid_out_of_pocket",
+        "Net": "net",
+        "Balance": "balance",
+    }
+    for csv_row, json_row in zip(csv_rows, json_rows, strict=True):
+        for column, field in column_to_field.items():
+            assert Decimal(csv_row[column]) == _dec(json_row[field])
+        assert csv_row["Currency"] == "HUF"
+    assert csv_rows[0]["km/day"] == "16.7"
+    assert csv_rows[1]["Odometer"] == "900"
+    assert csv_rows[1]["Since last"] == "400"
+
+
+def test_csv_null_usage_is_empty_cell(client: TestClient, db_session: Session) -> None:
+    asset, bucket = _make_asset(db_session, name="NoUsageCsv")
+    today = date.today()
+    check_in = CheckIn(
+        asset_id=asset.id,
+        period_start=today,
+        period_end=today,
+        usage_start=None,
+        usage_end=None,
+        usage_amount=None,
+        status="posted",
+    )
+    db_session.add(check_in)
+    db_session.flush()
+    _add_allocation(db_session, bucket.id, check_in.id, "0.00", today)
+
+    (row,) = _parse_csv(_get_csv(client, asset.id).text)
+
+    assert row["Odometer"] == ""
+    assert row["Since last"] == ""
+    assert row["km/day"] == ""
+
+
+def test_csv_has_attachment_disposition(client: TestClient, db_session: Session) -> None:
+    asset, _bucket = _make_asset(db_session, name="DispositionCsv")
+
+    assert "attachment" in _get_csv(client, asset.id).headers["content-disposition"]
+
+
+def test_csv_unowned_asset_returns_404(client: TestClient, db_session: Session) -> None:
+    asset, _bucket = _make_asset(db_session, user_id=OTHER_USER_ID, name="TheirsCsv")
+
+    assert _get_csv(client, asset.id).status_code == 404
+
+
+def test_csv_unknown_asset_returns_404(client: TestClient) -> None:
+    assert _get_csv(client, uuid.uuid4()).status_code == 404

@@ -214,6 +214,34 @@ def get_check_in_history(
     return _to_check_in_history_response(history)
 
 
+@router.get(
+    "/assets/{asset_id}/check-in-history.csv",
+    summary="Download an asset's check-in ledger as CSV",
+    description="""Returns the same per-check-in figures as the check-in-history endpoint as a UTF-8
+    (BOM-prefixed) CSV attachment, one row per posted check-in, oldest → newest. Per-expense lines are
+    not included. An asset with no posted check-ins returns the header row only.""",
+    response_class=Response,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "CSV file of the check-in ledger.", "content": {"text/csv": {}}},
+        404: {"description": "Asset or bucket not found for this user."},
+        500: {"description": INTERNAL_ERROR},
+    },
+)
+def get_check_in_history_csv(
+    asset_id: uuid.UUID,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    service: CheckInHistoryService = Depends(get_check_in_history_service),
+) -> Response:
+    """Delegate CSV rendering to the check-in-history service and return it as a file attachment."""
+    csv_text = service.check_in_history_csv(user_id, asset_id)
+    return Response(
+        content=csv_text,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="check-in-history.csv"'},
+    )
+
+
 @router.put(
     "/assets/{asset_id}/manual-extra",
     summary="Replace an asset's manual extra monthly buffer",

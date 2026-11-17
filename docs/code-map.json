@@ -438,32 +438,32 @@
           "functions": [
             {
               "name": "_to_asset_detail_response",
-              "line_start": 270,
-              "line_end": 324,
+              "line_start": 298,
+              "line_end": 352,
               "hash": "3c4dc2700020da4b"
             },
             {
               "name": "_to_balance_history_response",
-              "line_start": 327,
-              "line_end": 336,
+              "line_start": 355,
+              "line_end": 364,
               "hash": "0eb152e94e7e09a6"
             },
             {
               "name": "_to_check_in_history_response",
-              "line_start": 355,
-              "line_end": 392,
+              "line_start": 383,
+              "line_end": 420,
               "hash": "f4eafb9762883051"
             },
             {
               "name": "_to_cost_distribution_response",
-              "line_start": 339,
-              "line_end": 352,
+              "line_start": 367,
+              "line_end": 380,
               "hash": "a5e1b4d0ffc6bb6a"
             },
             {
               "name": "_to_overview_response",
-              "line_start": 395,
-              "line_end": 414,
+              "line_start": 423,
+              "line_end": 442,
               "hash": "13bfb5c03c54d633"
             },
             {
@@ -474,8 +474,8 @@
             },
             {
               "name": "get_asset_detail",
-              "line_start": 260,
-              "line_end": 267,
+              "line_start": 288,
+              "line_end": 295,
               "hash": "08c5341f5d4576ce"
             },
             {
@@ -491,6 +491,12 @@
               "hash": "135600154f34af2c"
             },
             {
+              "name": "get_check_in_history_csv",
+              "line_start": 231,
+              "line_end": 242,
+              "hash": "0a752ecc4f017aaf"
+            },
+            {
               "name": "get_cost_distribution",
               "line_start": 182,
               "line_end": 190,
@@ -504,8 +510,8 @@
             },
             {
               "name": "update_manual_extra",
-              "line_start": 232,
-              "line_end": 240,
+              "line_start": 260,
+              "line_end": 268,
               "hash": "041cb26c6b7666df"
             }
           ],
@@ -531,8 +537,8 @@
               "method": "get",
               "path": "/assets/{asset_id}",
               "handler": "get_asset_detail",
-              "line_start": 260,
-              "line_end": 267,
+              "line_start": 288,
+              "line_end": 295,
               "hash": "08c5341f5d4576ce"
             },
             {
@@ -553,6 +559,14 @@
             },
             {
               "method": "get",
+              "path": "/assets/{asset_id}/check-in-history.csv",
+              "handler": "get_check_in_history_csv",
+              "line_start": 231,
+              "line_end": 242,
+              "hash": "0a752ecc4f017aaf"
+            },
+            {
+              "method": "get",
               "path": "/assets/{asset_id}/cost-distribution",
               "handler": "get_cost_distribution",
               "line_start": 182,
@@ -563,8 +577,8 @@
               "method": "put",
               "path": "/assets/{asset_id}/manual-extra",
               "handler": "update_manual_extra",
-              "line_start": 232,
-              "line_end": 240,
+              "line_start": 260,
+              "line_end": 268,
               "hash": "041cb26c6b7666df"
             }
           ]
@@ -3307,64 +3321,91 @@
             "app.domain.asset",
             "app.domain.check_in",
             "app.repository",
+            "csv",
             "dataclasses",
             "datetime",
             "decimal",
+            "io",
             "sqlalchemy.orm",
             "uuid"
           ],
-          "functions": [],
+          "functions": [
+            {
+              "name": "_cell",
+              "line_start": 197,
+              "line_end": 198,
+              "hash": "5d1cca0ccde1c2f6"
+            },
+            {
+              "name": "_csv_row",
+              "line_start": 179,
+              "line_end": 194,
+              "hash": "c9ffa785d811f8f5"
+            },
+            {
+              "name": "_km_per_day",
+              "line_start": 201,
+              "line_end": 205,
+              "hash": "1f324cc33d1d14ad"
+            }
+          ],
           "classes": [
             {
               "name": "CheckInExpenseLine",
-              "line_start": 21,
-              "line_end": 34,
+              "line_start": 40,
+              "line_end": 53,
               "hash": "fd0528ace1b57b3b",
               "methods": []
             },
             {
               "name": "CheckInHistory",
-              "line_start": 56,
-              "line_end": 61,
+              "line_start": 75,
+              "line_end": 80,
               "hash": "2ed4ef9271f3604a",
               "methods": []
             },
             {
               "name": "CheckInHistoryRow",
-              "line_start": 38,
-              "line_end": 52,
+              "line_start": 57,
+              "line_end": 71,
               "hash": "e2b81f46ad8f02a8",
               "methods": []
             },
             {
               "name": "CheckInHistoryService",
-              "line_start": 64,
-              "line_end": 147,
+              "line_start": 83,
+              "line_end": 176,
               "hash": "f3316c61ad6a87e8",
               "methods": [
                 {
                   "name": "__init__",
-                  "line_start": 67,
-                  "line_end": 68,
+                  "line_start": 86,
+                  "line_end": 87,
                   "hash": "2c8f2810305a160d"
                 },
                 {
                   "name": "_build_rows",
-                  "line_start": 94,
-                  "line_end": 147,
+                  "line_start": 123,
+                  "line_end": 176,
                   "hash": "98bbabaa6aae5505"
                 },
                 {
                   "name": "_owned_bucket",
-                  "line_start": 85,
-                  "line_end": 92,
+                  "line_start": 114,
+                  "line_end": 121,
                   "hash": "f0271e450a62e420"
                 },
                 {
                   "name": "check_in_history",
-                  "line_start": 70,
-                  "line_end": 83,
+                  "line_start": 89,
+                  "line_end": 102,
                   "hash": "e7954129449d2ba1"
+                },
+                {
+                  "name": "check_in_history_csv",
+                  "line_start": 104,
+                  "line_end": 112,
+                  "hash": "980b5f31558f5b6f"
                 }
               ]
             }
@@ -4340,9 +4381,15 @@
               "hash": "b5a0254618d00cc1"
             },
             {
+              "name": "downloadBlob",
+              "line_start": 117,
+              "line_end": 128,
+              "hash": "eb8640842c0c5b9d"
+            },
+            {
               "name": "errorDetail",
-              "line_start": 116,
-              "line_end": 131,
+              "line_start": 130,
+              "line_end": 145,
               "hash": "765e518477e65b7e"
             },
             {
@@ -4587,8 +4634,8 @@
           "functions": [
             {
               "name": "Icon",
-              "line_start": 45,
-              "line_end": 64,
+              "line_start": 46,
+              "line_end": 65,
               "hash": "8d090243042b514a"
             }
           ],
@@ -4596,8 +4643,8 @@
           "components": [
             {
               "name": "Icon",
-              "line_start": 45,
-              "line_end": 64,
+              "line_start": 46,
+              "line_end": 65,
               "hash": "8d090243042b514a",
               "kind": "function"
             }
@@ -5540,32 +5587,38 @@
           "functions": [
             {
               "name": "HistoryRow",
-              "line_start": 109,
-              "line_end": 217,
+              "line_start": 152,
+              "line_end": 260,
               "hash": "5620c87cdd44c4df"
             },
             {
               "name": "HistoryScreen",
               "line_start": 16,
-              "line_end": 80,
-              "hash": "a3954b1c786fc05e"
+              "line_end": 112,
+              "hash": "448d9048032cb369"
             },
             {
               "name": "averageKmPerDay",
-              "line_start": 85,
-              "line_end": 91,
+              "line_start": 128,
+              "line_end": 134,
               "hash": "87227d29bcf7009b"
             },
             {
+              "name": "historyCsvFilename",
+              "line_start": 115,
+              "line_end": 123,
+              "hash": "50ff36d302737f9e"
+            },
+            {
               "name": "kmPerDay",
-              "line_start": 93,
-              "line_end": 96,
+              "line_start": 136,
+              "line_end": 139,
               "hash": "a0c541b64da600fe"
             },
             {
               "name": "usageHeat",
-              "line_start": 100,
-              "line_end": 107,
+              "line_start": 143,
+              "line_end": 150,
               "hash": "742b16c371d0cb2d"
             }
           ],
@@ -5573,16 +5626,16 @@
           "components": [
             {
               "name": "HistoryRow",
-              "line_start": 109,
-              "line_end": 217,
+              "line_start": 152,
+              "line_end": 260,
               "hash": "5620c87cdd44c4df",
               "kind": "function"
             },
             {
               "name": "HistoryScreen",
               "line_start": 16,
-              "line_end": 80,
-              "hash": "a3954b1c786fc05e",
+              "line_end": 112,
+              "hash": "448d9048032cb369",
               "kind": "function"
             }
           ]

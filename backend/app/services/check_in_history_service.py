@@ -4,6 +4,8 @@ Read-only, like `balance_history_service`. Reuses the same ownership-gate reposi
 never commits or flushes; a zero-check-in asset returns an empty row list, not a 404.
 """
 
+import csv
+import io
 import uuid
 from dataclasses import dataclass
 from datetime import date
@@ -15,6 +17,23 @@ from app.common.exceptions import NotFoundError
 from app.domain.asset import Bucket
 from app.domain.check_in import CheckIn, ExpenseEvent
 from app.repository import check_in_repository, expense_repository
+
+CSV_HEADER = [
+    "Date",
+    "Odometer",
+    "Since last",
+    "Days",
+    "km/day",
+    "Allocated",
+    "Expense",
+    "Covered by bucket",
+    "Paid out of pocket",
+    "Net",
+    "Balance",
+    "Currency",
+]
+# Lets Excel detect UTF-8 so accented text renders correctly.
+UTF8_BOM = "\ufeff"
 
 
 @dataclass(frozen=True)
@@ -82,6 +101,16 @@ class CheckInHistoryService:
         rows = list(reversed(rows))
         return CheckInHistory(asset_id=asset_id, currency=bucket.currency, rows=rows)
 
+    def check_in_history_csv(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> str:
+        """Render the owned asset's check-in ledger as a BOM-prefixed CSV, oldest check-in first."""
+        history = self.check_in_history(user_id, asset_id)
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(CSV_HEADER)
+        for row in reversed(history.rows):
+            writer.writerow(_csv_row(row, history.currency))
+        return UTF8_BOM + buffer.getvalue()
+
     def _owned_bucket(self, user_id: uuid.UUID, asset_id: uuid.UUID) -> Bucket:
         """Gate on ownership then resolve the asset's bucket; unowned or missing rows raise `NotFoundError`."""
         if expense_repository.get_owned_asset(self._session, user_id, asset_id) is None:
@@ -145,3 +174,32 @@ class CheckInHistoryService:
                 )
             )
         return rows
+
+
+def _csv_row(row: CheckInHistoryRow, currency: str) -> list[str]:
+    """Flatten one ledger row into CSV cells; null values become empty cells."""
+    return [
+        row.period_end.isoformat(),
+        _cell(row.usage_end),
+        _cell(row.usage_since_last),
+        str(row.elapsed_days),
+        _km_per_day(row),
+        str(row.allocated),
+        str(row.expense),
+        str(row.bucket_expense),
+        str(row.paid_out_of_pocket),
+        str(row.net),
+        str(row.balance),
+        currency,
+    ]
+
+
+def _cell(value: int | None) -> str:
+    return "" if value is None else str(value)
+
+
+def _km_per_day(row: CheckInHistoryRow) -> str:
+    """Usage per elapsed day to 1 decimal, matching `kmPerDay` in `HistoryScreen.tsx`."""
+    if row.usage_since_last is None or row.elapsed_days <= 0:
+        return ""
+    return f"{row.usage_since_last / row.elapsed_days:.1f}"
